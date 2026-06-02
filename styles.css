@@ -709,3 +709,23 @@ td .points-pill {
   font-size: 12px;
   opacity: 0.85;
 }
+
+/* ---------- Mobile stage filter fix ---------- */
+@media (max-width: 560px) {
+  .stage-filter {
+    width: 100%;
+    border-radius: 18px;
+    justify-content: flex-start;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding: 8px;
+    margin: 0 0 16px;
+  }
+
+  .stage-filter button {
+    flex: 0 0 auto;
+    border-radius: 12px;
+    white-space: nowrap;
+    padding: 9px 14px;
+  }
+}
