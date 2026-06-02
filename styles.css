@@ -751,26 +751,6 @@ td .points-pill {
   border-color: color-mix(in srgb, var(--accent-2) 45%, var(--glass-border));
 }
 
-/* ---------- Mobile stage filter fix ---------- */
-@media (max-width: 560px) {
-  .stage-filter {
-    width: 100%;
-    border-radius: 18px;
-    justify-content: flex-start;
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    padding: 8px;
-    margin: 0 0 16px;
-  }
-
-  .stage-filter button {
-    flex: 0 0 auto;
-    border-radius: 12px;
-    white-space: nowrap;
-    padding: 9px 14px;
-  }
-}
-
 /* ---------- Admin / Super Admin mobile fixes ---------- */
 @media (max-width: 720px) {
   .admin-grid {
@@ -816,19 +796,16 @@ td .points-pill {
    Smooth interaction / fluid animation polish
    ============================================================ */
 
-/* Smoother global motion */
 :root {
   --transition-fast: 160ms cubic-bezier(.2,.8,.2,1);
   --transition-smooth: 260ms cubic-bezier(.16,1,.3,1);
   --transition-bounce: 320ms cubic-bezier(.34,1.56,.64,1);
 }
 
-/* Smooth scrolling when jumping to matches */
 html {
   scroll-behavior: smooth;
 }
 
-/* Buttons feel more fluid when clicked */
 button {
   transform: translateY(0) scale(1);
   transition:
@@ -847,7 +824,6 @@ button:active {
   transform: translateY(1px) scale(0.985);
 }
 
-/* Tab buttons feel less sudden */
 .auth-tabs button,
 .nav-tabs button,
 .stage-filter button {
@@ -871,7 +847,6 @@ button:active {
   transform: scale(0.97);
 }
 
-/* Cards feel softer on hover/click */
 .card,
 .match-card,
 .next-card,
@@ -896,7 +871,6 @@ button:active {
   transform: scale(0.992);
 }
 
-/* Page/view content fades in softly */
 #predictionsView,
 #myPredictionsView,
 #leaderboardView,
@@ -911,13 +885,13 @@ button:active {
     opacity: 0;
     transform: translateY(8px) scale(0.995);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
 }
 
-/* Match cards appear smoother after filtering */
 .view-grid > .card,
 .next-up > .next-card,
 .admin-grid > .card {
@@ -929,13 +903,13 @@ button:active {
     opacity: 0;
     transform: translateY(10px) scale(0.985);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
 }
 
-/* Inputs feel more premium */
 input,
 select {
   transition:
@@ -950,7 +924,6 @@ select:focus {
   transform: translateY(-1px);
 }
 
-/* Toast slide/fade effect */
 .toast {
   animation: toastIn 260ms cubic-bezier(.16,1,.3,1);
 }
@@ -960,13 +933,13 @@ select:focus {
     opacity: 0;
     transform: translateX(-50%) translateY(10px) scale(0.96);
   }
+
   to {
     opacity: 1;
     transform: translateX(-50%) translateY(0) scale(1);
   }
 }
 
-/* Respect users who prefer reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
