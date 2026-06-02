@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Office World Cup Predictor</title>
+  <title>Office World Cup Prediction League</title>
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -13,7 +13,7 @@
 
   <main class="app-shell">
     <section id="setupPanel" class="card setup-card">
-      <h1>Office World Cup Predictor</h1>
+      <h1>Office World Cup Prediction League</h1>
       <p class="muted">Enter your Supabase details once. These are saved only in this browser.</p>
       <label>Supabase Project URL</label>
       <input id="supabaseUrl" placeholder="https://your-project.supabase.co" />
@@ -26,8 +26,8 @@
       <div class="brand-row">
         <div class="logo-ball">⚽</div>
         <div>
-          <h1>Office World Cup Predictor</h1>
-          <p class="muted">Predict scores. Beat the office. Claim the bragging rights.</p>
+          <h1>Office World Cup Prediction League</h1>
+          <p class="muted">Predict scores. Update anytime before kickoff. Last saved prediction counts.</p>
         </div>
       </div>
 
@@ -51,7 +51,7 @@
     <section id="portalPanel" class="hidden">
       <header class="portal-header card">
         <div>
-          <h1>Office World Cup Predictor</h1>
+          <h1>Office World Cup Prediction League</h1>
           <p id="userLine" class="muted"></p>
         </div>
         <button id="logoutBtn" class="secondary">Logout</button>
@@ -73,7 +73,8 @@
           <div><strong>3 pts</strong><span>Correct result: winner/draw</span></div>
           <div><strong>1 bonus</strong><span>Correct goal difference</span></div>
         </div>
-        <p class="muted">Predictions are locked once the match kickoff time has passed or admin manually locks the match.</p>
+        <p class="muted">You may update your prediction as many times as you want before kickoff. The last saved prediction before the match starts will be counted.</p>
+        <p class="muted">Predictions are locked once the match kickoff time has passed or admin manually locks the match. Admin can reopen a match using override if required.</p>
       </section>
       <section id="adminView" class="hidden"></section>
     </section>
