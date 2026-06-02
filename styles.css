@@ -695,7 +695,7 @@ td .points-pill {
 .site-footer {
   width: min(1180px, 94vw);
   margin: -24px auto 32px;
-  padding-bottom: 40px;
+  padding-bottom: 80px;
   text-align: center;
   color: var(--muted);
   font-size: 13px;
