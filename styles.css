@@ -694,11 +694,12 @@ td .points-pill {
 /* ---------- Footer / Copyright ---------- */
 .site-footer {
   width: min(1180px, 94vw);
-  margin: -24px auto 32px;
-  padding-bottom: 40px;
+  margin: 24px auto 0;
+  padding-bottom: 32px;
   text-align: center;
   color: var(--muted);
   font-size: 13px;
+  flex-shrink: 0;
 }
 
 .site-footer p {
@@ -1070,4 +1071,23 @@ select:focus {
   50% {
     background-position: 100% 50%;
   }
+}
+/* ============================================================
+   Sticky footer layout
+   Keeps footer at the bottom even when page has little content
+   ============================================================ */
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+.app-shell {
+  flex: 1 0 auto;
+}
+
+.site-footer {
+  flex-shrink: 0;
+  margin: 24px auto 0;
+  padding-bottom: 32px;
 }
