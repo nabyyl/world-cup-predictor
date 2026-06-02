@@ -7,6 +7,7 @@
    - Auto-locks matches at kickoff (UI + Supabase RLS)
    - Auto-syncs available scores from OpenFootball
    - Admin-entered results are protected from auto-sync
+   - Supabase connection is prefilled so users do not see setup screen
    ============================================================ */
 
 let supabaseClient;
@@ -22,6 +23,12 @@ let scheduleRefreshId = null;
 
 const OPENFOOTBALL_2026_URL =
   'https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json';
+
+const DEFAULT_SUPABASE_URL =
+  'https://lpbsxggijjjanvnodgsn.supabase.co';
+
+const DEFAULT_SUPABASE_ANON_KEY =
+  'sb_publishable_RUaY8xsNZDZTjTUyq4SKWg_HbiLGxon';
 
 const $ = (id) => document.getElementById(id);
 
@@ -117,8 +124,13 @@ function isAdmin() {
    ============================================================ */
 
 function initSupabase() {
-  const url = localStorage.getItem('wc_supabase_url');
-  const key = localStorage.getItem('wc_supabase_anon_key');
+  const url =
+    localStorage.getItem('wc_supabase_url') ||
+    DEFAULT_SUPABASE_URL;
+
+  const key =
+    localStorage.getItem('wc_supabase_anon_key') ||
+    DEFAULT_SUPABASE_ANON_KEY;
 
   if (!url || !key) {
     showElement('setupPanel');
@@ -128,6 +140,9 @@ function initSupabase() {
   }
 
   supabaseClient = supabase.createClient(url, key);
+
+  localStorage.setItem('wc_supabase_url', url);
+  localStorage.setItem('wc_supabase_anon_key', key);
 
   hideElement('setupPanel');
   showElement('authPanel');
@@ -201,14 +216,10 @@ function startLiveTickers() {
   if (lockTickerId) clearInterval(lockTickerId);
   if (scheduleRefreshId) clearTimeout(scheduleRefreshId);
 
-  // UI refresh every 30 seconds so matches visually lock after kickoff.
   lockTickerId = setInterval(() => {
     rerenderCurrentView();
   }, 30 * 1000);
 
-  // Smart auto-sync:
-  // - Every 2 minutes if a match is near/live/recent.
-  // - Every 15 minutes otherwise.
   async function smartAutoSyncLoop() {
     try {
       await autoSyncScoresFromInternet(true);
@@ -220,7 +231,6 @@ function startLiveTickers() {
       const kickoff = new Date(match.kickoff_at).getTime();
       const now = Date.now();
 
-      // From 15 minutes before kickoff until 3 hours after kickoff.
       return now >= kickoff - 15 * 60 * 1000 &&
              now <= kickoff + 3 * 60 * 60 * 1000;
     });
@@ -379,7 +389,6 @@ function navigateToMatch(matchId) {
 
   if (!match) return;
 
-  // If finished, send user to the Full Time tab; otherwise to its stage tab.
   currentStage = matchHasResult(match) ? 'results' : classifyStage(match.stage);
   showView('predictions');
   renderPredictionsRoot();
@@ -714,7 +723,6 @@ async function autoSyncScoresFromInternet(silent = true) {
         row.actual_home_score !== undefined &&
         row.actual_away_score !== undefined;
 
-      // New match from internet source.
       if (!existing) {
         return {
           ...row,
@@ -724,7 +732,6 @@ async function autoSyncScoresFromInternet(silent = true) {
         };
       }
 
-      // If admin corrected/protected the score, do not overwrite it.
       if (existing.admin_result_override) {
         return {
           ...row,
@@ -736,7 +743,6 @@ async function autoSyncScoresFromInternet(silent = true) {
         };
       }
 
-      // If internet source now has a final score, update it.
       if (incomingHasResult) {
         return {
           ...row,
@@ -746,7 +752,6 @@ async function autoSyncScoresFromInternet(silent = true) {
         };
       }
 
-      // If no new score, keep existing score/status.
       return {
         ...row,
         actual_home_score: existing.actual_home_score,
