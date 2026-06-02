@@ -950,3 +950,124 @@ select:focus {
     transition-duration: 1ms !important;
   }
 }
+/* ============================================================
+   Animated logo + title combo
+   ============================================================ */
+
+/* Make the logo/title group animate together */
+.brand,
+.brand-row {
+  position: relative;
+}
+
+/* Soft animated football logo */
+.logo-ball {
+  position: relative;
+  animation: footballFloat 3.2s ease-in-out infinite;
+  box-shadow:
+    0 0 0 1px var(--glass-border),
+    0 8px 22px color-mix(in srgb, var(--accent-2) 26%, transparent),
+    0 0 24px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.logo-ball.small {
+  animation: footballFloatSmall 3.2s ease-in-out infinite;
+  box-shadow:
+    0 0 0 1px var(--glass-border),
+    0 6px 18px color-mix(in srgb, var(--accent-2) 22%, transparent),
+    0 0 18px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+/* Glow behind ball */
+.logo-ball::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--accent-2) 24%, transparent),
+    transparent 68%
+  );
+  opacity: 0.55;
+  filter: blur(10px);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Title gradient shimmer */
+.brand h1,
+.brand-row h1 {
+  background: linear-gradient(
+    110deg,
+    var(--text) 0%,
+    var(--text) 35%,
+    color-mix(in srgb, var(--accent-2) 85%, white) 48%,
+    color-mix(in srgb, var(--accent) 75%, white) 55%,
+    var(--text) 68%,
+    var(--text) 100%
+  );
+  background-size: 240% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: titleShimmer 5.5s ease-in-out infinite;
+}
+
+/* Slight combined lift when hovering the title area */
+.brand:hover .logo-ball,
+.brand-row:hover .logo-ball {
+  animation: footballKick 700ms cubic-bezier(.2,.8,.2,1);
+}
+
+.brand:hover h1,
+.brand-row:hover h1 {
+  animation: titleShimmer 1.4s ease-in-out infinite;
+}
+
+/* Ball gentle float */
+@keyframes footballFloat {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+
+  50% {
+    transform: translateY(-5px) rotate(5deg) scale(1.025);
+  }
+}
+
+@keyframes footballFloatSmall {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+
+  50% {
+    transform: translateY(-3px) rotate(5deg) scale(1.02);
+  }
+}
+
+/* Ball quick hover kick */
+@keyframes footballKick {
+  0% {
+    transform: translateX(0) rotate(0deg) scale(1);
+  }
+
+  45% {
+    transform: translateX(6px) translateY(-3px) rotate(180deg) scale(1.08);
+  }
+
+  100% {
+    transform: translateX(0) rotate(360deg) scale(1);
+  }
+}
+
+/* Title shimmer */
+@keyframes titleShimmer {
+  0%, 78%, 100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+}
