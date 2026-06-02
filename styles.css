@@ -694,7 +694,7 @@ td .points-pill {
 /* ---------- Footer / Copyright ---------- */
 .site-footer {
   width: min(1180px, 94vw);
-  margin: 24px auto 48px;
+  margin: -10px auto 48px;
   text-align: center;
   color: var(--muted);
   font-size: 13px;
