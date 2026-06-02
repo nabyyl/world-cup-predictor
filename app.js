@@ -5,6 +5,8 @@
    - User chip with avatar
    - Click a Next-Up card to jump to that match
    - Auto-locks matches at kickoff (UI + Supabase RLS)
+   - Auto-syncs available scores from OpenFootball
+   - Admin-entered results are protected from auto-sync
    ============================================================ */
 
 let supabaseClient;
@@ -24,12 +26,43 @@ const OPENFOOTBALL_2026_URL =
 const $ = (id) => document.getElementById(id);
 
 const views = {
-  predictions:   $('predictionsView'),
+  predictions: $('predictionsView'),
   myPredictions: $('myPredictionsView'),
-  leaderboard:   $('leaderboardView'),
-  rules:         $('rulesView'),
-  admin:         $('adminView')
+  leaderboard: $('leaderboardView'),
+  rules: $('rulesView'),
+  admin: $('adminView')
 };
+
+/* ============================================================
+   Safe UI helpers
+   ============================================================ */
+
+function setText(id, value) {
+  const el = $(id);
+  if (el) el.textContent = value ?? '';
+}
+
+function setMessage(message, type = 'error') {
+  const el = $('authMessage');
+
+  if (!el) {
+    toast(message);
+    return;
+  }
+
+  el.style.color = type === 'success' ? '#86efac' : '#fb7185';
+  el.textContent = message || '';
+}
+
+function showElement(id) {
+  const el = $(id);
+  if (el) el.classList.remove('hidden');
+}
+
+function hideElement(id) {
+  const el = $(id);
+  if (el) el.classList.add('hidden');
+}
 
 /* ============================================================
    Theme handling
@@ -38,13 +71,19 @@ const views = {
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem('wc_theme', theme);
+
   const btn = $('themeToggleBtn');
-  if (btn) btn.textContent = theme === 'light' ? '☀️' : '🌙';
+  if (btn) {
+    btn.textContent = theme === 'light' ? '☀️' : '🌙';
+  }
 }
 
 function initTheme() {
   const saved = localStorage.getItem('wc_theme');
-  const preferred = saved || (window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  const preferred =
+    saved ||
+    (window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+
   applyTheme(preferred);
 }
 
@@ -54,13 +93,24 @@ function initTheme() {
 
 function toast(message) {
   const el = $('toast');
+
+  if (!el) {
+    console.log(message);
+    return;
+  }
+
   el.textContent = message;
   el.classList.remove('hidden');
+
   clearTimeout(toast._t);
-  toast._t = setTimeout(() => el.classList.add('hidden'), 3200);
+  toast._t = setTimeout(() => {
+    el.classList.add('hidden');
+  }, 3200);
 }
 
-function isAdmin() { return currentProfile?.role === 'admin'; }
+function isAdmin() {
+  return currentProfile?.role === 'admin';
+}
 
 /* ============================================================
    Supabase init + auth
@@ -71,20 +121,26 @@ function initSupabase() {
   const key = localStorage.getItem('wc_supabase_anon_key');
 
   if (!url || !key) {
-    $('setupPanel').classList.remove('hidden');
-    $('authPanel').classList.add('hidden');
+    showElement('setupPanel');
+    hideElement('authPanel');
+    hideElement('portalPanel');
     return false;
   }
 
   supabaseClient = supabase.createClient(url, key);
-  $('setupPanel').classList.add('hidden');
-  $('authPanel').classList.remove('hidden');
+
+  hideElement('setupPanel');
+  showElement('authPanel');
+  hideElement('portalPanel');
+
   return true;
 }
 
 async function loadSession() {
   if (!supabaseClient) return;
+
   const { data } = await supabaseClient.auth.getSession();
+
   if (data.session?.user) {
     currentUser = data.session.user;
     await enterPortal();
@@ -93,52 +149,90 @@ async function loadSession() {
 
 async function fetchProfile() {
   const { data, error } = await supabaseClient
-    .from('profiles').select('*').eq('id', currentUser.id).single();
+    .from('profiles')
+    .select('*')
+    .eq('id', currentUser.id)
+    .single();
+
   if (error) throw error;
+
   currentProfile = data;
 }
 
 async function enterPortal() {
   await fetchProfile();
 
-  if (currentProfile.status !== 'active') {
-    $('authMessage').textContent =
-      'Your account is pending or inactive. Ask the admin to add/activate your email.';
+  if (!currentProfile || currentProfile.status !== 'active') {
+    setMessage(
+      'Your account is pending or inactive. Ask the admin to add/activate your email.',
+      'error'
+    );
+
     await supabaseClient.auth.signOut();
     return;
   }
 
-  $('authPanel').classList.add('hidden');
-  $('portalPanel').classList.remove('hidden');
+  hideElement('authPanel');
+  showElement('portalPanel');
 
-  $('userName').textContent = currentProfile.full_name || currentProfile.email;
-  $('userRole').textContent = currentProfile.role || 'user';
+  const displayName = currentProfile.full_name || currentProfile.email || 'User';
+  const displayRole = currentProfile.role === 'admin' ? 'Admin' : 'User';
 
-  $('adminTab').classList.toggle('hidden', !isAdmin());
+  setText('userName', displayName);
+  setText('userRole', displayRole);
+
+  const adminTab = $('adminTab');
+  if (adminTab) {
+    adminTab.classList.toggle('hidden', !isAdmin());
+  }
 
   await refreshAll();
+
+  showView('predictions');
+
   startLiveTickers();
 }
 
 /* ============================================================
-   Live tickers — auto-lock at kickoff + periodic re-sync
+   Live tickers + smart auto-sync
    ============================================================ */
 
 function startLiveTickers() {
   if (lockTickerId) clearInterval(lockTickerId);
+  if (scheduleRefreshId) clearTimeout(scheduleRefreshId);
+
+  // UI refresh every 30 seconds so matches visually lock after kickoff.
   lockTickerId = setInterval(() => {
-    if (currentTopView === 'predictions') renderPredictionsRoot();
-    if (currentTopView === 'myPredictions') renderMyPredictionsView();
+    rerenderCurrentView();
   }, 30 * 1000);
 
-  if (scheduleRefreshId) clearInterval(scheduleRefreshId);
-  scheduleRefreshId = setInterval(async () => {
+  // Smart auto-sync:
+  // - Every 2 minutes if a match is near/live/recent.
+  // - Every 15 minutes otherwise.
+  async function smartAutoSyncLoop() {
     try {
-      await loadMatches();
-      await loadPredictions();
-      rerenderCurrentView();
-    } catch { /* silent */ }
-  }, 5 * 60 * 1000);
+      await autoSyncScoresFromInternet(true);
+    } catch {
+      /* silent */
+    }
+
+    const hasActiveMatch = matchesCache.some(match => {
+      const kickoff = new Date(match.kickoff_at).getTime();
+      const now = Date.now();
+
+      // From 15 minutes before kickoff until 3 hours after kickoff.
+      return now >= kickoff - 15 * 60 * 1000 &&
+             now <= kickoff + 3 * 60 * 60 * 1000;
+    });
+
+    const nextDelay = hasActiveMatch
+      ? 2 * 60 * 1000
+      : 15 * 60 * 1000;
+
+    scheduleRefreshId = setTimeout(smartAutoSyncLoop, nextDelay);
+  }
+
+  smartAutoSyncLoop();
 }
 
 /* ============================================================
@@ -146,23 +240,38 @@ function startLiveTickers() {
    ============================================================ */
 
 async function refreshAll() {
-  await Promise.all([loadMatches(), loadPredictions()]);
+  await Promise.all([
+    loadMatches(),
+    loadPredictions()
+  ]);
+
   rerenderCurrentView();
   await renderLeaderboard();
-  if (isAdmin()) renderAdmin();
+
+  if (isAdmin()) {
+    renderAdmin();
+  }
 }
 
 async function loadMatches() {
   const { data, error } = await supabaseClient
-    .from('matches').select('*').order('kickoff_at', { ascending: true });
+    .from('matches')
+    .select('*')
+    .order('kickoff_at', { ascending: true });
+
   if (error) throw error;
+
   matchesCache = data || [];
 }
 
 async function loadPredictions() {
   const { data, error } = await supabaseClient
-    .from('predictions').select('*').eq('user_id', currentUser.id);
+    .from('predictions')
+    .select('*')
+    .eq('user_id', currentUser.id);
+
   if (error) throw error;
+
   predictionsCache = data || [];
 }
 
@@ -176,6 +285,7 @@ function predictionFor(matchId) {
 
 function matchLocked(match) {
   if (match.admin_override_open) return false;
+
   return match.is_locked || new Date(match.kickoff_at) <= new Date();
 }
 
@@ -183,48 +293,81 @@ function lockReason(match) {
   if (match.admin_override_open) return 'Admin reopened';
   if (match.is_locked) return 'Manually locked';
   if (new Date(match.kickoff_at) <= new Date()) return 'Match started — locked';
+
   return 'Open for predictions';
 }
 
 /* ============================================================
-   Render — Predictions root (sub-tabs + content)
+   Render — Predictions root
    ============================================================ */
 
 function renderPredictionsRoot() {
-  const counts = computeStageCounts(matchesCache);
-  $('stageFilter').innerHTML = renderStageFilter(currentStage, counts);
+  const stageFilter = $('stageFilter');
+  const content = $('predictionsContent');
 
-  $('stageFilter').querySelectorAll('button[data-stage]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      currentStage = btn.dataset.stage;
+  if (!stageFilter || !content) return;
+
+  const counts = computeStageCounts(matchesCache);
+  stageFilter.innerHTML = renderStageFilter(currentStage, counts);
+
+  stageFilter.querySelectorAll('button[data-stage]').forEach(button => {
+    button.addEventListener('click', () => {
+      currentStage = button.dataset.stage;
       renderPredictionsRoot();
     });
   });
 
-  const content = $('predictionsContent');
   if (currentStage === 'summary') {
     content.innerHTML = renderSummary(
-      matchesCache, predictionsCache,
+      matchesCache,
+      predictionsCache,
       currentProfile?.full_name || currentProfile?.email
     );
-  } else if (currentStage === 'results') {
-    content.innerHTML = renderResultsMatches(matchesCache, predictionsCache);
-  } else {
-    content.innerHTML = renderMatchCards(
-      matchesCache, predictionsCache,
-      { predictionFor, matchLocked, lockReason },
-      currentStage
-    );
+    return;
   }
+
+  if (currentStage === 'results') {
+    content.innerHTML = renderResultsMatches(matchesCache, predictionsCache);
+    return;
+  }
+
+  content.innerHTML = renderMatchCards(
+    matchesCache,
+    predictionsCache,
+    {
+      predictionFor,
+      matchLocked,
+      lockReason
+    },
+    currentStage
+  );
 }
 
 function renderMyPredictionsView() {
-  views.myPredictions.innerHTML = renderMyPredictions(matchesCache, predictionsCache);
+  if (!views.myPredictions) return;
+
+  views.myPredictions.innerHTML = renderMyPredictions(
+    matchesCache,
+    predictionsCache
+  );
 }
 
 function rerenderCurrentView() {
-  if (currentTopView === 'predictions')   renderPredictionsRoot();
-  if (currentTopView === 'myPredictions')  renderMyPredictionsView();
+  if (currentTopView === 'predictions') {
+    renderPredictionsRoot();
+  }
+
+  if (currentTopView === 'myPredictions') {
+    renderMyPredictionsView();
+  }
+
+  if (currentTopView === 'leaderboard') {
+    renderLeaderboard();
+  }
+
+  if (currentTopView === 'admin') {
+    renderAdmin();
+  }
 }
 
 /* ============================================================
@@ -233,20 +376,32 @@ function rerenderCurrentView() {
 
 function navigateToMatch(matchId) {
   const match = matchesCache.find(m => m.id === matchId);
+
   if (!match) return;
 
   // If finished, send user to the Full Time tab; otherwise to its stage tab.
   currentStage = matchHasResult(match) ? 'results' : classifyStage(match.stage);
+  showView('predictions');
   renderPredictionsRoot();
 
   requestAnimationFrame(() => {
     const el = document.getElementById(`match_${matchId}`);
+
     if (!el) return;
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    el.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center'
+    });
+
     el.classList.add('highlight-flash');
-    setTimeout(() => el.classList.remove('highlight-flash'), 1900);
+
+    setTimeout(() => {
+      el.classList.remove('highlight-flash');
+    }, 1900);
   });
 }
+
 window.navigateToMatch = navigateToMatch;
 
 /* ============================================================
@@ -255,13 +410,22 @@ window.navigateToMatch = navigateToMatch;
 
 async function savePrediction(matchId) {
   const match = matchesCache.find(m => m.id === matchId);
+
   if (match && matchLocked(match)) {
     toast('This match has already started — predictions are locked.');
     return;
   }
 
-  const home = Number($(`home_${matchId}`).value);
-  const away = Number($(`away_${matchId}`).value);
+  const homeInput = $(`home_${matchId}`);
+  const awayInput = $(`away_${matchId}`);
+
+  if (!homeInput || !awayInput) {
+    toast('Prediction input not found.');
+    return;
+  }
+
+  const home = Number(homeInput.value);
+  const away = Number(awayInput.value);
 
   if (!Number.isInteger(home) || !Number.isInteger(away) || home < 0 || away < 0) {
     toast('Enter valid scores first.');
@@ -278,14 +442,21 @@ async function savePrediction(matchId) {
 
   const { error } = await supabaseClient
     .from('predictions')
-    .upsert(payload, { onConflict: 'user_id,match_id' });
+    .upsert(payload, {
+      onConflict: 'user_id,match_id'
+    });
 
-  if (error) { toast(error.message); return; }
+  if (error) {
+    toast(error.message);
+    return;
+  }
 
   toast('Prediction saved. Latest saved score will count.');
+
   await loadPredictions();
   rerenderCurrentView();
 }
+
 window.savePrediction = savePrediction;
 
 /* ============================================================
@@ -293,8 +464,11 @@ window.savePrediction = savePrediction;
    ============================================================ */
 
 async function renderLeaderboard() {
+  if (!views.leaderboard) return;
+
   const { data, error } = await supabaseClient
-    .from('leaderboard').select('*')
+    .from('leaderboard')
+    .select('*')
     .order('total_points', { ascending: false })
     .order('exact_scores', { ascending: false })
     .order('full_name', { ascending: true });
@@ -303,6 +477,7 @@ async function renderLeaderboard() {
     views.leaderboard.innerHTML = renderLeaderboardError(error.message);
     return;
   }
+
   views.leaderboard.innerHTML = renderLeaderboardTable(data || []);
 }
 
@@ -311,33 +486,83 @@ async function renderLeaderboard() {
    ============================================================ */
 
 function renderAdmin() {
-  views.admin.innerHTML = renderAdminPanel(matchesCache, OPENFOOTBALL_2026_URL);
+  if (!views.admin) return;
+
+  if (!isAdmin()) {
+    views.admin.innerHTML = `
+      <div class="card admin-card">
+        <h2>Admin access required</h2>
+        <p class="muted small">Your profile is not assigned as admin.</p>
+      </div>
+    `;
+    return;
+  }
+
+  views.admin.innerHTML = renderAdminPanel(
+    matchesCache,
+    OPENFOOTBALL_2026_URL
+  );
+
   fillAdminMatchForm();
 }
 
 function fillAdminMatchForm() {
   const select = $('adminMatchSelect');
+
   if (!select || !select.value) return;
+
   const match = matchesCache.find(m => m.id === select.value);
+
   if (!match) return;
-  $('adminActualHome').value = match.actual_home_score ?? '';
-  $('adminActualAway').value = match.actual_away_score ?? '';
-  $('adminLock').checked = !!match.is_locked;
-  $('adminOverrideOpen').checked = !!match.admin_override_open;
+
+  if ($('adminActualHome')) {
+    $('adminActualHome').value = match.actual_home_score ?? '';
+  }
+
+  if ($('adminActualAway')) {
+    $('adminActualAway').value = match.actual_away_score ?? '';
+  }
+
+  if ($('adminLock')) {
+    $('adminLock').checked = !!match.is_locked;
+  }
+
+  if ($('adminOverrideOpen')) {
+    $('adminOverrideOpen').checked = !!match.admin_override_open;
+  }
+
+  if ($('adminResultOverride')) {
+    $('adminResultOverride').checked = !!match.admin_result_override;
+  }
+
+  if ($('adminResultSource')) {
+    const source = match.result_source || 'manual';
+
+    $('adminResultSource').textContent =
+      source === 'admin'
+        ? 'Result source: Admin manual override'
+        : source === 'auto'
+          ? `Result source: Auto synced${match.auto_result_synced_at ? ' · ' + new Date(match.auto_result_synced_at).toLocaleString() : ''}`
+          : 'Result source: Manual / pending';
+  }
 }
+
 window.fillAdminMatchForm = fillAdminMatchForm;
 
 async function addMatch() {
-  const kickoffValue = $('adminKickoff').value;
+  const kickoffValue = $('adminKickoff')?.value;
+
   const payload = {
-    home_team: $('adminHome').value.trim(),
-    away_team: $('adminAway').value.trim(),
-    stage: $('adminStage').value.trim(),
-    venue: $('adminVenue').value.trim(),
+    home_team: $('adminHome')?.value.trim(),
+    away_team: $('adminAway')?.value.trim(),
+    stage: $('adminStage')?.value.trim(),
+    venue: $('adminVenue')?.value.trim(),
     kickoff_at: kickoffValue ? new Date(kickoffValue).toISOString() : null,
     is_locked: false,
     admin_override_open: false,
-    source: 'manual'
+    source: 'manual',
+    result_source: 'manual',
+    admin_result_override: false
   };
 
   if (!payload.home_team || !payload.away_team || !payload.kickoff_at) {
@@ -345,108 +570,286 @@ async function addMatch() {
     return;
   }
 
-  const { error } = await supabaseClient.from('matches').insert(payload);
-  if (error) { toast(error.message); return; }
+  const { error } = await supabaseClient
+    .from('matches')
+    .insert(payload);
+
+  if (error) {
+    toast(error.message);
+    return;
+  }
+
   toast('Match added.');
   await refreshAll();
 }
+
 window.addMatch = addMatch;
 
 async function updateResult() {
-  const matchId = $('adminMatchSelect').value;
-  const homeRaw = $('adminActualHome').value;
-  const awayRaw = $('adminActualAway').value;
+  const matchId = $('adminMatchSelect')?.value;
+
+  if (!matchId) {
+    toast('Select a match first.');
+    return;
+  }
+
+  const homeRaw = $('adminActualHome')?.value ?? '';
+  const awayRaw = $('adminActualAway')?.value ?? '';
+
+  const hasResult = homeRaw !== '' && awayRaw !== '';
 
   const payload = {
-    is_locked: $('adminLock').checked,
-    admin_override_open: $('adminOverrideOpen').checked,
+    is_locked: !!$('adminLock')?.checked,
+    admin_override_open: !!$('adminOverrideOpen')?.checked,
     actual_home_score: homeRaw === '' ? null : Number(homeRaw),
-    actual_away_score: awayRaw === '' ? null : Number(awayRaw)
+    actual_away_score: awayRaw === '' ? null : Number(awayRaw),
+    result_source: hasResult ? 'admin' : 'manual',
+    admin_result_override: hasResult ? true : !!$('adminResultOverride')?.checked
   };
 
-  const { error } = await supabaseClient.from('matches').update(payload).eq('id', matchId);
-  if (error) { toast(error.message); return; }
-  toast('Match updated.');
+  if (hasResult) {
+    payload.is_locked = true;
+    payload.admin_result_override = true;
+  }
+
+  const { error } = await supabaseClient
+    .from('matches')
+    .update(payload)
+    .eq('id', matchId);
+
+  if (error) {
+    toast(error.message);
+    return;
+  }
+
+  toast(
+    hasResult
+      ? 'Match updated. Admin score is protected from auto-sync.'
+      : 'Match updated.'
+  );
+
   await refreshAll();
 }
+
 window.updateResult = updateResult;
 
 async function deleteSelectedMatch() {
-  const matchId = $('adminMatchSelect').value;
-  if (!matchId) return;
-  if (!confirm('Delete this match? Related predictions will also be deleted.')) return;
+  const matchId = $('adminMatchSelect')?.value;
 
-  const { error } = await supabaseClient.from('matches').delete().eq('id', matchId);
-  if (error) { toast(error.message); return; }
+  if (!matchId) return;
+
+  if (!confirm('Delete this match? Related predictions will also be deleted.')) {
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from('matches')
+    .delete()
+    .eq('id', matchId);
+
+  if (error) {
+    toast(error.message);
+    return;
+  }
+
   toast('Match deleted.');
   await refreshAll();
 }
+
 window.deleteSelectedMatch = deleteSelectedMatch;
 
 /* ============================================================
-   Schedule sync from OpenFootball
+   Schedule + score sync from OpenFootball
    ============================================================ */
 
 async function syncScheduleFromInternet() {
-  const url = $('scheduleUrl').value.trim() || OPENFOOTBALL_2026_URL;
+  await autoSyncScoresFromInternet(false);
+}
+
+window.syncScheduleFromInternet = syncScheduleFromInternet;
+
+async function autoSyncScoresFromInternet(silent = true) {
+  const url = $('scheduleUrl')?.value.trim() || OPENFOOTBALL_2026_URL;
 
   try {
-    toast('Syncing schedule...');
-    const response = await fetch(url, { cache: 'no-store' });
-    if (!response.ok) throw new Error(`Could not fetch schedule: ${response.status}`);
+    if (!silent) {
+      toast('Syncing schedule and available scores...');
+    }
+
+    const response = await fetch(url, {
+      cache: 'no-store'
+    });
+
+    if (!response.ok) {
+      throw new Error(`Could not fetch schedule: ${response.status}`);
+    }
 
     const json = await response.json();
-    const rows = normalizeOpenFootballSchedule(json, url);
-    if (!rows.length) throw new Error('No matches found in the schedule file.');
+    const incomingRows = normalizeOpenFootballSchedule(json, url);
+
+    if (!incomingRows.length) {
+      throw new Error('No matches found in the schedule file.');
+    }
+
+    const { data: existingMatches, error: existingError } = await supabaseClient
+      .from('matches')
+      .select('*');
+
+    if (existingError) throw existingError;
+
+    const existingByExternalId = new Map(
+      (existingMatches || [])
+        .filter(match => match.external_id)
+        .map(match => [match.external_id, match])
+    );
+
+    const now = new Date().toISOString();
+
+    const rowsToUpsert = incomingRows.map(row => {
+      const existing = existingByExternalId.get(row.external_id);
+
+      const incomingHasResult =
+        row.actual_home_score !== null &&
+        row.actual_away_score !== null &&
+        row.actual_home_score !== undefined &&
+        row.actual_away_score !== undefined;
+
+      // New match from internet source.
+      if (!existing) {
+        return {
+          ...row,
+          result_source: incomingHasResult ? 'auto' : 'manual',
+          admin_result_override: false,
+          auto_result_synced_at: incomingHasResult ? now : null
+        };
+      }
+
+      // If admin corrected/protected the score, do not overwrite it.
+      if (existing.admin_result_override) {
+        return {
+          ...row,
+          actual_home_score: existing.actual_home_score,
+          actual_away_score: existing.actual_away_score,
+          result_source: existing.result_source || 'admin',
+          admin_result_override: true,
+          auto_result_synced_at: existing.auto_result_synced_at
+        };
+      }
+
+      // If internet source now has a final score, update it.
+      if (incomingHasResult) {
+        return {
+          ...row,
+          result_source: 'auto',
+          admin_result_override: false,
+          auto_result_synced_at: now
+        };
+      }
+
+      // If no new score, keep existing score/status.
+      return {
+        ...row,
+        actual_home_score: existing.actual_home_score,
+        actual_away_score: existing.actual_away_score,
+        result_source: existing.result_source || 'manual',
+        admin_result_override: existing.admin_result_override || false,
+        auto_result_synced_at: existing.auto_result_synced_at
+      };
+    });
 
     const { error } = await supabaseClient
-      .from('matches').upsert(rows, { onConflict: 'external_id' });
+      .from('matches')
+      .upsert(rowsToUpsert, {
+        onConflict: 'external_id'
+      });
+
     if (error) throw error;
 
-    toast(`Synced ${rows.length} matches.`);
-    await refreshAll();
+    await loadMatches();
+    await loadPredictions();
+
+    rerenderCurrentView();
+
+    if (currentTopView === 'leaderboard') {
+      await renderLeaderboard();
+    }
+
+    if (isAdmin()) {
+      renderAdmin();
+    }
+
+    if (!silent) {
+      toast(`Synced ${rowsToUpsert.length} matches and available scores.`);
+    }
   } catch (error) {
-    toast(error.message);
+    if (!silent) {
+      toast(error.message);
+    } else {
+      console.warn('Auto score sync failed:', error.message);
+    }
   }
 }
-window.syncScheduleFromInternet = syncScheduleFromInternet;
+
+window.autoSyncScoresFromInternet = autoSyncScoresFromInternet;
 
 function normalizeOpenFootballSchedule(json, sourceUrl) {
   const matches = Array.isArray(json.matches) ? json.matches : [];
 
-  return matches.map((match, index) => {
-    const kickoff = parseOpenFootballDateTime(match.date, match.time);
-    const externalId = `openfootball-2026-${String(index + 1).padStart(3, '0')}`;
-    const fullTimeScore = Array.isArray(match.score?.ft) ? match.score.ft : null;
+  return matches
+    .map((match, index) => {
+      const kickoff = parseOpenFootballDateTime(match.date, match.time);
+      const externalId = `openfootball-2026-${String(index + 1).padStart(3, '0')}`;
+      const fullTimeScore = Array.isArray(match.score?.ft) ? match.score.ft : null;
 
-    return {
-      external_id: externalId,
-      source: 'openfootball',
-      source_url: sourceUrl,
-      home_team: match.team1 || 'TBD',
-      away_team: match.team2 || 'TBD',
-      stage: match.group || match.round || 'World Cup',
-      venue: match.ground || null,
-      kickoff_at: kickoff,
-      actual_home_score: fullTimeScore ? Number(fullTimeScore[0]) : null,
-      actual_away_score: fullTimeScore ? Number(fullTimeScore[1]) : null,
-      last_synced_at: new Date().toISOString()
-    };
-  }).filter(row => row.kickoff_at);
+      const hasFullTimeScore =
+        fullTimeScore &&
+        fullTimeScore.length >= 2 &&
+        fullTimeScore[0] !== null &&
+        fullTimeScore[1] !== null &&
+        fullTimeScore[0] !== undefined &&
+        fullTimeScore[1] !== undefined;
+
+      return {
+        external_id: externalId,
+        source: 'openfootball',
+        source_url: sourceUrl,
+        home_team: match.team1 || 'TBD',
+        away_team: match.team2 || 'TBD',
+        stage: match.group || match.round || 'World Cup',
+        venue: match.ground || null,
+        kickoff_at: kickoff,
+        actual_home_score: hasFullTimeScore ? Number(fullTimeScore[0]) : null,
+        actual_away_score: hasFullTimeScore ? Number(fullTimeScore[1]) : null,
+        last_synced_at: new Date().toISOString()
+      };
+    })
+    .filter(row => row.kickoff_at);
 }
 
 function parseOpenFootballDateTime(dateValue, timeValue) {
   if (!dateValue) return null;
+
   const time = String(timeValue || '00:00').trim();
   const match = time.match(/^(\d{1,2}):(\d{2})(?:\s*UTC([+-]\d{1,2}))?$/i);
 
-  if (!match) return new Date(`${dateValue}T00:00:00Z`).toISOString();
+  if (!match) {
+    return new Date(`${dateValue}T00:00:00Z`).toISOString();
+  }
 
   const hour = Number(match[1]);
   const minute = Number(match[2]);
   const offset = match[3] !== undefined ? Number(match[3]) : 0;
-  const dp = dateValue.split('-').map(Number);
-  const utcMs = Date.UTC(dp[0], dp[1] - 1, dp[2], hour - offset, minute, 0);
+  const dateParts = dateValue.split('-').map(Number);
+
+  const utcMs = Date.UTC(
+    dateParts[0],
+    dateParts[1] - 1,
+    dateParts[2],
+    hour - offset,
+    minute,
+    0
+  );
+
   return new Date(utcMs).toISOString();
 }
 
@@ -456,43 +859,84 @@ function parseOpenFootballDateTime(dateValue, timeValue) {
 
 async function downloadPredictionsCsv() {
   const { data, error } = await supabaseClient
-    .from('predictions_export').select('*').order('kickoff_at', { ascending: true });
+    .from('predictions_export')
+    .select('*')
+    .order('kickoff_at', {
+      ascending: true
+    });
 
   let rows;
+
   if (!error && data) {
     rows = data.map(row => [
-      row.full_name, row.email, row.home_team, row.away_team,
-      row.stage, row.kickoff_at, row.home_score, row.away_score, row.updated_at
+      row.full_name,
+      row.email,
+      row.home_team,
+      row.away_team,
+      row.stage,
+      row.kickoff_at,
+      row.home_score,
+      row.away_score,
+      row.updated_at
     ]);
   } else {
     rows = predictionsCache.map(prediction => {
       const match = matchesCache.find(item => item.id === prediction.match_id) || {};
+
       return [
-        currentProfile.full_name, currentProfile.email,
-        match.home_team, match.away_team, match.stage, match.kickoff_at,
-        prediction.home_score, prediction.away_score, prediction.updated_at
+        currentProfile.full_name,
+        currentProfile.email,
+        match.home_team,
+        match.away_team,
+        match.stage,
+        match.kickoff_at,
+        prediction.home_score,
+        prediction.away_score,
+        prediction.updated_at
       ];
     });
   }
 
   const csv = [
-    ['Name','Email','Home','Away','Stage','Kickoff','Pred Home','Pred Away','Updated'],
+    [
+      'Name',
+      'Email',
+      'Home',
+      'Away',
+      'Stage',
+      'Kickoff',
+      'Pred Home',
+      'Pred Away',
+      'Updated'
+    ],
     ...rows
-  ].map(row => row.map(csvEscape).join(',')).join('\n');
+  ]
+    .map(row => row.map(csvEscape).join(','))
+    .join('\n');
 
-  const blob = new Blob([csv], { type: 'text/csv' });
+  const blob = new Blob([csv], {
+    type: 'text/csv'
+  });
+
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
+
   a.href = url;
   a.download = 'world-cup-predictions.csv';
   a.click();
+
   URL.revokeObjectURL(url);
 }
+
 window.downloadPredictionsCsv = downloadPredictionsCsv;
 
 function csvEscape(value) {
   const str = String(value ?? '');
-  if (/[",\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
+
+  if (/[",\n]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+
   return str;
 }
 
@@ -504,99 +948,149 @@ function showView(name) {
   currentTopView = name;
 
   Object.entries(views).forEach(([key, el]) => {
-    el.classList.toggle('hidden', key !== name);
+    if (el) {
+      el.classList.toggle('hidden', key !== name);
+    }
   });
 
-  document.querySelectorAll('.nav-tabs button').forEach(b => {
-    b.classList.toggle('active', b.dataset.view === name);
+  document.querySelectorAll('.nav-tabs button').forEach(button => {
+    button.classList.toggle('active', button.dataset.view === name);
   });
 
-  if (name === 'predictions')   renderPredictionsRoot();
-  if (name === 'myPredictions') renderMyPredictionsView();
+  if (name === 'predictions') {
+    renderPredictionsRoot();
+  }
+
+  if (name === 'myPredictions') {
+    renderMyPredictionsView();
+  }
+
+  if (name === 'leaderboard') {
+    renderLeaderboard();
+  }
+
+  if (name === 'admin') {
+    renderAdmin();
+  }
 }
 
 /* ============================================================
    Event wiring
    ============================================================ */
 
-$('saveConfigBtn').addEventListener('click', () => {
-  const url = $('supabaseUrl').value.trim();
-  const key = $('supabaseAnonKey').value.trim();
-  if (!url || !key) { toast('Enter Supabase URL and anon key.'); return; }
+$('saveConfigBtn')?.addEventListener('click', () => {
+  const url = $('supabaseUrl')?.value.trim();
+  const key = $('supabaseAnonKey')?.value.trim();
+
+  if (!url || !key) {
+    toast('Enter Supabase URL and anon key.');
+    return;
+  }
 
   localStorage.setItem('wc_supabase_url', url);
   localStorage.setItem('wc_supabase_anon_key', key);
+
   initSupabase();
   loadSession();
 });
 
 let authMode = 'login';
 
-$('loginTab').addEventListener('click', () => {
+$('loginTab')?.addEventListener('click', () => {
   authMode = 'login';
-  $('loginTab').classList.add('active');
-  $('signupTab').classList.remove('active');
-  $('authSubmitBtn').textContent = 'Login';
-  $('nameLabel').classList.add('hidden');
-  $('fullName').classList.add('hidden');
+
+  $('loginTab')?.classList.add('active');
+  $('signupTab')?.classList.remove('active');
+
+  setText('authSubmitBtn', 'Login');
+
+  $('nameLabel')?.classList.add('hidden');
+  $('fullName')?.classList.add('hidden');
 });
 
-$('signupTab').addEventListener('click', () => {
+$('signupTab')?.addEventListener('click', () => {
   authMode = 'signup';
-  $('signupTab').classList.add('active');
-  $('loginTab').classList.remove('active');
-  $('authSubmitBtn').textContent = 'Create Account';
-  $('nameLabel').classList.remove('hidden');
-  $('fullName').classList.remove('hidden');
+
+  $('signupTab')?.classList.add('active');
+  $('loginTab')?.classList.remove('active');
+
+  setText('authSubmitBtn', 'Create Account');
+
+  $('nameLabel')?.classList.remove('hidden');
+  $('fullName')?.classList.remove('hidden');
 });
 
-$('authForm').addEventListener('submit', async (event) => {
+$('authForm')?.addEventListener('submit', async (event) => {
   event.preventDefault();
-  $('authMessage').textContent = '';
 
-  const email = $('email').value.trim().toLowerCase();
-  const password = $('password').value;
+  setMessage('', 'error');
+
+  const email = $('email')?.value.trim().toLowerCase();
+  const password = $('password')?.value;
+
+  if (!email || !password) {
+    setMessage('Enter email and password.', 'error');
+    return;
+  }
 
   try {
     if (authMode === 'login') {
-      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      });
+
       if (error) throw error;
+
       currentUser = data.user;
       await enterPortal();
     } else {
-      const fullName = $('fullName').value.trim();
+      const fullName = $('fullName')?.value.trim() || '';
+
       const { error } = await supabaseClient.auth.signUp({
-        email, password,
-        options: { data: { full_name: fullName } }
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName
+          }
+        }
       });
+
       if (error) throw error;
-      $('authMessage').style.color = '#86efac';
-      $('authMessage').textContent =
-        'Account created. You can now login with the same email and password.';
+
+      setMessage(
+        'Account created. You can now login with the same email and password.',
+        'success'
+      );
     }
   } catch (error) {
-    $('authMessage').style.color = '#fb7185';
-    $('authMessage').textContent = error.message;
+    setMessage(error.message, 'error');
   }
 });
 
-$('logoutBtn').addEventListener('click', async () => {
+$('logoutBtn')?.addEventListener('click', async () => {
   await supabaseClient.auth.signOut();
+
   currentUser = null;
   currentProfile = null;
+
   if (lockTickerId) clearInterval(lockTickerId);
-  if (scheduleRefreshId) clearInterval(scheduleRefreshId);
-  $('portalPanel').classList.add('hidden');
-  $('authPanel').classList.remove('hidden');
+  if (scheduleRefreshId) clearTimeout(scheduleRefreshId);
+
+  hideElement('portalPanel');
+  showElement('authPanel');
 });
 
-$('themeToggleBtn').addEventListener('click', () => {
+$('themeToggleBtn')?.addEventListener('click', () => {
   const current = document.documentElement.getAttribute('data-theme') || 'dark';
   applyTheme(current === 'dark' ? 'light' : 'dark');
 });
 
 document.querySelectorAll('.nav-tabs button').forEach(button => {
-  button.addEventListener('click', () => showView(button.dataset.view));
+  button.addEventListener('click', () => {
+    showView(button.dataset.view);
+  });
 });
 
 /* ============================================================
@@ -604,4 +1098,7 @@ document.querySelectorAll('.nav-tabs button').forEach(button => {
    ============================================================ */
 
 initTheme();
-if (initSupabase()) loadSession();
+
+if (initSupabase()) {
+  loadSession();
+}
