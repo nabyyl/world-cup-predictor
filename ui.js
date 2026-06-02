@@ -14,28 +14,31 @@ function escapeHtml(value) {
 
 function formatDate(value) {
   return new Date(value).toLocaleString([], {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+    weekday: 'short', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit'
   });
 }
 
 function formatDateShort(value) {
   return new Date(value).toLocaleString([], {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
   });
+}
+
+function formatRelative(value) {
+  const diff = Date.now() - new Date(value).getTime();
+  const mins = Math.round(diff / 60000);
+  if (Math.abs(mins) < 1) return 'just now';
+  if (mins > 0 && mins < 60) return `${mins} min ago`;
+  if (mins < 0 && mins > -60) return `in ${-mins} min`;
+  const hrs = Math.round(mins / 60);
+  if (hrs > 0 && hrs < 24) return `${hrs}h ago`;
+  if (hrs < 0 && hrs > -24) return `in ${-hrs}h`;
+  return formatDateShort(value);
 }
 
 /* ============================================================
    Stage classification
-   The OpenFootball feed labels stages as "Group A", "Group B"...
-   "Round of 32", "Round of 16", "Quarter-finals", "Semi-finals",
-   "Final" / "3rd place". Map all of these into our buckets.
    ============================================================ */
 
 const STAGES = [
@@ -46,7 +49,7 @@ const STAGES = [
   { id: 'qf',       label: 'Quarter Finals', emoji: '🔥' },
   { id: 'sf',       label: 'Semi Finals',    emoji: '⭐' },
   { id: 'final',    label: 'Final',          emoji: '🏆' },
-  { id: 'done',     label: 'Done',           emoji: '✅' }
+  { id: 'results',  label: 'Full Time',      emoji: '📊' }
 ];
 
 function classifyStage(rawStage) {
@@ -75,7 +78,6 @@ function matchHasResult(match) {
 function isLive(match) {
   const kickoff = new Date(match.kickoff_at).getTime();
   const now = Date.now();
-  // Treat as live for 130 minutes after kickoff if no final score yet
   return !matchHasResult(match) && now >= kickoff && now <= kickoff + 130 * 60 * 1000;
 }
 
@@ -110,21 +112,21 @@ function renderStageFilter(activeStageId, counts) {
 }
 
 function computeStageCounts(matches) {
-  const counts = { summary: 0, group: 0, r32: 0, r16: 0, qf: 0, sf: 0, final: 0, done: 0 };
+  const counts = { summary: 0, group: 0, r32: 0, r16: 0, qf: 0, sf: 0, final: 0, results: 0 };
   for (const m of matches) {
     const bucket = classifyStage(m.stage);
     counts[bucket] = (counts[bucket] || 0) + 1;
-    if (matchHasResult(m)) counts.done += 1;
+    if (matchHasResult(m)) counts.results += 1;
     if (isUpcoming(m))     counts.summary += 1;
   }
   return counts;
 }
 
 /* ============================================================
-   Summary view (default landing inside Predictions)
+   Summary view
    ============================================================ */
 
-function renderSummary(matches, predictions) {
+function renderSummary(matches, predictions, userName) {
   const now = Date.now();
   const upcoming = matches
     .filter(m => new Date(m.kickoff_at).getTime() > now)
@@ -132,20 +134,26 @@ function renderSummary(matches, predictions) {
   const live = matches.filter(isLive);
   const totalPredicted = predictions.length;
   const totalMatches = matches.length;
+  const greeting = userName ? `Welcome back, ${escapeHtml(userName.split(' ')[0])} ⚽` : 'Welcome back ⚽';
 
   return `
     <article class="card summary-hero">
-      <div>
-        <h2>Welcome back ⚽</h2>
-        <p class="muted">Here's the quick view across the tournament. Pick a stage above to start predicting.</p>
-        <div class="summary-quick">
-          <div class="stat"><strong>${totalMatches}</strong><span>Total matches</span></div>
-          <div class="stat"><strong>${upcoming.length}</strong><span>Upcoming</span></div>
-          <div class="stat"><strong>${live.length}</strong><span>Live now</span></div>
-          <div class="stat"><strong>${totalPredicted}</strong><span>Your predictions</span></div>
-        </div>
+      <div class="date-badge">
+        <span class="dot"></span>
+        <span>${new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</span>
       </div>
-      <div class="badge">${new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</div>
+
+      <div class="hero-text">
+        <h2>${greeting}</h2>
+        <p class="muted">Here's the quick view across the tournament. Pick a stage above to start predicting.</p>
+      </div>
+
+      <div class="summary-quick">
+        <div class="stat"><strong>${totalMatches}</strong><span>Total matches</span></div>
+        <div class="stat"><strong>${upcoming.length}</strong><span>Upcoming</span></div>
+        <div class="stat"><strong>${live.length}</strong><span>Live now</span></div>
+        <div class="stat"><strong>${totalPredicted}</strong><span>Your predictions</span></div>
+      </div>
     </article>
 
     ${live.length ? `
@@ -159,9 +167,9 @@ function renderSummary(matches, predictions) {
 
     <article class="card" style="padding:18px;">
       <h2>Next up</h2>
-      <p class="muted small">The next ${Math.min(6, upcoming.length)} fixtures, in kickoff order.</p>
+      <p class="muted small">The next ${Math.min(6, upcoming.length)} fixtures — click any to jump to its prediction card.</p>
       ${upcoming.length === 0
-        ? `<div class="empty-state"><span class="emoji">🌴</span>No upcoming matches scheduled.</div>`
+        ? `<div class="empty-state"><span class="emoji">🌴</span><h3>All caught up</h3><p>No upcoming matches scheduled.</p></div>`
         : `<div class="next-up" style="margin-top:12px;">${upcoming.map(nextUpCard).join('')}</div>`
       }
     </article>
@@ -170,7 +178,7 @@ function renderSummary(matches, predictions) {
 
 function nextUpCard(match) {
   return `
-    <div class="next-card">
+    <div class="next-card" onclick="navigateToMatch('${match.id}')" data-match-id="${match.id}">
       <span class="stage-tag">${escapeHtml(match.stage || 'Match')}</span>
       <div class="matchup">${escapeHtml(match.home_team)} <span class="muted">vs</span> ${escapeHtml(match.away_team)}</div>
       <div class="when">${formatDate(match.kickoff_at)}${match.venue ? ' • ' + escapeHtml(match.venue) : ''}</div>
@@ -180,10 +188,10 @@ function nextUpCard(match) {
 
 function liveMiniCard(match) {
   return `
-    <div class="next-card">
+    <div class="next-card" onclick="navigateToMatch('${match.id}')" data-match-id="${match.id}">
       <span class="status-pill live">● LIVE</span>
       <div class="matchup">${escapeHtml(match.home_team)} <span class="muted">vs</span> ${escapeHtml(match.away_team)}</div>
-      <a class="ext-link" href="${googleSearchUrl(match)}" target="_blank" rel="noopener">View live on Google ↗</a>
+      <a class="ext-link" href="${googleSearchUrl(match)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">View live on Google ↗</a>
     </div>
   `;
 }
@@ -201,7 +209,7 @@ function renderMatchCards(matches, predictions, helpers, stageFilterId) {
     return `
       <div class="card empty-state">
         <span class="emoji">🗓️</span>
-        <p>No matches in this stage yet.</p>
+        <h3>No matches in this stage yet</h3>
         <p class="muted small">Admin can sync the schedule from the Admin tab.</p>
       </div>
     `;
@@ -220,7 +228,7 @@ function renderMatchCards(matches, predictions, helpers, stageFilterId) {
         : `<span class="status-pill upcoming">🟢 Open</span>`;
 
     return `
-      <article class="card match-card">
+      <article class="card match-card" id="match_${match.id}">
         <div class="match-top">
           <span>${formatDate(match.kickoff_at)}</span>
           ${pill}
@@ -236,9 +244,7 @@ function renderMatchCards(matches, predictions, helpers, stageFilterId) {
           ${escapeHtml(match.stage || 'Match')}${venue} • ${resultText(match)}
         </p>
 
-        <p class="muted small">
-          Status: ${lockReason(match)}
-        </p>
+        <p class="muted small">Status: ${lockReason(match)}</p>
 
         <div class="score-row">
           <input
@@ -262,27 +268,25 @@ function renderMatchCards(matches, predictions, helpers, stageFilterId) {
         </button>
 
         <p class="muted small">
-          Unlimited updates allowed until kickoff — your last saved score is the one that counts.
+          Unlimited updates until kickoff — your last saved score counts.
         </p>
 
         ${prediction
-          ? `<p class="saved">Latest prediction: ${prediction.home_score} - ${prediction.away_score}</p>`
+          ? `<p class="saved">Latest: ${prediction.home_score} - ${prediction.away_score}</p>`
           : `<p class="muted small">No prediction saved yet.</p>`
         }
 
-        <a class="ext-link" href="${googleSearchUrl(match)}" target="_blank" rel="noopener">
-          View on Google ↗
-        </a>
+        <a class="ext-link" href="${googleSearchUrl(match)}" target="_blank" rel="noopener">View on Google ↗</a>
       </article>
     `;
   }).join('')}</div>`;
 }
 
 /* ============================================================
-   Done view — completed matches with final scores
+   "Full Time" view — completed matches with final scores
    ============================================================ */
 
-function renderDoneMatches(matches, predictions) {
+function renderResultsMatches(matches, predictions) {
   const done = matches.filter(matchHasResult)
     .sort((a, b) => new Date(b.kickoff_at) - new Date(a.kickoff_at));
 
@@ -290,8 +294,8 @@ function renderDoneMatches(matches, predictions) {
     return `
       <div class="card empty-state">
         <span class="emoji">📭</span>
-        <p>No completed matches yet.</p>
-        <p class="muted small">Final scores will appear here as matches finish.</p>
+        <h3>No final scores yet</h3>
+        <p class="muted small">Completed matches will show up here as the tournament progresses.</p>
       </div>
     `;
   }
@@ -302,15 +306,15 @@ function renderDoneMatches(matches, predictions) {
     const won = pts.points > 0;
 
     return `
-      <article class="card match-card">
+      <article class="card match-card" id="match_${match.id}">
         <div class="match-top">
           <span>${formatDate(match.kickoff_at)}</span>
-          <span class="status-pill done">✅ Final</span>
+          <span class="status-pill done">📊 Full Time</span>
         </div>
 
         <div class="teams">
           <div class="team-name home">${escapeHtml(match.home_team)}</div>
-          <div class="vs">${match.actual_home_score} - ${match.actual_away_score}</div>
+          <div class="vs"><span style="font-size:22px; font-weight:900; color: var(--text);">${match.actual_home_score} - ${match.actual_away_score}</span></div>
           <div class="team-name away">${escapeHtml(match.away_team)}</div>
         </div>
 
@@ -318,64 +322,76 @@ function renderDoneMatches(matches, predictions) {
 
         ${prediction
           ? `<p class="${won ? 'saved' : 'muted'}">
-               Your prediction: ${prediction.home_score} - ${prediction.away_score}
+               Your pick: ${prediction.home_score} - ${prediction.away_score}
                • <strong>${pts.points} pt${pts.points === 1 ? '' : 's'}</strong>
                ${pts.label ? `· ${pts.label}` : ''}
              </p>`
           : `<p class="muted small">You didn't predict this match.</p>`
         }
 
-        <a class="ext-link" href="${googleSearchUrl(match)}" target="_blank" rel="noopener">
-          View on Google ↗
-        </a>
+        <a class="ext-link" href="${googleSearchUrl(match)}" target="_blank" rel="noopener">View on Google ↗</a>
       </article>
     `;
   }).join('')}</div>`;
 }
 
 /* ============================================================
-   My Predictions view — per-match table with win highlight
+   My Predictions — latest prediction per match, newest first
    ============================================================ */
 
 function renderMyPredictions(matches, predictions) {
-  if (!matches.length) {
+  if (!predictions.length) {
     return `
       <div class="card empty-state">
         <span class="emoji">📝</span>
-        <p>No matches yet — nothing to predict.</p>
+        <h3>No predictions yet</h3>
+        <p class="muted small">Head to the Predictions tab and pick some scores to get started.</p>
       </div>
     `;
   }
 
-  const sorted = [...matches].sort((a, b) => new Date(b.kickoff_at) - new Date(a.kickoff_at));
+  // Each prediction is already the latest (upsert). Join match info and sort by updated_at desc.
+  const rows = predictions
+    .map(p => ({ pred: p, match: matches.find(m => m.id === p.match_id) }))
+    .filter(r => r.match)
+    .sort((a, b) => new Date(b.pred.updated_at) - new Date(a.pred.updated_at));
 
-  const totalPoints = sorted.reduce((sum, m) => {
-    const pred = predictions.find(p => p.match_id === m.id);
-    return sum + scorePrediction(pred, m).points;
-  }, 0);
+  let totalPoints = 0, wins = 0, played = 0;
+  for (const { pred, match } of rows) {
+    if (matchHasResult(match)) {
+      played += 1;
+      const s = scorePrediction(pred, match);
+      totalPoints += s.points;
+      if (s.points > 0) wins += 1;
+    }
+  }
+  const accuracy = played ? Math.round((wins / played) * 100) : 0;
 
   return `
-    <div class="card" style="padding:18px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+    <div class="card mp-card">
+      <div class="mp-head">
         <div>
           <h2>My Predictions</h2>
-          <p class="muted small">Your latest prediction vs. the actual result for every match. Green = points won.</p>
-        </div>
-        <div class="badge" style="background: var(--glass-bg-strong); border:1px solid var(--glass-border); padding:8px 14px; border-radius:999px; font-weight:800;">
-          ${totalPoints} pts total
+          <p class="muted small">Your latest pick for every match, newest first. Green = points earned · Red = missed.</p>
         </div>
       </div>
 
-      <div class="mp-header" style="margin-top:14px;">
+      <div class="mp-summary">
+        <div class="stat"><strong>${totalPoints}</strong><span>Total points</span></div>
+        <div class="stat"><strong>${predictions.length}</strong><span>Predictions</span></div>
+        <div class="stat"><strong>${played}</strong><span>Settled</span></div>
+        <div class="stat"><strong>${accuracy}%</strong><span>Hit rate</span></div>
+      </div>
+
+      <div class="mp-header-row">
         <div>Match</div>
-        <div style="text-align:center;">My Pick</div>
-        <div style="text-align:center;">Actual</div>
-        <div class="pts-col" style="text-align:right;">Pts</div>
+        <div class="center">My Pick</div>
+        <div class="center">Actual</div>
+        <div class="center pts-col">Points</div>
       </div>
 
       <div class="mp-list">
-        ${sorted.map(match => {
-          const pred = predictions.find(p => p.match_id === match.id);
+        ${rows.map(({ pred, match }) => {
           const pts = scorePrediction(pred, match);
           const cls = matchHasResult(match) ? (pts.points > 0 ? 'win' : 'loss') : '';
 
@@ -383,17 +399,15 @@ function renderMyPredictions(matches, predictions) {
             <div class="mp-row ${cls}">
               <div>
                 <div class="matchup">${escapeHtml(match.home_team)} <span class="muted">vs</span> ${escapeHtml(match.away_team)}</div>
-                <div class="meta">${formatDateShort(match.kickoff_at)} • ${escapeHtml(match.stage || '—')}</div>
+                <div class="meta">${formatDateShort(match.kickoff_at)} • ${escapeHtml(match.stage || '—')} · saved ${formatRelative(pred.updated_at)}</div>
               </div>
-              <div class="score-cell">
-                ${pred ? `${pred.home_score} - ${pred.away_score}` : '<span class="muted">—</span>'}
-              </div>
+              <div class="score-cell">${pred.home_score} - ${pred.away_score}</div>
               <div class="score-cell">
                 ${matchHasResult(match)
                   ? `${match.actual_home_score} - ${match.actual_away_score}`
-                  : '<span class="muted">pending</span>'}
+                  : '<span class="muted small">pending</span>'}
               </div>
-              <div class="pts">${matchHasResult(match) ? pts.points : '—'}</div>
+              <div class="pts"><span class="badge-pts">${matchHasResult(match) ? pts.points : '—'}</span></div>
             </div>
           `;
         }).join('')}
@@ -403,7 +417,7 @@ function renderMyPredictions(matches, predictions) {
 }
 
 /* ============================================================
-   Scoring helper — matches the Supabase view logic
+   Scoring helper — mirrors Supabase view logic
    5 = exact · 4 = result + goal diff · 3 = result only
    ============================================================ */
 
@@ -441,16 +455,16 @@ function renderLeaderboardTable(rows) {
             <th>Name</th>
             <th>Points</th>
             <th>Exact</th>
-            <th>Correct Result</th>
-            <th>Predictions</th>
+            <th>Result</th>
+            <th>Picks</th>
           </tr>
         </thead>
         <tbody>
           ${(rows || []).map((row, index) => `
             <tr>
-              <td class="rank">#${index + 1}</td>
+              <td><span class="rank">${index + 1}</span></td>
               <td>${escapeHtml(row.full_name || row.email)}</td>
-              <td><strong>${row.total_points}</strong></td>
+              <td><span class="points-pill">${row.total_points}</span></td>
               <td>${row.exact_scores}</td>
               <td>${row.correct_results}</td>
               <td>${row.predictions_count}</td>
