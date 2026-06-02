@@ -15,7 +15,7 @@
   --transition-bounce: 320ms cubic-bezier(.34,1.56,.64,1);
 }
 
-/* ---------- DARK (default) ---------- */
+/* ---------- DARK ---------- */
 :root,
 [data-theme="dark"] {
   --bg-1: #0a1428;
@@ -97,7 +97,9 @@
 }
 
 /* ---------- Base ---------- */
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 html,
 body {
@@ -117,22 +119,51 @@ body {
   background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   transition: background var(--transition), color var(--transition);
-
   display: flex;
   flex-direction: column;
 }
 
-h1, h2, h3 { margin: 0; letter-spacing: -0.015em; }
-h1 { font-size: clamp(20px, 2.2vw, 26px); font-weight: 800; }
-h2 { font-size: 18px; font-weight: 750; }
-p  { line-height: 1.55; }
+h1,
+h2,
+h3 {
+  margin: 0;
+  letter-spacing: -0.015em;
+}
 
-.muted { color: var(--muted); }
-.small { font-size: 0.82rem; }
-.hidden { display: none !important; }
+h1 {
+  font-size: clamp(20px, 2.2vw, 26px);
+  font-weight: 800;
+}
 
-a { color: var(--accent-2); text-decoration: none; }
-a:hover { text-decoration: underline; }
+h2 {
+  font-size: 18px;
+  font-weight: 750;
+}
+
+p {
+  line-height: 1.55;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: 0.82rem;
+}
+
+.hidden {
+  display: none !important;
+}
+
+a {
+  color: var(--accent-2);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
 
 /* ---------- Background orbs ---------- */
 .bg-orb {
@@ -173,8 +204,13 @@ a:hover { text-decoration: underline; }
 }
 
 @keyframes orb-float {
-  from { transform: translate3d(0, 0, 0) scale(1); }
-  to   { transform: translate3d(40px, -30px, 0) scale(1.08); }
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  to {
+    transform: translate3d(40px, -30px, 0) scale(1.08);
+  }
 }
 
 /* ---------- Layout ---------- */
@@ -231,7 +267,7 @@ a:hover { text-decoration: underline; }
   padding: 28px;
 }
 
-/* ---------- Form elements ---------- */
+/* ---------- Forms ---------- */
 label {
   display: block;
   margin: 16px 0 7px;
@@ -257,7 +293,9 @@ select {
     transform var(--transition-fast);
 }
 
-input::placeholder { color: var(--muted); }
+input::placeholder {
+  color: var(--muted);
+}
 
 input:focus,
 select:focus {
@@ -319,7 +357,7 @@ button.ghost {
   box-shadow: none;
 }
 
-/* ---------- Brand / header ---------- */
+/* ---------- Brand / animated title ---------- */
 .brand,
 .brand-row {
   position: relative;
@@ -413,26 +451,50 @@ button.ghost {
 }
 
 @keyframes footballFloat {
-  0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
-  50% { transform: translateY(-5px) rotate(5deg) scale(1.025); }
+  0%, 100% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+
+  50% {
+    transform: translateY(-5px) rotate(5deg) scale(1.025);
+  }
 }
 
 @keyframes footballFloatSmall {
-  0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
-  50% { transform: translateY(-3px) rotate(5deg) scale(1.02); }
+  0%, 100% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+
+  50% {
+    transform: translateY(-3px) rotate(5deg) scale(1.02);
+  }
 }
 
 @keyframes footballKick {
-  0% { transform: translateX(0) rotate(0deg) scale(1); }
-  45% { transform: translateX(6px) translateY(-3px) rotate(180deg) scale(1.08); }
-  100% { transform: translateX(0) rotate(360deg) scale(1); }
+  0% {
+    transform: translateX(0) rotate(0deg) scale(1);
+  }
+
+  45% {
+    transform: translateX(6px) translateY(-3px) rotate(180deg) scale(1.08);
+  }
+
+  100% {
+    transform: translateX(0) rotate(360deg) scale(1);
+  }
 }
 
 @keyframes titleShimmer {
-  0%, 78%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+  0%, 78%, 100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
+/* ---------- Header ---------- */
 .portal-header {
   padding: 16px 20px;
   display: flex;
@@ -569,7 +631,7 @@ button.ghost {
   z-index: 5;
 }
 
-/* ---------- Login / Create Account button alignment fix ---------- */
+/* ---------- Login ---------- */
 #authForm {
   display: flex;
   flex-direction: column;
@@ -614,7 +676,7 @@ button.ghost {
   min-height: 42px;
 }
 
-/* ---------- Sub-nav (stage filter) ---------- */
+/* ---------- Prediction stage filter ---------- */
 .stage-filter {
   display: flex;
   flex-wrap: wrap;
@@ -745,13 +807,27 @@ button.ghost {
   font-weight: 700;
 }
 
-.status-pill.locked { color: var(--danger); }
-.status-pill.live   { color: var(--accent-warm); animation: pulse 1.4s ease-in-out infinite; }
-.status-pill.done   { color: var(--accent-2); }
-.status-pill.upcoming { color: var(--accent); }
+.status-pill.locked {
+  color: var(--danger);
+}
+
+.status-pill.live {
+  color: var(--accent-warm);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.status-pill.done {
+  color: var(--accent-2);
+}
+
+.status-pill.upcoming {
+  color: var(--accent);
+}
 
 @keyframes pulse {
-  50% { opacity: .55; }
+  50% {
+    opacity: .55;
+  }
 }
 
 .saved {
@@ -778,9 +854,17 @@ button.ghost {
 }
 
 @keyframes highlight-pulse {
-  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-2) 70%, transparent), var(--shadow); }
-  60%  { box-shadow: 0 0 0 14px color-mix(in srgb, var(--accent-2) 0%, transparent), var(--shadow); }
-  100% { box-shadow: var(--shadow); }
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-2) 70%, transparent), var(--shadow);
+  }
+
+  60% {
+    box-shadow: 0 0 0 14px color-mix(in srgb, var(--accent-2) 0%, transparent), var(--shadow);
+  }
+
+  100% {
+    box-shadow: var(--shadow);
+  }
 }
 
 /* ---------- Summary ---------- */
@@ -861,6 +945,7 @@ button.ghost {
   font-size: 12px;
 }
 
+/* ---------- Next cards ---------- */
 .next-up {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -921,7 +1006,9 @@ button.ghost {
 }
 
 @keyframes glow-rotate {
-  to { --glow-angle: 360deg; }
+  to {
+    --glow-angle: 360deg;
+  }
 }
 
 .next-card .when {
@@ -1094,7 +1181,7 @@ button.ghost {
   text-align: center;
 }
 
-/* ---------- Leaderboard ---------- */
+/* ---------- Leaderboard / tables ---------- */
 .table-card {
   padding: 18px;
   overflow-x: auto;
@@ -1320,7 +1407,7 @@ td .points-pill {
   color: var(--danger);
 }
 
-/* ---------- Footer / Copyright ---------- */
+/* ---------- Footer ---------- */
 .site-footer {
   width: min(1180px, 94vw);
   margin: 24px auto 0;
@@ -1340,7 +1427,7 @@ td .points-pill {
   opacity: 0.85;
 }
 
-/* ---------- Page / card enter animations ---------- */
+/* ---------- Page animations ---------- */
 #predictionsView,
 #myPredictionsView,
 #leaderboardView,
@@ -1493,16 +1580,13 @@ td .points-pill {
     margin: 0 0 16px 0;
     padding: 8px;
     border-radius: 18px !important;
-
     display: flex;
     flex-wrap: nowrap;
     justify-content: flex-start;
     gap: 8px;
-
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
-
     scrollbar-width: none;
   }
 
@@ -1540,7 +1624,7 @@ td .points-pill {
   }
 }
 
-/* ---------- Reduced motion support ---------- */
+/* ---------- Reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
