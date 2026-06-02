@@ -6,7 +6,8 @@
    - Click a Next-Up card to jump to that match
    - Auto-locks matches at kickoff (UI + Supabase RLS)
    - Auto-syncs available scores from OpenFootball
-   - Admin-entered results are protected from auto-sync
+   - Super Admin controls match/result management
+   - Admin can review matches, latest predictions, points and history
    - Supabase connection is prefilled so users do not see setup screen
    ============================================================ */
 
@@ -37,7 +38,8 @@ const views = {
   myPredictions: $('myPredictionsView'),
   leaderboard: $('leaderboardView'),
   rules: $('rulesView'),
-  admin: $('adminView')
+  admin: $('adminView'),
+  superAdmin: $('superAdminView')
 };
 
 /* ============================================================
@@ -115,8 +117,22 @@ function toast(message) {
   }, 3200);
 }
 
+/* ============================================================
+   Role helpers
+   ============================================================ */
+
+function isSuperAdmin() {
+  return currentProfile?.role === 'super_admin';
+}
+
+function hasAdminAccess() {
+  return currentProfile?.role === 'admin' || currentProfile?.role === 'super_admin';
+}
+
+/* Backward-compatible helper.
+   In the new setup, admin management controls require Super Admin. */
 function isAdmin() {
-  return currentProfile?.role === 'admin';
+  return isSuperAdmin();
 }
 
 /* ============================================================
@@ -191,14 +207,25 @@ async function enterPortal() {
   showElement('portalPanel');
 
   const displayName = currentProfile.full_name || currentProfile.email || 'User';
-  const displayRole = currentProfile.role === 'admin' ? 'Admin' : 'User';
+
+  const displayRole =
+    currentProfile.role === 'super_admin'
+      ? 'Super Admin'
+      : currentProfile.role === 'admin'
+        ? 'Admin'
+        : 'User';
 
   setText('userName', displayName);
   setText('userRole', displayRole);
 
   const adminTab = $('adminTab');
   if (adminTab) {
-    adminTab.classList.toggle('hidden', !isAdmin());
+    adminTab.classList.toggle('hidden', !hasAdminAccess());
+  }
+
+  const superAdminTab = $('superAdminTab');
+  if (superAdminTab) {
+    superAdminTab.classList.toggle('hidden', !isSuperAdmin());
   }
 
   await refreshAll();
@@ -222,7 +249,13 @@ function startLiveTickers() {
 
   async function smartAutoSyncLoop() {
     try {
-      await autoSyncScoresFromInternet(true);
+      if (isSuperAdmin()) {
+        await autoSyncScoresFromInternet(true);
+      } else {
+        await loadMatches();
+        await loadPredictions();
+        rerenderCurrentView();
+      }
     } catch {
       /* silent */
     }
@@ -258,8 +291,12 @@ async function refreshAll() {
   rerenderCurrentView();
   await renderLeaderboard();
 
-  if (isAdmin()) {
+  if (hasAdminAccess()) {
     renderAdmin();
+  }
+
+  if (isSuperAdmin()) {
+    renderSuperAdmin();
   }
 }
 
@@ -290,7 +327,7 @@ function predictionFor(matchId) {
 }
 
 /* ============================================================
-   Lock logic — auto detects kickoff
+   Lock logic
    ============================================================ */
 
 function matchLocked(match) {
@@ -377,6 +414,10 @@ function rerenderCurrentView() {
 
   if (currentTopView === 'admin') {
     renderAdmin();
+  }
+
+  if (currentTopView === 'superAdmin') {
+    renderSuperAdmin();
   }
 }
 
@@ -491,23 +532,99 @@ async function renderLeaderboard() {
 }
 
 /* ============================================================
-   Admin
+   Admin review page — limited Admin + Super Admin
    ============================================================ */
 
 function renderAdmin() {
   if (!views.admin) return;
 
-  if (!isAdmin()) {
+  if (!hasAdminAccess()) {
     views.admin.innerHTML = `
       <div class="card admin-card">
         <h2>Admin access required</h2>
-        <p class="muted small">Your profile is not assigned as admin.</p>
+        <p class="muted small">Your profile does not have admin review access.</p>
       </div>
     `;
     return;
   }
 
-  views.admin.innerHTML = renderAdminPanel(
+  views.admin.innerHTML = renderAdminReviewPage(matchesCache);
+}
+
+async function openAdminMatchReview(matchId) {
+  if (!hasAdminAccess()) {
+    toast('Admin access required.');
+    return;
+  }
+
+  const match = matchesCache.find(m => m.id === matchId);
+
+  const { data, error } = await supabaseClient
+    .from('match_prediction_review')
+    .select('*')
+    .eq('match_id', matchId)
+    .order('match_points', { ascending: false })
+    .order('full_name', { ascending: true });
+
+  if (error) {
+    toast(error.message);
+    return;
+  }
+
+  views.admin.innerHTML = renderAdminMatchReview(match, data || []);
+}
+
+window.openAdminMatchReview = openAdminMatchReview;
+
+async function openUserPredictionHistory(userId, matchId) {
+  if (!hasAdminAccess()) {
+    toast('Admin access required.');
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from('match_prediction_history')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('match_id', matchId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    toast(error.message);
+    return;
+  }
+
+  const match = matchesCache.find(m => m.id === matchId);
+
+  views.admin.innerHTML = renderUserPredictionHistory(match, data || []);
+}
+
+window.openUserPredictionHistory = openUserPredictionHistory;
+
+function backToAdminMatches() {
+  renderAdmin();
+}
+
+window.backToAdminMatches = backToAdminMatches;
+
+/* ============================================================
+   Super Admin page — full system controls
+   ============================================================ */
+
+function renderSuperAdmin() {
+  if (!views.superAdmin) return;
+
+  if (!isSuperAdmin()) {
+    views.superAdmin.innerHTML = `
+      <div class="card admin-card">
+        <h2>Super Admin access required</h2>
+        <p class="muted small">Your profile is not assigned as super admin.</p>
+      </div>
+    `;
+    return;
+  }
+
+  views.superAdmin.innerHTML = renderSuperAdminPanel(
     matchesCache,
     OPENFOOTBALL_2026_URL
   );
@@ -559,6 +676,11 @@ function fillAdminMatchForm() {
 window.fillAdminMatchForm = fillAdminMatchForm;
 
 async function addMatch() {
+  if (!isSuperAdmin()) {
+    toast('Super Admin access required.');
+    return;
+  }
+
   const kickoffValue = $('adminKickoff')?.value;
 
   const payload = {
@@ -595,6 +717,11 @@ async function addMatch() {
 window.addMatch = addMatch;
 
 async function updateResult() {
+  if (!isSuperAdmin()) {
+    toast('Super Admin access required.');
+    return;
+  }
+
   const matchId = $('adminMatchSelect')?.value;
 
   if (!matchId) {
@@ -633,7 +760,7 @@ async function updateResult() {
 
   toast(
     hasResult
-      ? 'Match updated. Admin score is protected from auto-sync.'
+      ? 'Match updated. Super Admin score is protected from auto-sync.'
       : 'Match updated.'
   );
 
@@ -643,6 +770,11 @@ async function updateResult() {
 window.updateResult = updateResult;
 
 async function deleteSelectedMatch() {
+  if (!isSuperAdmin()) {
+    toast('Super Admin access required.');
+    return;
+  }
+
   const matchId = $('adminMatchSelect')?.value;
 
   if (!matchId) return;
@@ -668,16 +800,26 @@ async function deleteSelectedMatch() {
 window.deleteSelectedMatch = deleteSelectedMatch;
 
 /* ============================================================
-   Schedule + score sync from OpenFootball
+   Schedule + score sync from OpenFootball — Super Admin only
    ============================================================ */
 
 async function syncScheduleFromInternet() {
+  if (!isSuperAdmin()) {
+    toast('Super Admin access required.');
+    return;
+  }
+
   await autoSyncScoresFromInternet(false);
 }
 
 window.syncScheduleFromInternet = syncScheduleFromInternet;
 
 async function autoSyncScoresFromInternet(silent = true) {
+  if (!isSuperAdmin()) {
+    if (!silent) toast('Super Admin access required.');
+    return;
+  }
+
   const url = $('scheduleUrl')?.value.trim() || OPENFOOTBALL_2026_URL;
 
   try {
@@ -779,8 +921,12 @@ async function autoSyncScoresFromInternet(silent = true) {
       await renderLeaderboard();
     }
 
-    if (isAdmin()) {
+    if (hasAdminAccess()) {
       renderAdmin();
+    }
+
+    if (isSuperAdmin()) {
+      renderSuperAdmin();
     }
 
     if (!silent) {
@@ -976,6 +1122,10 @@ function showView(name) {
 
   if (name === 'admin') {
     renderAdmin();
+  }
+
+  if (name === 'superAdmin') {
+    renderSuperAdmin();
   }
 }
 
