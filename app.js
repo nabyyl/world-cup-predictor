@@ -1,8 +1,9 @@
 /* ============================================================
-   app.js — Office World Cup Prediction League
+   app.js — World Cup 2026 Prediction League
    - Liquid glass UI with dark/light theme
-   - Sub-tabs inside Predictions (Summary / stages / Done)
-   - "My Predictions" top-level page with win highlight
+   - Sub-tabs inside Predictions (Summary / stages / Full Time)
+   - User chip with avatar
+   - Click a Next-Up card to jump to that match
    - Auto-locks matches at kickoff (UI + Supabase RLS)
    ============================================================ */
 
@@ -13,7 +14,7 @@ let matchesCache = [];
 let predictionsCache = [];
 
 let currentTopView = 'predictions';
-let currentStage = 'summary';   // summary | group | r32 | r16 | qf | sf | final | done
+let currentStage = 'summary';   // summary | group | r32 | r16 | qf | sf | final | results
 let lockTickerId = null;
 let scheduleRefreshId = null;
 
@@ -110,8 +111,8 @@ async function enterPortal() {
   $('authPanel').classList.add('hidden');
   $('portalPanel').classList.remove('hidden');
 
-  $('userLine').textContent =
-    `${currentProfile.full_name || currentProfile.email} • ${currentProfile.role}`;
+  $('userName').textContent = currentProfile.full_name || currentProfile.email;
+  $('userRole').textContent = currentProfile.role || 'user';
 
   $('adminTab').classList.toggle('hidden', !isAdmin());
 
@@ -124,15 +125,12 @@ async function enterPortal() {
    ============================================================ */
 
 function startLiveTickers() {
-  // Re-render current view every 30s so kickoff-locks appear without manual reload.
   if (lockTickerId) clearInterval(lockTickerId);
   lockTickerId = setInterval(() => {
     if (currentTopView === 'predictions') renderPredictionsRoot();
     if (currentTopView === 'myPredictions') renderMyPredictionsView();
   }, 30 * 1000);
 
-  // Every 5 min, re-pull matches + predictions from Supabase so live scores
-  // posted by admin (or by the schedule sync) appear automatically.
   if (scheduleRefreshId) clearInterval(scheduleRefreshId);
   scheduleRefreshId = setInterval(async () => {
     try {
@@ -196,7 +194,6 @@ function renderPredictionsRoot() {
   const counts = computeStageCounts(matchesCache);
   $('stageFilter').innerHTML = renderStageFilter(currentStage, counts);
 
-  // Wire sub-tab clicks
   $('stageFilter').querySelectorAll('button[data-stage]').forEach(btn => {
     btn.addEventListener('click', () => {
       currentStage = btn.dataset.stage;
@@ -206,9 +203,12 @@ function renderPredictionsRoot() {
 
   const content = $('predictionsContent');
   if (currentStage === 'summary') {
-    content.innerHTML = renderSummary(matchesCache, predictionsCache);
-  } else if (currentStage === 'done') {
-    content.innerHTML = renderDoneMatches(matchesCache, predictionsCache);
+    content.innerHTML = renderSummary(
+      matchesCache, predictionsCache,
+      currentProfile?.full_name || currentProfile?.email
+    );
+  } else if (currentStage === 'results') {
+    content.innerHTML = renderResultsMatches(matchesCache, predictionsCache);
   } else {
     content.innerHTML = renderMatchCards(
       matchesCache, predictionsCache,
@@ -226,6 +226,28 @@ function rerenderCurrentView() {
   if (currentTopView === 'predictions')   renderPredictionsRoot();
   if (currentTopView === 'myPredictions')  renderMyPredictionsView();
 }
+
+/* ============================================================
+   Navigate to a specific match from Summary "Next up"
+   ============================================================ */
+
+function navigateToMatch(matchId) {
+  const match = matchesCache.find(m => m.id === matchId);
+  if (!match) return;
+
+  // If finished, send user to the Full Time tab; otherwise to its stage tab.
+  currentStage = matchHasResult(match) ? 'results' : classifyStage(match.stage);
+  renderPredictionsRoot();
+
+  requestAnimationFrame(() => {
+    const el = document.getElementById(`match_${matchId}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.add('highlight-flash');
+    setTimeout(() => el.classList.remove('highlight-flash'), 1900);
+  });
+}
+window.navigateToMatch = navigateToMatch;
 
 /* ============================================================
    Save prediction
@@ -362,7 +384,7 @@ async function deleteSelectedMatch() {
 window.deleteSelectedMatch = deleteSelectedMatch;
 
 /* ============================================================
-   Schedule sync from OpenFootball (same data Google uses)
+   Schedule sync from OpenFootball
    ============================================================ */
 
 async function syncScheduleFromInternet() {
