@@ -110,6 +110,22 @@ function googleSearchUrl(match) {
   return `https://www.google.com/search?q=${encodeURIComponent(q)}`;
 }
 
+function matchNumberLabel(match) {
+  return match.match_no ? `Match ${match.match_no}` : 'Match';
+}
+
+function sourceLabel(source) {
+  if (!source) return '';
+
+  const type = source.type === 'winner'
+    ? 'Winner'
+    : source.type === 'loser'
+      ? 'Loser'
+      : 'Team';
+
+  return `${type} of Match ${source.match_no}`;
+}
+
 /* ============================================================
    Stage filter
    ============================================================ */
@@ -228,7 +244,7 @@ function renderSummary(matches, predictions, userName) {
 function nextUpCard(match) {
   return `
     <div class="next-card" onclick="navigateToMatch('${match.id}')" data-match-id="${match.id}">
-      <span class="stage-tag">${escapeHtml(match.stage || 'Match')}</span>
+      <span class="stage-tag">${escapeHtml(matchNumberLabel(match))} · ${escapeHtml(match.stage || 'Match')}</span>
       <div class="matchup">
         ${escapeHtml(match.home_team)}
         <span class="muted">vs</span>
@@ -284,6 +300,9 @@ function renderMatchCards(matches, predictions, helpers, stageFilterId) {
         const live = isLive(match);
         const venue = match.venue ? ` • ${escapeHtml(match.venue)}` : '';
 
+        const homeSource = sourceLabel(match.home_source);
+        const awaySource = sourceLabel(match.away_source);
+
         const pill = live
           ? `<span class="status-pill live">● LIVE</span>`
           : locked
@@ -293,7 +312,7 @@ function renderMatchCards(matches, predictions, helpers, stageFilterId) {
         return `
           <article class="card match-card" id="match_${match.id}">
             <div class="match-top">
-              <span>${formatDate(match.kickoff_at)}</span>
+              <span>${match.match_no ? `M${match.match_no} · ` : ''}${formatDate(match.kickoff_at)}</span>
               ${pill}
             </div>
 
@@ -306,6 +325,12 @@ function renderMatchCards(matches, predictions, helpers, stageFilterId) {
             <p class="muted small">
               ${escapeHtml(match.stage || 'Match')}${venue} • ${resultText(match)}
             </p>
+
+            ${(homeSource || awaySource) ? `
+              <p class="muted small">
+                ${homeSource ? escapeHtml(homeSource) : 'TBD'} vs ${awaySource ? escapeHtml(awaySource) : 'TBD'}
+              </p>
+            ` : ''}
 
             <p class="muted small">Status: ${lockReason(match)}</p>
 
@@ -382,7 +407,7 @@ function renderResultsMatches(matches, predictions) {
         return `
           <article class="card match-card" id="match_${match.id}">
             <div class="match-top">
-              <span>${formatDate(match.kickoff_at)}</span>
+              <span>${match.match_no ? `M${match.match_no} · ` : ''}${formatDate(match.kickoff_at)}</span>
               <span class="status-pill done">📊 Full Time</span>
             </div>
 
@@ -496,6 +521,7 @@ function renderMyPredictions(matches, predictions) {
             <div class="mp-row ${cls}">
               <div>
                 <div class="matchup">
+                  ${match.match_no ? `M${match.match_no} · ` : ''}
                   ${escapeHtml(match.home_team)}
                   <span class="muted">vs</span>
                   ${escapeHtml(match.away_team)}
@@ -632,7 +658,7 @@ function renderAdminReviewPage(matches) {
       ${sortedMatches.map(match => `
         <article class="card match-card" onclick="openAdminMatchReview('${match.id}')" style="cursor:pointer;">
           <div class="match-top">
-            <span>${formatDate(match.kickoff_at)}</span>
+            <span>${match.match_no ? `M${match.match_no} · ` : ''}${formatDate(match.kickoff_at)}</span>
             <span class="status-pill ${matchHasResult(match) ? 'done' : isLive(match) ? 'live' : isUpcoming(match) ? 'upcoming' : 'locked'}">
               ${matchHasResult(match)
                 ? 'Result entered'
@@ -684,6 +710,7 @@ function renderAdminMatchReview(match, rows) {
       <button class="secondary" onclick="backToAdminMatches()">← Back to Matches</button>
 
       <h2 style="margin-top:14px;">
+        ${match.match_no ? `Match ${match.match_no}: ` : ''}
         ${escapeHtml(match.home_team)} vs ${escapeHtml(match.away_team)}
       </h2>
 
@@ -806,6 +833,7 @@ function renderUserPredictionHistory(match, rows) {
 function renderSuperAdminPanel(matches, scheduleUrl) {
   const selectedOptions = matches.map(match => `
     <option value="${match.id}">
+      ${match.match_no ? `M${match.match_no} - ` : ''}
       ${escapeHtml(match.home_team)} vs ${escapeHtml(match.away_team)} - ${formatDate(match.kickoff_at)}
     </option>
   `).join('');
@@ -813,10 +841,10 @@ function renderSuperAdminPanel(matches, scheduleUrl) {
   return `
     <div class="admin-grid">
       <div class="card admin-card">
-        <h2>Sync World Cup Schedule & Scores</h2>
+        <h2>Sync FIFA Schedule & Scores</h2>
         <p class="muted small">
-          Pulls fixtures and final scores once available from the OpenFootball JSON schedule.
-          Super Admin can correct scores manually if the synced score is wrong.
+          Pulls fixtures from the local FIFA 2026 portal schedule JSON file.
+          If final scores are included in the JSON later, the portal can sync them too.
         </p>
 
         <label>Schedule JSON URL</label>
@@ -825,13 +853,16 @@ function renderSuperAdminPanel(matches, scheduleUrl) {
         <button onclick="syncScheduleFromInternet()">Sync Schedule & Scores Now</button>
 
         <p class="muted small">
-          Updates teams, stage, venue, kickoff time, and actual scores when present.
+          Updates match number, teams, stage, venue, kickoff time, knockout source links, and scores when present.
           Existing predictions are preserved.
         </p>
       </div>
 
       <div class="card admin-card">
         <h2>Add Match Manually</h2>
+
+        <label>Match Number</label>
+        <input id="adminMatchNo" type="number" min="1" max="104" placeholder="1 to 104" />
 
         <label>Home Team</label>
         <input id="adminHome" placeholder="Brazil" />
@@ -892,8 +923,8 @@ function renderSuperAdminPanel(matches, scheduleUrl) {
         <button onclick="deleteSelectedMatch()" class="danger">Delete Match</button>
 
         <p class="muted small">
-          If auto-sync gives the wrong score, enter the correct result here.
-          The score will be protected from future auto-sync.
+          For knockout matches, when a match result is entered, the portal will try to push the winner or loser
+          into the next linked match using the match number source fields.
         </p>
       </div>
 
