@@ -164,7 +164,13 @@ a:hover { text-decoration: underline; }
 .setup-card, .auth-card { max-width: 520px; margin: 70px auto; padding: 28px; }
 
 /* ---------- Form elements ---------- */
-label { display: block; margin: 16px 0 7px; color: var(--text-soft); font-weight: 650; font-size: 14px; }
+label {
+  display: block;
+  margin: 16px 0 7px;
+  color: var(--text-soft);
+  font-weight: 650;
+  font-size: 14px;
+}
 
 input, select {
   width: 100%;
@@ -177,7 +183,9 @@ input, select {
   font: inherit;
   transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
 }
+
 input::placeholder { color: var(--muted); }
+
 input:focus, select:focus {
   border-color: var(--accent-2);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-2) 25%, transparent);
@@ -194,6 +202,7 @@ button {
   transition: transform var(--transition), box-shadow var(--transition), filter var(--transition), background var(--transition);
   box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 35%, transparent);
 }
+
 button:hover { transform: translateY(-1px); filter: brightness(1.05); }
 button:active { transform: translateY(0); }
 button:disabled { opacity: .55; cursor: not-allowed; filter: grayscale(.3); }
@@ -211,6 +220,7 @@ button.ghost  { background: transparent; color: var(--text-soft); box-shadow: no
 /* ---------- Brand / header ---------- */
 .brand { display: flex; gap: 12px; align-items: center; }
 .brand-row { display: flex; gap: 16px; align-items: center; margin-bottom: 22px; }
+
 .logo-ball {
   width: 58px; height: 58px; border-radius: 20px; display: grid; place-items: center;
   background: var(--glass-bg-strong); border: 1px solid var(--glass-border);
@@ -276,6 +286,51 @@ button.ghost  { background: transparent; color: var(--text-soft); box-shadow: no
 }
 .nav-tabs { position: sticky; top: 12px; z-index: 5; }
 
+/* ---------- Login / Create Account button alignment fix ---------- */
+#authForm {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+#authForm label {
+  margin-top: 14px;
+}
+
+#authForm input {
+  width: 100%;
+}
+
+#authSubmitBtn {
+  width: 100%;
+  margin-top: 22px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 48px;
+  text-align: center;
+  font-size: 15px;
+}
+
+.auth-card .message {
+  text-align: center;
+  margin-top: 14px;
+  min-height: 20px;
+}
+
+.auth-tabs.card {
+  margin-top: 18px;
+  margin-bottom: 18px;
+}
+
+.auth-tabs {
+  width: 100%;
+}
+
+.auth-tabs button {
+  min-height: 42px;
+}
+
 /* ---------- Sub-nav (stage filter) ---------- */
 .stage-filter {
   display: flex; flex-wrap: wrap; justify-content: center; gap: 6px;
@@ -296,7 +351,7 @@ button.ghost  { background: transparent; color: var(--text-soft); box-shadow: no
   box-shadow: 0 6px 18px color-mix(in srgb, var(--accent-2) 35%, transparent);
 }
 
-/* ---------- Match cards (centered field layout) ---------- */
+/* ---------- Match cards ---------- */
 .view-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -347,7 +402,6 @@ button.ghost  { background: transparent; color: var(--text-soft); box-shadow: no
 }
 .ext-link:hover { text-decoration: underline; }
 
-/* Match highlight after navigating from Summary */
 .highlight-flash {
   animation: highlight-pulse 1.8s ease-out;
 }
@@ -357,7 +411,7 @@ button.ghost  { background: transparent; color: var(--text-soft); box-shadow: no
   100% { box-shadow: var(--shadow); }
 }
 
-/* ---------- Summary hero ---------- */
+/* ---------- Summary ---------- */
 .summary-hero {
   position: relative;
   padding: 22px;
@@ -383,6 +437,7 @@ button.ghost  { background: transparent; color: var(--text-soft); box-shadow: no
   background: var(--accent); box-shadow: 0 0 8px var(--accent);
 }
 .summary-hero .hero-text { padding-right: 160px; }
+
 .summary-quick {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 10px; margin-top: 14px;
@@ -403,7 +458,6 @@ button.ghost  { background: transparent; color: var(--text-soft); box-shadow: no
   gap: 12px;
 }
 
-/* ---------- Next-up card with animated glow on hover ---------- */
 .next-card {
   position: relative;
   padding: 16px;
@@ -441,15 +495,6 @@ button.ghost  { background: transparent; color: var(--text-soft); box-shadow: no
   to { --glow-angle: 360deg; }
 }
 
-/* Fallback for browsers without @property: a softer pulsing glow */
-@supports not (background: conic-gradient(from 0deg, red, blue)) {
-  .next-card:hover::after { animation: glow-pulse 2.5s ease-in-out infinite; }
-}
-@keyframes glow-pulse {
-  0%, 100% { opacity: .55; }
-  50%      { opacity: 1; }
-}
-
 .next-card .when    { color: var(--muted); font-size: 12px; }
 .next-card .matchup { font-weight: 800; font-size: 16px; }
 .next-card .stage-tag {
@@ -459,7 +504,7 @@ button.ghost  { background: transparent; color: var(--text-soft); box-shadow: no
   color: var(--muted); width: fit-content;
 }
 
-/* ---------- My Predictions (refreshed look) ---------- */
+/* ---------- My Predictions ---------- */
 .mp-card { padding: 20px; }
 .mp-head {
   display: flex; justify-content: space-between; align-items: flex-start;
@@ -537,7 +582,7 @@ button.ghost  { background: transparent; color: var(--text-soft); box-shadow: no
 }
 .mp-header-row .center { text-align: center; }
 
-/* ---------- Leaderboard table (numbers centered) ---------- */
+/* ---------- Leaderboard ---------- */
 .table-card { padding: 18px; overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: 13px 10px; border-bottom: 1px solid var(--glass-border); }
@@ -545,6 +590,7 @@ th { color: var(--muted); font-size: 12px; font-weight: 800; text-transform: upp
 th:first-child, td:first-child { text-align: left; padding-left: 6px; }
 th:nth-child(2), td:nth-child(2) { text-align: left; }
 th:nth-child(n+3), td:nth-child(n+3) { text-align: center; font-variant-numeric: tabular-nums; }
+
 .rank {
   font-weight: 900; font-size: 16px;
   display: inline-flex; align-items: center; justify-content: center;
@@ -609,6 +655,7 @@ td .points-pill {
   .summary-hero .hero-text { padding-right: 0; padding-top: 36px; }
   .summary-hero .date-badge { top: 14px; right: 14px; font-size: 11px; padding: 6px 10px; }
 }
+
 @media (max-width: 720px) {
   .portal-header { align-items: stretch; flex-direction: column; }
   .header-actions { justify-content: space-between; }
@@ -618,6 +665,27 @@ td .points-pill {
   .nav-tabs button { min-width: 110px; }
   .mp-row, .mp-header-row { grid-template-columns: 1.6fr 1fr 1fr 0.6fr; }
 }
+
+@media (max-width: 560px) {
+  .auth-card {
+    padding: 22px;
+  }
+
+  .auth-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .auth-tabs button {
+    min-height: 42px;
+  }
+
+  #authSubmitBtn {
+    width: 100%;
+    min-height: 48px;
+  }
+}
+
 @media (max-width: 480px) {
   .mp-row, .mp-header-row { grid-template-columns: 1.4fr 1fr 1fr; }
   .mp-header-row .pts-col, .mp-row .pts { display: none; }
