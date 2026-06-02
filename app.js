@@ -109,8 +109,6 @@ function predictionFor(matchId) {
 }
 
 function matchLocked(match) {
-  // Normal rule: locked when manually locked OR kickoff passed.
-  // Admin override: if admin_override_open is true, users can still change predictions after kickoff.
   if (match.admin_override_open) return false;
   return match.is_locked || new Date(match.kickoff_at) <= new Date();
 }
@@ -153,8 +151,9 @@ function renderPredictions() {
           <input type="number" min="0" max="30" id="home_${match.id}" value="${prediction?.home_score ?? ''}" ${locked ? 'disabled' : ''} placeholder="${escapeHtml(match.home_team)}" />
           <input type="number" min="0" max="30" id="away_${match.id}" value="${prediction?.away_score ?? ''}" ${locked ? 'disabled' : ''} placeholder="${escapeHtml(match.away_team)}" />
         </div>
-        <button onclick="savePrediction('${match.id}')" ${locked ? 'disabled' : ''}>${prediction ? 'Update Prediction' : 'Save Prediction'}</button>
-        ${prediction ? `<p class="saved">Saved: ${prediction.home_score} - ${prediction.away_score}</p>` : `<p class="muted">No prediction saved yet.</p>`}
+        <button onclick="savePrediction('${match.id}')" ${locked ? 'disabled' : ''}>Save / Update Prediction</button>
+        <p class="muted small">You can update unlimited times before kickoff. Your latest saved score will count.</p>
+        ${prediction ? `<p class="saved">Latest saved prediction: ${prediction.home_score} - ${prediction.away_score}</p>` : `<p class="muted">No prediction saved yet.</p>`}
       </article>
     `;
   }).join('');
@@ -178,7 +177,7 @@ async function savePrediction(matchId) {
     .from('predictions')
     .upsert(payload, { onConflict: 'user_id,match_id' });
   if (error) return toast(error.message);
-  toast('Prediction saved.');
+  toast('Prediction saved. Latest saved score will count.');
   await loadPredictions();
   renderPredictions();
 }
@@ -364,7 +363,6 @@ function normalizeOpenFootballSchedule(json, sourceUrl) {
       actual_home_score: ft ? Number(ft[0]) : null,
       actual_away_score: ft ? Number(ft[1]) : null,
       last_synced_at: new Date().toISOString()
-      // Do not set is_locked/admin_override_open here, so admin choices are not overwritten.
     };
   }).filter(row => row.kickoff_at);
 }
@@ -372,7 +370,6 @@ function normalizeOpenFootballSchedule(json, sourceUrl) {
 function parseOpenFootballDateTime(dateValue, timeValue) {
   if (!dateValue) return null;
   const time = String(timeValue || '00:00').trim();
-  // Supported examples: "13:00 UTC-6", "15:00 UTC-4", "19:00".
   const match = time.match(/^(\d{1,2}):(\d{2})(?:\s*UTC([+-]\d{1,2}))?$/i);
   if (!match) return new Date(`${dateValue}T00:00:00Z`).toISOString();
   const hour = Number(match[1]);
@@ -475,7 +472,7 @@ $('authForm').addEventListener('submit', async (event) => {
       });
       if (error) throw error;
       $('authMessage').style.color = '#86efac';
-      $('authMessage').textContent = 'Account created. Check email if confirmation is enabled, then login.';
+      $('authMessage').textContent = 'Account created. You can now login with the same email and password.';
     }
   } catch (error) {
     $('authMessage').style.color = '#fb7185';
