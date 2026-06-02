@@ -15,10 +15,13 @@
     <section id="setupPanel" class="card setup-card">
       <h1>Office World Cup Prediction League</h1>
       <p class="muted">Enter your Supabase details once. These are saved only in this browser.</p>
+
       <label>Supabase Project URL</label>
       <input id="supabaseUrl" placeholder="https://your-project.supabase.co" />
+
       <label>Supabase Anon Public Key</label>
-      <input id="supabaseAnonKey" placeholder="eyJhbGciOi..." />
+      <input id="supabaseAnonKey" placeholder="Paste your Supabase publishable / anon key" />
+
       <button id="saveConfigBtn">Save & Continue</button>
     </section>
 
@@ -39,12 +42,16 @@
       <form id="authForm">
         <label>Email</label>
         <input id="email" type="email" required placeholder="name@office.com" />
+
         <label>Password</label>
         <input id="password" type="password" required minlength="6" placeholder="Minimum 6 characters" />
+
         <label id="nameLabel" class="hidden">Full Name</label>
         <input id="fullName" class="hidden" placeholder="Your name" />
+
         <button id="authSubmitBtn" type="submit">Login</button>
       </form>
+
       <p id="authMessage" class="message"></p>
     </section>
 
@@ -66,21 +73,46 @@
 
       <section id="predictionsView" class="view-grid"></section>
       <section id="leaderboardView" class="hidden"></section>
+
       <section id="rulesView" class="card hidden">
         <h2>Scoring Rules</h2>
+
         <div class="rules-grid">
-          <div><strong>5 pts</strong><span>Exact score</span></div>
-          <div><strong>3 pts</strong><span>Correct result: winner/draw</span></div>
-          <div><strong>1 bonus</strong><span>Correct goal difference</span></div>
+          <div>
+            <strong>5 pts</strong>
+            <span>Exact score</span>
+          </div>
+
+          <div>
+            <strong>3 pts</strong>
+            <span>Correct result: winner/draw</span>
+          </div>
+
+          <div>
+            <strong>1 bonus</strong>
+            <span>Correct goal difference</span>
+          </div>
         </div>
-        <p class="muted">You may update your prediction as many times as you want before kickoff. The last saved prediction before the match starts will be counted.</p>
-        <p class="muted">Predictions are locked once the match kickoff time has passed or admin manually locks the match. Admin can reopen a match using override if required.</p>
+
+        <p class="muted">
+          You may update your prediction as many times as you want before kickoff.
+          The last saved prediction before the match starts will be counted.
+        </p>
+
+        <p class="muted">
+          Predictions are locked once the match kickoff time has passed or admin manually locks the match.
+          Admin can reopen a match using override if required.
+        </p>
       </section>
+
       <section id="adminView" class="hidden"></section>
     </section>
   </main>
 
   <div id="toast" class="toast hidden"></div>
+
+  <!-- UI file must load before app.js -->
+  <script src="ui.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
