@@ -10,8 +10,11 @@
 <body>
   <div class="bg-orb one"></div>
   <div class="bg-orb two"></div>
+  <div class="bg-orb three"></div>
 
   <main class="app-shell">
+
+    <!-- ============ SETUP ============ -->
     <section id="setupPanel" class="card setup-card">
       <h1>Office World Cup Prediction League</h1>
       <p class="muted">Enter your Supabase details once. These are saved only in this browser.</p>
@@ -25,6 +28,7 @@
       <button id="saveConfigBtn">Save & Continue</button>
     </section>
 
+    <!-- ============ AUTH ============ -->
     <section id="authPanel" class="card auth-card hidden">
       <div class="brand-row">
         <div class="logo-ball">⚽</div>
@@ -34,7 +38,7 @@
         </div>
       </div>
 
-      <div class="auth-tabs">
+      <div class="auth-tabs card">
         <button id="loginTab" class="active">Login</button>
         <button id="signupTab">Create Account</button>
       </div>
@@ -55,25 +59,40 @@
       <p id="authMessage" class="message"></p>
     </section>
 
+    <!-- ============ PORTAL ============ -->
     <section id="portalPanel" class="hidden">
       <header class="portal-header card">
         <div>
           <h1>Office World Cup Prediction League</h1>
           <p id="userLine" class="muted"></p>
         </div>
-        <button id="logoutBtn" class="secondary">Logout</button>
+        <div class="header-actions">
+          <button id="themeToggleBtn" class="theme-toggle" title="Toggle theme">🌙</button>
+          <button id="logoutBtn" class="secondary">Logout</button>
+        </div>
       </header>
 
       <nav class="nav-tabs card">
         <button data-view="predictions" class="active">Predictions</button>
+        <button data-view="myPredictions">My Predictions</button>
         <button data-view="leaderboard">Leaderboard</button>
         <button data-view="rules">Rules</button>
         <button data-view="admin" id="adminTab" class="hidden">Admin</button>
       </nav>
 
-      <section id="predictionsView" class="view-grid"></section>
+      <!-- ===== Predictions view (with sub-tabs) ===== -->
+      <section id="predictionsView">
+        <nav id="stageFilter" class="stage-filter card"></nav>
+        <div id="predictionsContent"></div>
+      </section>
+
+      <!-- ===== My Predictions ===== -->
+      <section id="myPredictionsView" class="hidden"></section>
+
+      <!-- ===== Leaderboard ===== -->
       <section id="leaderboardView" class="hidden"></section>
 
+      <!-- ===== Rules ===== -->
       <section id="rulesView" class="card hidden">
         <h2>Scoring Rules</h2>
 
@@ -82,36 +101,41 @@
             <strong>5 pts</strong>
             <span>Exact score</span>
           </div>
-
+          <div>
+            <strong>4 pts</strong>
+            <span>Correct result + goal difference</span>
+          </div>
           <div>
             <strong>3 pts</strong>
-            <span>Correct result: winner/draw</span>
-          </div>
-
-          <div>
-            <strong>1 bonus</strong>
-            <span>Correct goal difference</span>
+            <span>Correct result: winner / draw</span>
           </div>
         </div>
 
         <p class="muted">
-          You may update your prediction as many times as you want before kickoff.
-          The last saved prediction before the match starts will be counted.
+          You can change your prediction <strong>unlimited times</strong> before kickoff.
+          The last saved prediction before the match starts is the one that counts.
         </p>
 
         <p class="muted">
-          Predictions are locked once the match kickoff time has passed or admin manually locks the match.
-          Admin can reopen a match using override if required.
+          Predictions are <strong>auto-locked the moment a match starts</strong> — both in the
+          UI and at the database level (Supabase RLS rejects edits after kickoff).
+          Admin can reopen a match using override only if needed.
+        </p>
+
+        <p class="muted small">
+          Live scores and kickoff timing are sourced from the FIFA-aligned OpenFootball feed.
+          Use the "View on Google" link on any match to open Google's live World Cup card for that fixture.
         </p>
       </section>
 
+      <!-- ===== Admin ===== -->
       <section id="adminView" class="hidden"></section>
     </section>
   </main>
 
   <div id="toast" class="toast hidden"></div>
 
-  <!-- UI file must load before app.js -->
+  <!-- ui.js must load before app.js -->
   <script src="ui.js"></script>
   <script src="app.js"></script>
 </body>
