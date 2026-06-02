@@ -690,3 +690,21 @@ td .points-pill {
   .mp-row, .mp-header-row { grid-template-columns: 1.4fr 1fr 1fr; }
   .mp-header-row .pts-col, .mp-row .pts { display: none; }
 }
+
+/* ---------- Footer / Copyright ---------- */
+.site-footer {
+  width: min(1180px, 94vw);
+  margin: -28px auto 32px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.site-footer p {
+  margin: 4px 0;
+}
+
+.site-footer .small {
+  font-size: 12px;
+  opacity: 0.85;
+}
