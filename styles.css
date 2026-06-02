@@ -811,3 +811,169 @@ td .points-pill {
     min-width: 125px;
   }
 }
+
+/* ============================================================
+   Smooth interaction / fluid animation polish
+   ============================================================ */
+
+/* Smoother global motion */
+:root {
+  --transition-fast: 160ms cubic-bezier(.2,.8,.2,1);
+  --transition-smooth: 260ms cubic-bezier(.16,1,.3,1);
+  --transition-bounce: 320ms cubic-bezier(.34,1.56,.64,1);
+}
+
+/* Smooth scrolling when jumping to matches */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Buttons feel more fluid when clicked */
+button {
+  transform: translateY(0) scale(1);
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-smooth),
+    filter var(--transition-fast),
+    background var(--transition-smooth),
+    border-color var(--transition-smooth);
+}
+
+button:hover {
+  transform: translateY(-1px) scale(1.01);
+}
+
+button:active {
+  transform: translateY(1px) scale(0.985);
+}
+
+/* Tab buttons feel less sudden */
+.auth-tabs button,
+.nav-tabs button,
+.stage-filter button {
+  transition:
+    background var(--transition-smooth),
+    color var(--transition-smooth),
+    border-color var(--transition-smooth),
+    transform var(--transition-fast),
+    box-shadow var(--transition-smooth);
+}
+
+.auth-tabs button:hover,
+.nav-tabs button:hover,
+.stage-filter button:hover {
+  transform: translateY(-1px);
+}
+
+.auth-tabs button:active,
+.nav-tabs button:active,
+.stage-filter button:active {
+  transform: scale(0.97);
+}
+
+/* Cards feel softer on hover/click */
+.card,
+.match-card,
+.next-card,
+.mp-row,
+.admin-card {
+  transition:
+    transform var(--transition-smooth),
+    border-color var(--transition-smooth),
+    background var(--transition-smooth),
+    box-shadow var(--transition-smooth),
+    opacity var(--transition-smooth);
+}
+
+.match-card:hover,
+.admin-card:hover {
+  transform: translateY(-2px);
+}
+
+.match-card:active,
+.next-card:active,
+.admin-card:active {
+  transform: scale(0.992);
+}
+
+/* Page/view content fades in softly */
+#predictionsView,
+#myPredictionsView,
+#leaderboardView,
+#rulesView,
+#adminView,
+#superAdminView {
+  animation: pageFadeIn 260ms cubic-bezier(.16,1,.3,1);
+}
+
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Match cards appear smoother after filtering */
+.view-grid > .card,
+.next-up > .next-card,
+.admin-grid > .card {
+  animation: cardEnter 280ms cubic-bezier(.16,1,.3,1);
+}
+
+@keyframes cardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Inputs feel more premium */
+input,
+select {
+  transition:
+    border-color var(--transition-smooth),
+    box-shadow var(--transition-smooth),
+    background var(--transition-smooth),
+    transform var(--transition-fast);
+}
+
+input:focus,
+select:focus {
+  transform: translateY(-1px);
+}
+
+/* Toast slide/fade effect */
+.toast {
+  animation: toastIn 260ms cubic-bezier(.16,1,.3,1);
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
+}
