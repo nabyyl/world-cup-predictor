@@ -80,6 +80,7 @@
               <span id="userRole" class="user-role">—</span>
             </span>
           </div>
+
           <button id="themeToggleBtn" class="theme-toggle" title="Toggle theme">🌙</button>
           <button id="logoutBtn" class="secondary">Logout</button>
         </div>
@@ -91,6 +92,7 @@
         <button data-view="leaderboard">Leaderboard</button>
         <button data-view="rules">Rules</button>
         <button data-view="admin" id="adminTab" class="hidden">Admin</button>
+        <button data-view="superAdmin" id="superAdminTab" class="hidden">Super Admin</button>
       </nav>
 
       <!-- ===== Predictions view ===== -->
@@ -114,10 +116,12 @@
             <strong>5 pts</strong>
             <span>Exact score</span>
           </div>
+
           <div>
             <strong>4 pts</strong>
             <span>Correct result + goal difference</span>
           </div>
+
           <div>
             <strong>3 pts</strong>
             <span>Correct result: winner / draw</span>
@@ -132,7 +136,7 @@
         <p class="muted">
           Predictions are <strong>auto-locked the moment a match starts</strong> — both in the
           UI and at the database level (Supabase RLS rejects edits after kickoff).
-          Admin can reopen a match using override only if needed.
+          Super Admin can reopen a match using override only if needed.
         </p>
 
         <p class="muted small">
@@ -141,15 +145,18 @@
         </p>
       </section>
 
-           <!-- ===== Admin ===== -->
+      <!-- ===== Admin Review ===== -->
       <section id="adminView" class="hidden"></section>
+
+      <!-- ===== Super Admin Controls ===== -->
+      <section id="superAdminView" class="hidden"></section>
     </section>
   </main>
 
   <footer class="site-footer">
-  <p>© 2026 World Cup Prediction League. All rights reserved.</p>
-  <p class="small">Designed & built by Nabyl.</p>
-</footer>
+    <p>© 2026 World Cup Prediction League. All rights reserved.</p>
+    <p class="small">Designed & built by Nabyl.</p>
+  </footer>
 
   <div id="toast" class="toast hidden"></div>
 
