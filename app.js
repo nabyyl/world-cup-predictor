@@ -5,7 +5,9 @@
    - User chip with avatar
    - Click a Next-Up card to jump to that match
    - Auto-locks matches at kickoff (UI + Supabase RLS)
-   - Auto-syncs available scores from OpenFootball
+   - Uses FIFA portal schedule JSON file
+   - Supports match_no, home_source, away_source
+   - Auto-fills knockout winners/losers into next matches
    - Super Admin controls match/result management
    - Admin can review matches, latest predictions, points and history
    - Supabase connection is prefilled so users do not see setup screen
@@ -23,7 +25,7 @@ let lockTickerId = null;
 let scheduleRefreshId = null;
 
 const OPENFOOTBALL_2026_URL =
-  'https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json';
+  './fifa-2026-portal-schedule.json';
 
 const DEFAULT_SUPABASE_URL =
   'https://lpbsxggijjjanvnodgsn.supabase.co';
@@ -684,11 +686,14 @@ async function addMatch() {
   const kickoffValue = $('adminKickoff')?.value;
 
   const payload = {
+    match_no: $('adminMatchNo')?.value ? Number($('adminMatchNo').value) : null,
     home_team: $('adminHome')?.value.trim(),
     away_team: $('adminAway')?.value.trim(),
     stage: $('adminStage')?.value.trim(),
     venue: $('adminVenue')?.value.trim(),
     kickoff_at: kickoffValue ? new Date(kickoffValue).toISOString() : null,
+    home_source: null,
+    away_source: null,
     is_locked: false,
     admin_override_open: false,
     source: 'manual',
@@ -758,6 +763,17 @@ async function updateResult() {
     return;
   }
 
+  const completedMatch = matchesCache.find(match => match.id === matchId);
+
+  if (completedMatch) {
+    const updatedMatch = {
+      ...completedMatch,
+      ...payload
+    };
+
+    await updateDependentKnockoutMatches(updatedMatch);
+  }
+
   toast(
     hasResult
       ? 'Match updated. Super Admin score is protected from auto-sync.'
@@ -768,6 +784,90 @@ async function updateResult() {
 }
 
 window.updateResult = updateResult;
+
+async function updateDependentKnockoutMatches(completedMatch) {
+  if (!completedMatch || !matchHasResult(completedMatch)) return;
+
+  if (!completedMatch.match_no) {
+    console.warn('Completed match has no match_no, cannot update knockout dependencies.');
+    return;
+  }
+
+  const homeScore = Number(completedMatch.actual_home_score);
+  const awayScore = Number(completedMatch.actual_away_score);
+
+  if (homeScore === awayScore) {
+    toast('Match is drawn. Please update the knockout winner manually if penalties were used.');
+    return;
+  }
+
+  const winner =
+    homeScore > awayScore
+      ? completedMatch.home_team
+      : completedMatch.away_team;
+
+  const loser =
+    homeScore > awayScore
+      ? completedMatch.away_team
+      : completedMatch.home_team;
+
+  const matchNo = Number(completedMatch.match_no);
+
+  const { data: allMatches, error } = await supabaseClient
+    .from('matches')
+    .select('*');
+
+  if (error) {
+    toast(error.message);
+    return;
+  }
+
+  const dependentMatches = (allMatches || []).filter(match => {
+    const homeSourceMatchNo = match.home_source?.match_no;
+    const awaySourceMatchNo = match.away_source?.match_no;
+
+    return Number(homeSourceMatchNo) === matchNo ||
+           Number(awaySourceMatchNo) === matchNo;
+  });
+
+  for (const match of dependentMatches) {
+    const payload = {};
+
+    if (
+      match.home_source &&
+      Number(match.home_source.match_no) === matchNo
+    ) {
+      payload.home_team =
+        match.home_source.type === 'winner'
+          ? winner
+          : loser;
+    }
+
+    if (
+      match.away_source &&
+      Number(match.away_source.match_no) === matchNo
+    ) {
+      payload.away_team =
+        match.away_source.type === 'winner'
+          ? winner
+          : loser;
+    }
+
+    if (Object.keys(payload).length > 0) {
+      const { error: updateError } = await supabaseClient
+        .from('matches')
+        .update(payload)
+        .eq('id', match.id);
+
+      if (updateError) {
+        toast(updateError.message);
+        return;
+      }
+    }
+  }
+}
+
+window.updateDependentKnockoutMatches = updateDependentKnockoutMatches;
 
 async function deleteSelectedMatch() {
   if (!isSuperAdmin()) {
@@ -800,7 +900,7 @@ async function deleteSelectedMatch() {
 window.deleteSelectedMatch = deleteSelectedMatch;
 
 /* ============================================================
-   Schedule + score sync from OpenFootball — Super Admin only
+   Schedule + score sync from FIFA portal JSON — Super Admin only
    ============================================================ */
 
 async function syncScheduleFromInternet() {
@@ -944,6 +1044,37 @@ async function autoSyncScoresFromInternet(silent = true) {
 window.autoSyncScoresFromInternet = autoSyncScoresFromInternet;
 
 function normalizeOpenFootballSchedule(json, sourceUrl) {
+  // New portal schedule format based on FIFA official schedule.
+  if (Array.isArray(json.matches) && json.source === 'FIFA official schedule') {
+    return json.matches
+      .map((match, index) => {
+        const hasResult =
+          match.actual_home_score !== null &&
+          match.actual_away_score !== null &&
+          match.actual_home_score !== undefined &&
+          match.actual_away_score !== undefined;
+
+        return {
+          external_id: match.external_id || `fifa-2026-m${String(index + 1).padStart(3, '0')}`,
+          match_no: match.match_no || index + 1,
+          source: 'fifa_manual_portal',
+          source_url: json.source_url || sourceUrl,
+          home_team: match.home_team || 'TBD',
+          away_team: match.away_team || 'TBD',
+          stage: match.stage || 'World Cup',
+          venue: match.venue || null,
+          kickoff_at: new Date(match.kickoff_at).toISOString(),
+          home_source: match.home_source || null,
+          away_source: match.away_source || null,
+          actual_home_score: hasResult ? Number(match.actual_home_score) : null,
+          actual_away_score: hasResult ? Number(match.actual_away_score) : null,
+          last_synced_at: new Date().toISOString()
+        };
+      })
+      .filter(row => row.kickoff_at);
+  }
+
+  // Old OpenFootball format fallback.
   const matches = Array.isArray(json.matches) ? json.matches : [];
 
   return matches
@@ -969,6 +1100,8 @@ function normalizeOpenFootballSchedule(json, sourceUrl) {
         stage: match.group || match.round || 'World Cup',
         venue: match.ground || null,
         kickoff_at: kickoff,
+        home_source: null,
+        away_source: null,
         actual_home_score: hasFullTimeScore ? Number(fullTimeScore[0]) : null,
         actual_away_score: hasFullTimeScore ? Number(fullTimeScore[1]) : null,
         last_synced_at: new Date().toISOString()
@@ -1022,6 +1155,7 @@ async function downloadPredictionsCsv() {
     rows = data.map(row => [
       row.full_name,
       row.email,
+      row.match_no ?? '',
       row.home_team,
       row.away_team,
       row.stage,
@@ -1037,6 +1171,7 @@ async function downloadPredictionsCsv() {
       return [
         currentProfile.full_name,
         currentProfile.email,
+        match.match_no ?? '',
         match.home_team,
         match.away_team,
         match.stage,
@@ -1052,6 +1187,7 @@ async function downloadPredictionsCsv() {
     [
       'Name',
       'Email',
+      'Match No',
       'Home',
       'Away',
       'Stage',
