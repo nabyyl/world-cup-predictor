@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Office World Cup Prediction League</title>
+  <title>World Cup 2026 Prediction League</title>
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -16,7 +16,7 @@
 
     <!-- ============ SETUP ============ -->
     <section id="setupPanel" class="card setup-card">
-      <h1>Office World Cup Prediction League</h1>
+      <h1>World Cup 2026 Prediction League</h1>
       <p class="muted">Enter your Supabase details once. These are saved only in this browser.</p>
 
       <label>Supabase Project URL</label>
@@ -33,7 +33,7 @@
       <div class="brand-row">
         <div class="logo-ball">⚽</div>
         <div>
-          <h1>Office World Cup Prediction League</h1>
+          <h1>World Cup 2026 Prediction League</h1>
           <p class="muted">Predict scores. Update anytime before kickoff. Last saved prediction counts.</p>
         </div>
       </div>
@@ -62,11 +62,24 @@
     <!-- ============ PORTAL ============ -->
     <section id="portalPanel" class="hidden">
       <header class="portal-header card">
-        <div>
-          <h1>Office World Cup Prediction League</h1>
-          <p id="userLine" class="muted"></p>
+        <div class="brand">
+          <div class="logo-ball small">⚽</div>
+          <h1>World Cup 2026 Prediction League</h1>
         </div>
+
         <div class="header-actions">
+          <div id="userChip" class="user-chip">
+            <span class="user-avatar" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+            </span>
+            <span class="user-meta">
+              <span id="userName" class="user-name">—</span>
+              <span id="userRole" class="user-role">—</span>
+            </span>
+          </div>
           <button id="themeToggleBtn" class="theme-toggle" title="Toggle theme">🌙</button>
           <button id="logoutBtn" class="secondary">Logout</button>
         </div>
@@ -80,7 +93,7 @@
         <button data-view="admin" id="adminTab" class="hidden">Admin</button>
       </nav>
 
-      <!-- ===== Predictions view (with sub-tabs) ===== -->
+      <!-- ===== Predictions view ===== -->
       <section id="predictionsView">
         <nav id="stageFilter" class="stage-filter card"></nav>
         <div id="predictionsContent"></div>
