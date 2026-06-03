@@ -9,10 +9,10 @@
   --radius-sm: 12px;
   --shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
   --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.18);
-  --transition: 220ms cubic-bezier(.2,.7,.2,1);
-  --transition-fast: 160ms cubic-bezier(.2,.8,.2,1);
-  --transition-smooth: 260ms cubic-bezier(.16,1,.3,1);
-  --transition-bounce: 320ms cubic-bezier(.34,1.56,.64,1);
+  --transition: 240ms cubic-bezier(.2,.7,.2,1);
+  --transition-fast: 180ms cubic-bezier(.2,.8,.2,1);
+  --transition-smooth: 340ms cubic-bezier(.16,1,.3,1);
+  --transition-bounce: 420ms cubic-bezier(.34,1.45,.64,1);
 }
 
 /* ---------- DARK ---------- */
@@ -121,6 +121,7 @@ body {
   transition: background var(--transition), color var(--transition);
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
 }
 
 h1,
@@ -378,9 +379,9 @@ button.ghost {
 
 .logo-ball {
   position: relative;
-  width: 58px;
-  height: 58px;
-  border-radius: 20px;
+  width: 64px;
+  height: 64px;
+  border-radius: 22px;
   display: grid;
   place-items: center;
   background: var(--glass-bg-strong);
@@ -388,22 +389,24 @@ button.ghost {
   font-size: 28px;
   backdrop-filter: blur(12px);
   animation: footballFloat 3.2s ease-in-out infinite;
+  flex: 0 0 64px;
   box-shadow:
     0 0 0 1px var(--glass-border),
-    0 8px 22px color-mix(in srgb, var(--accent-2) 26%, transparent),
-    0 0 24px color-mix(in srgb, var(--accent) 18%, transparent);
+    0 10px 30px color-mix(in srgb, var(--accent-2) 35%, transparent),
+    0 0 34px color-mix(in srgb, var(--accent) 26%, transparent);
 }
 
 .logo-ball.small {
-  width: 42px;
-  height: 42px;
+  width: 50px;
+  height: 50px;
   font-size: 22px;
-  border-radius: 14px;
+  border-radius: 16px;
   animation: footballFloatSmall 3.2s ease-in-out infinite;
+  flex: 0 0 50px;
   box-shadow:
     0 0 0 1px var(--glass-border),
-    0 6px 18px color-mix(in srgb, var(--accent-2) 22%, transparent),
-    0 0 18px color-mix(in srgb, var(--accent) 16%, transparent);
+    0 8px 24px color-mix(in srgb, var(--accent-2) 30%, transparent),
+    0 0 26px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
 .logo-ball::after {
@@ -413,54 +416,52 @@ button.ghost {
   border-radius: inherit;
   background: radial-gradient(
     circle,
-    color-mix(in srgb, var(--accent-2) 24%, transparent),
+    color-mix(in srgb, var(--accent-2) 28%, transparent),
     transparent 68%
   );
-  opacity: 0.55;
-  filter: blur(10px);
+  opacity: 0.78;
+  filter: blur(14px);
   z-index: -1;
   pointer-events: none;
 }
 
 /* ---------- Lottie football logo ---------- */
-.lottie-logo {
+.logo-ball.lottie-logo {
+  font-size: 0;
   overflow: visible;
   padding: 0;
 }
 
 .lottie-logo dotlottie-player {
-  width: 42px;
-  height: 42px;
+  width: 58px;
+  height: 58px;
   display: block;
   pointer-events: none;
+  transform: scale(1.12);
 }
 
 .lottie-logo.small dotlottie-player {
-  width: 32px;
-  height: 32px;
-}
-
-/* Keep the Lottie logo clean inside the glass ball */
-.logo-ball.lottie-logo {
-  font-size: 0;
+  width: 46px;
+  height: 46px;
+  transform: scale(1.16);
 }
 
 .logo-ball.lottie-logo::before {
   content: "";
   position: absolute;
-  inset: 7px;
-  border-radius: 16px;
+  inset: 5px;
+  border-radius: 17px;
   background: radial-gradient(
     circle,
-    color-mix(in srgb, var(--accent-2) 12%, transparent),
-    transparent 70%
+    color-mix(in srgb, var(--accent-2) 20%, transparent),
+    transparent 72%
   );
   pointer-events: none;
 }
 
 .logo-ball.small.lottie-logo::before {
-  inset: 5px;
-  border-radius: 12px;
+  inset: 4px;
+  border-radius: 13px;
 }
 
 .brand h1,
@@ -561,7 +562,10 @@ button.ghost {
   border: 1px solid var(--glass-border);
   border-radius: 999px;
   backdrop-filter: blur(12px);
-  transition: background var(--transition), border-color var(--transition), transform var(--transition);
+  transition:
+    background var(--transition-smooth),
+    border-color var(--transition-smooth),
+    transform var(--transition-fast);
 }
 
 .user-chip:hover {
@@ -1317,6 +1321,13 @@ td .points-pill {
 }
 
 /* ---------- Admin / Super Admin ---------- */
+#adminView,
+#superAdminView {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 .admin-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -1360,6 +1371,30 @@ td .points-pill {
 #adminView .match-card:hover,
 #superAdminView .admin-card:hover {
   border-color: color-mix(in srgb, var(--accent-2) 45%, var(--glass-border));
+}
+
+#adminView .view-grid,
+#superAdminView .admin-grid {
+  width: 100%;
+  max-width: 100%;
+}
+
+#adminView .match-card,
+#superAdminView .admin-card,
+#adminView .table-card,
+#superAdminView .table-card {
+  max-width: 100%;
+}
+
+#adminView table,
+#superAdminView table {
+  table-layout: auto;
+}
+
+#adminView .table-card,
+#superAdminView .table-card {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ---------- Rules ---------- */
@@ -1614,30 +1649,86 @@ td .points-pill {
     min-width: 125px;
   }
 
+  .brand,
+  .brand-row {
+    gap: 12px;
+  }
+
   .brand h1,
   .brand-row h1 {
-    font-size: 19px;
+    font-size: 20px;
+    line-height: 1.15;
   }
 
   .logo-ball {
-    width: 52px;
-    height: 52px;
-    border-radius: 18px;
+    width: 60px;
+    height: 60px;
+    border-radius: 20px;
+    flex: 0 0 60px;
   }
 
   .logo-ball.small {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+    flex: 0 0 48px;
   }
 
   .lottie-logo dotlottie-player {
-    width: 38px;
-    height: 38px;
+    width: 54px;
+    height: 54px;
+    transform: scale(1.12);
   }
 
   .lottie-logo.small dotlottie-player {
-    width: 30px;
-    height: 30px;
+    width: 44px;
+    height: 44px;
+    transform: scale(1.16);
+  }
+
+  .portal-header {
+    padding: 14px;
+  }
+
+  .header-actions {
+    gap: 8px;
+  }
+
+  #adminView .view-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #adminView .match-card {
+    padding: 16px 14px;
+  }
+
+  #adminView .teams,
+  #superAdminView .teams {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  #adminView .vs,
+  #superAdminView .vs {
+    font-size: 12px;
+  }
+
+  #adminView .match-top,
+  #superAdminView .match-top {
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  #adminView .table-card table,
+  #superAdminView .table-card table {
+    min-width: 620px;
+  }
+
+  #adminView .table-card,
+  #superAdminView .table-card {
+    padding: 12px;
+    border-radius: 18px;
   }
 
   /* Final mobile prediction sub-menu fix */
@@ -1706,11 +1797,14 @@ td .points-pill {
   }
 
   .bg-orb,
-  .logo-ball,
-  .logo-ball.small,
   .brand h1,
   .brand-row h1,
   .status-pill.live {
     animation: none !important;
+  }
+
+  .logo-ball,
+  .logo-ball.small {
+    animation: footballFloatSmall 3.2s ease-in-out infinite !important;
   }
 }
