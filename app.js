@@ -248,6 +248,9 @@ function startLiveTickers() {
   if (lockTickerId) clearInterval(lockTickerId);
   if (scheduleRefreshId) clearTimeout(scheduleRefreshId);
 
+  // Only auto-refresh user-facing pages.
+  // Do NOT refresh Admin/Super Admin every 30 seconds,
+  // because it causes mobile page reload/flicker issues.
   lockTickerId = setInterval(() => {
     if (
       currentTopView === 'predictions' ||
@@ -306,16 +309,26 @@ async function refreshAll() {
     loadPredictions()
   ]);
 
+if (
+  currentTopView === 'predictions' ||
+  currentTopView === 'myPredictions' ||
+  currentTopView === 'leaderboard'
+) {
   rerenderCurrentView();
+}
+
+if (currentTopView === 'leaderboard') {
   await renderLeaderboard();
+}
 
-  if (currentTopView === 'admin' && hasAdminAccess()) {
-    renderAdmin();
-  }
+// Do not auto-render Admin/Super Admin in the background.
+// It causes mobile flicker/reload issues.
+if (currentTopView === 'admin') {
+  renderAdmin();
+}
 
-  if (currentTopView === 'superAdmin' && isSuperAdmin()) {
-    renderSuperAdmin();
-  }
+if (currentTopView === 'superAdmin') {
+  renderSuperAdmin();
 }
 
 async function loadMatches() {
