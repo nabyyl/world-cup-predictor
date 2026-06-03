@@ -3,10 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <title>World Cup 2026 Prediction League</title>
+
   <link rel="stylesheet" href="styles.css" />
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Lottie football logo player -->
+  <script
+    src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs"
+    type="module">
+  </script>
 </head>
+
 <body>
   <div class="bg-orb one"></div>
   <div class="bg-orb two"></div>
@@ -31,7 +41,16 @@
     <!-- ============ AUTH ============ -->
     <section id="authPanel" class="card auth-card hidden">
       <div class="brand-row">
-        <div class="logo-ball">⚽</div>
+        <div class="logo-ball lottie-logo">
+          <dotlottie-player
+            src="football-logo.json"
+            background="transparent"
+            speed="1"
+            loop
+            autoplay>
+          </dotlottie-player>
+        </div>
+
         <div>
           <h1>World Cup 2026 Prediction League</h1>
           <p class="muted">Predict scores. Update anytime before kickoff. Last saved prediction counts.</p>
@@ -63,7 +82,16 @@
     <section id="portalPanel" class="hidden">
       <header class="portal-header card">
         <div class="brand">
-          <div class="logo-ball small">⚽</div>
+          <div class="logo-ball small lottie-logo">
+            <dotlottie-player
+              src="football-logo.json"
+              background="transparent"
+              speed="1"
+              loop
+              autoplay>
+            </dotlottie-player>
+          </div>
+
           <h1>World Cup 2026 Prediction League</h1>
         </div>
 
@@ -75,6 +103,7 @@
                 <circle cx="12" cy="7" r="4"/>
               </svg>
             </span>
+
             <span class="user-meta">
               <span id="userName" class="user-name">—</span>
               <span id="userRole" class="user-role">—</span>
