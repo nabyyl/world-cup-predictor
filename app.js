@@ -239,6 +239,9 @@ async function enterPortal() {
 
 /* ============================================================
    Live tickers + smart auto-sync
+   Important fix:
+   Admin and Super Admin pages are NOT auto-rebuilt every 30 sec.
+   This prevents mobile page flicker / repeated error refresh loop.
    ============================================================ */
 
 function startLiveTickers() {
@@ -246,7 +249,13 @@ function startLiveTickers() {
   if (scheduleRefreshId) clearTimeout(scheduleRefreshId);
 
   lockTickerId = setInterval(() => {
-    rerenderCurrentView();
+    if (
+      currentTopView === 'predictions' ||
+      currentTopView === 'myPredictions' ||
+      currentTopView === 'leaderboard'
+    ) {
+      rerenderCurrentView();
+    }
   }, 30 * 1000);
 
   async function smartAutoSyncLoop() {
@@ -256,10 +265,17 @@ function startLiveTickers() {
       } else {
         await loadMatches();
         await loadPredictions();
-        rerenderCurrentView();
+
+        if (
+          currentTopView === 'predictions' ||
+          currentTopView === 'myPredictions' ||
+          currentTopView === 'leaderboard'
+        ) {
+          rerenderCurrentView();
+        }
       }
-    } catch {
-      /* silent */
+    } catch (error) {
+      console.warn('Background refresh failed:', error.message);
     }
 
     const hasActiveMatch = matchesCache.some(match => {
@@ -293,11 +309,11 @@ async function refreshAll() {
   rerenderCurrentView();
   await renderLeaderboard();
 
-  if (hasAdminAccess()) {
+  if (currentTopView === 'admin' && hasAdminAccess()) {
     renderAdmin();
   }
 
-  if (isSuperAdmin()) {
+  if (currentTopView === 'superAdmin' && isSuperAdmin()) {
     renderSuperAdmin();
   }
 }
@@ -402,24 +418,24 @@ function renderMyPredictionsView() {
 }
 
 function rerenderCurrentView() {
-  if (currentTopView === 'predictions') {
-    renderPredictionsRoot();
-  }
+  try {
+    if (currentTopView === 'predictions') {
+      renderPredictionsRoot();
+    }
 
-  if (currentTopView === 'myPredictions') {
-    renderMyPredictionsView();
-  }
+    if (currentTopView === 'myPredictions') {
+      renderMyPredictionsView();
+    }
 
-  if (currentTopView === 'leaderboard') {
-    renderLeaderboard();
-  }
+    if (currentTopView === 'leaderboard') {
+      renderLeaderboard();
+    }
 
-  if (currentTopView === 'admin') {
-    renderAdmin();
-  }
-
-  if (currentTopView === 'superAdmin') {
-    renderSuperAdmin();
+    // Admin and Super Admin are intentionally not rebuilt here.
+    // They are rendered only when clicked or after admin actions.
+  } catch (error) {
+    console.warn('View render failed:', error.message);
+    toast('There was an error loading this page. Please refresh once.');
   }
 }
 
@@ -550,7 +566,21 @@ function renderAdmin() {
     return;
   }
 
-  views.admin.innerHTML = renderAdminReviewPage(matchesCache);
+  try {
+    views.admin.innerHTML = renderAdminReviewPage(matchesCache || []);
+  } catch (error) {
+    console.error('Admin page error:', error);
+
+    views.admin.innerHTML = `
+      <div class="card admin-card">
+        <h2>Admin page could not load</h2>
+        <p class="message">${error.message}</p>
+        <p class="muted small">
+          This is usually caused by an old ui.js file or missing admin review function.
+        </p>
+      </div>
+    `;
+  }
 }
 
 async function openAdminMatchReview(matchId) {
@@ -626,12 +656,26 @@ function renderSuperAdmin() {
     return;
   }
 
-  views.superAdmin.innerHTML = renderSuperAdminPanel(
-    matchesCache,
-    OPENFOOTBALL_2026_URL
-  );
+  try {
+    views.superAdmin.innerHTML = renderSuperAdminPanel(
+      matchesCache || [],
+      OPENFOOTBALL_2026_URL
+    );
 
-  fillAdminMatchForm();
+    fillAdminMatchForm();
+  } catch (error) {
+    console.error('Super Admin page error:', error);
+
+    views.superAdmin.innerHTML = `
+      <div class="card admin-card">
+        <h2>Super Admin page could not load</h2>
+        <p class="message">${error.message}</p>
+        <p class="muted small">
+          Check that ui.js has the latest Super Admin render function.
+        </p>
+      </div>
+    `;
+  }
 }
 
 function fillAdminMatchForm() {
@@ -781,6 +825,10 @@ async function updateResult() {
   );
 
   await refreshAll();
+
+  if (currentTopView === 'superAdmin') {
+    renderSuperAdmin();
+  }
 }
 
 window.updateResult = updateResult;
@@ -895,9 +943,61 @@ async function deleteSelectedMatch() {
 
   toast('Match deleted.');
   await refreshAll();
+
+  if (currentTopView === 'superAdmin') {
+    renderSuperAdmin();
+  }
 }
 
 window.deleteSelectedMatch = deleteSelectedMatch;
+
+/* ============================================================
+   Super Admin reset old matches
+   Requires SQL RPC:
+   public.super_admin_clear_matches_if_no_predictions()
+   ============================================================ */
+
+async function resetMatchesIfNoPredictions() {
+  if (!isSuperAdmin()) {
+    toast('Super Admin access required.');
+    return;
+  }
+
+  const confirmed = confirm(
+    'This will delete all existing matches only if no predictions exist. Continue?'
+  );
+
+  if (!confirmed) return;
+
+  try {
+    toast('Checking predictions before reset...');
+
+    const { data, error } = await supabaseClient
+      .rpc('super_admin_clear_matches_if_no_predictions');
+
+    if (error) throw error;
+
+    if (!data?.success) {
+      toast(data?.message || 'Cannot reset matches because predictions already exist.');
+      return;
+    }
+
+    toast(data.message || 'Old matches deleted.');
+
+    await loadMatches();
+    await loadPredictions();
+
+    if (currentTopView === 'superAdmin') {
+      renderSuperAdmin();
+    } else {
+      rerenderCurrentView();
+    }
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+window.resetMatchesIfNoPredictions = resetMatchesIfNoPredictions;
 
 /* ============================================================
    Schedule + score sync from FIFA portal JSON — Super Admin only
@@ -1015,17 +1115,19 @@ async function autoSyncScoresFromInternet(silent = true) {
     await loadMatches();
     await loadPredictions();
 
-    rerenderCurrentView();
-
-    if (currentTopView === 'leaderboard') {
-      await renderLeaderboard();
+    if (
+      currentTopView === 'predictions' ||
+      currentTopView === 'myPredictions' ||
+      currentTopView === 'leaderboard'
+    ) {
+      rerenderCurrentView();
     }
 
-    if (hasAdminAccess()) {
+    if (currentTopView === 'admin' && hasAdminAccess()) {
       renderAdmin();
     }
 
-    if (isSuperAdmin()) {
+    if (currentTopView === 'superAdmin' && isSuperAdmin()) {
       renderSuperAdmin();
     }
 
