@@ -20,18 +20,15 @@ let matchesCache = [];
 let predictionsCache = [];
 
 let currentTopView = 'predictions';
-let currentStage = 'summary';   // summary | group | r32 | r16 | qf | sf | final | results
+let currentStage = 'summary'; // summary | group | r32 | r16 | qf | sf | final | results
 let lockTickerId = null;
 let scheduleRefreshId = null;
 
-const OPENFOOTBALL_2026_URL =
-  './fifa-2026-portal-schedule.json';
+const OPENFOOTBALL_2026_URL = './fifa-2026-portal-schedule.json';
 
-const DEFAULT_SUPABASE_URL =
-  'https://lpbsxggijjjanvnodgsn.supabase.co';
+const DEFAULT_SUPABASE_URL = 'https://lpbsxggijjjanvnodgsn.supabase.co';
 
-const DEFAULT_SUPABASE_ANON_KEY =
-  'sb_publishable_RUaY8xsNZDZTjTUyq4SKWg_HbiLGxon';
+const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_RUaY8xsNZDZTjTUyq4SKWg_HbiLGxon';
 
 const $ = (id) => document.getElementById(id);
 
@@ -142,13 +139,11 @@ function isAdmin() {
    ============================================================ */
 
 function initSupabase() {
-  const url =
-    localStorage.getItem('wc_supabase_url') ||
-    DEFAULT_SUPABASE_URL;
+  const savedUrl = localStorage.getItem('wc_supabase_url');
+  const savedKey = localStorage.getItem('wc_supabase_anon_key');
 
-  const key =
-    localStorage.getItem('wc_supabase_anon_key') ||
-    DEFAULT_SUPABASE_ANON_KEY;
+  const url = savedUrl && savedUrl.trim() ? savedUrl.trim() : DEFAULT_SUPABASE_URL;
+  const key = savedKey && savedKey.trim() ? savedKey.trim() : DEFAULT_SUPABASE_ANON_KEY;
 
   if (!url || !key) {
     showElement('setupPanel');
@@ -172,7 +167,12 @@ function initSupabase() {
 async function loadSession() {
   if (!supabaseClient) return;
 
-  const { data } = await supabaseClient.auth.getSession();
+  const { data, error } = await supabaseClient.auth.getSession();
+
+  if (error) {
+    setMessage(error.message, 'error');
+    return;
+  }
 
   if (data.session?.user) {
     currentUser = data.session.user;
@@ -193,48 +193,54 @@ async function fetchProfile() {
 }
 
 async function enterPortal() {
-  await fetchProfile();
+  try {
+    await fetchProfile();
 
-  if (!currentProfile || currentProfile.status !== 'active') {
-    setMessage(
-      'Your account is pending or inactive. Ask the admin to add/activate your email.',
-      'error'
-    );
+    if (!currentProfile || currentProfile.status !== 'active') {
+      setMessage(
+        'Your account is pending or inactive. Ask the admin to add/activate your email.',
+        'error'
+      );
 
+      await supabaseClient.auth.signOut();
+      return;
+    }
+
+    hideElement('setupPanel');
+    hideElement('authPanel');
+    showElement('portalPanel');
+
+    const displayName = currentProfile.full_name || currentProfile.email || 'User';
+
+    const displayRole =
+      currentProfile.role === 'super_admin'
+        ? 'Super Admin'
+        : currentProfile.role === 'admin'
+          ? 'Admin'
+          : 'User';
+
+    setText('userName', displayName);
+    setText('userRole', displayRole);
+
+    const adminTab = $('adminTab');
+    if (adminTab) {
+      adminTab.classList.toggle('hidden', !hasAdminAccess());
+    }
+
+    const superAdminTab = $('superAdminTab');
+    if (superAdminTab) {
+      superAdminTab.classList.toggle('hidden', !isSuperAdmin());
+    }
+
+    await refreshAll();
+
+    showView('predictions');
+
+    startLiveTickers();
+  } catch (error) {
+    setMessage(error.message, 'error');
     await supabaseClient.auth.signOut();
-    return;
   }
-
-  hideElement('authPanel');
-  showElement('portalPanel');
-
-  const displayName = currentProfile.full_name || currentProfile.email || 'User';
-
-  const displayRole =
-    currentProfile.role === 'super_admin'
-      ? 'Super Admin'
-      : currentProfile.role === 'admin'
-        ? 'Admin'
-        : 'User';
-
-  setText('userName', displayName);
-  setText('userRole', displayRole);
-
-  const adminTab = $('adminTab');
-  if (adminTab) {
-    adminTab.classList.toggle('hidden', !hasAdminAccess());
-  }
-
-  const superAdminTab = $('superAdminTab');
-  if (superAdminTab) {
-    superAdminTab.classList.toggle('hidden', !isSuperAdmin());
-  }
-
-  await refreshAll();
-
-  showView('predictions');
-
-  startLiveTickers();
 }
 
 /* ============================================================
@@ -248,9 +254,6 @@ function startLiveTickers() {
   if (lockTickerId) clearInterval(lockTickerId);
   if (scheduleRefreshId) clearTimeout(scheduleRefreshId);
 
-  // Only auto-refresh user-facing pages.
-  // Do NOT refresh Admin/Super Admin every 30 seconds,
-  // because it causes mobile page reload/flicker issues.
   lockTickerId = setInterval(() => {
     if (
       currentTopView === 'predictions' ||
@@ -309,26 +312,25 @@ async function refreshAll() {
     loadPredictions()
   ]);
 
-if (
-  currentTopView === 'predictions' ||
-  currentTopView === 'myPredictions' ||
-  currentTopView === 'leaderboard'
-) {
-  rerenderCurrentView();
-}
+  if (
+    currentTopView === 'predictions' ||
+    currentTopView === 'myPredictions' ||
+    currentTopView === 'leaderboard'
+  ) {
+    rerenderCurrentView();
+  }
 
-if (currentTopView === 'leaderboard') {
-  await renderLeaderboard();
-}
+  if (currentTopView === 'leaderboard') {
+    await renderLeaderboard();
+  }
 
-// Do not auto-render Admin/Super Admin in the background.
-// It causes mobile flicker/reload issues.
-if (currentTopView === 'admin') {
-  renderAdmin();
-}
+  if (currentTopView === 'admin') {
+    renderAdmin();
+  }
 
-if (currentTopView === 'superAdmin') {
-  renderSuperAdmin();
+  if (currentTopView === 'superAdmin') {
+    renderSuperAdmin();
+  }
 }
 
 async function loadMatches() {
@@ -587,7 +589,7 @@ function renderAdmin() {
     views.admin.innerHTML = `
       <div class="card admin-card">
         <h2>Admin page could not load</h2>
-        <p class="message">${error.message}</p>
+        <p class="message">${escapeHtml(error.message)}</p>
         <p class="muted small">
           This is usually caused by an old ui.js file or missing admin review function.
         </p>
@@ -682,7 +684,7 @@ function renderSuperAdmin() {
     views.superAdmin.innerHTML = `
       <div class="card admin-card">
         <h2>Super Admin page could not load</h2>
-        <p class="message">${error.message}</p>
+        <p class="message">${escapeHtml(error.message)}</p>
         <p class="muted small">
           Check that ui.js has the latest Super Admin render function.
         </p>
@@ -774,6 +776,10 @@ async function addMatch() {
 
   toast('Match added.');
   await refreshAll();
+
+  if (currentTopView === 'superAdmin') {
+    renderSuperAdmin();
+  }
 }
 
 window.addMatch = addMatch;
@@ -894,20 +900,14 @@ async function updateDependentKnockoutMatches(completedMatch) {
   for (const match of dependentMatches) {
     const payload = {};
 
-    if (
-      match.home_source &&
-      Number(match.home_source.match_no) === matchNo
-    ) {
+    if (match.home_source && Number(match.home_source.match_no) === matchNo) {
       payload.home_team =
         match.home_source.type === 'winner'
           ? winner
           : loser;
     }
 
-    if (
-      match.away_source &&
-      Number(match.away_source.match_no) === matchNo
-    ) {
+    if (match.away_source && Number(match.away_source.match_no) === matchNo) {
       payload.away_team =
         match.away_source.type === 'winner'
           ? winner
@@ -965,37 +965,53 @@ async function deleteSelectedMatch() {
 window.deleteSelectedMatch = deleteSelectedMatch;
 
 /* ============================================================
-   Super Admin reset old matches
-   Requires SQL RPC:
-   public.super_admin_clear_matches_if_no_predictions()
+   Super Admin replace old matches with local FIFA JSON
+   Uses SQL RPC:
+   public.super_admin_replace_matches_from_json(schedule_data jsonb)
+
+   Important:
+   - Only Super Admin can run it
+   - SQL refuses to run if predictions exist
+   - This deletes old/sample matches and inserts the local JSON schedule
    ============================================================ */
 
-async function resetMatchesIfNoPredictions() {
+async function replaceMatchesWithScheduleIfNoPredictions() {
   if (!isSuperAdmin()) {
     toast('Super Admin access required.');
     return;
   }
 
   const confirmed = confirm(
-    'This will delete all existing matches only if no predictions exist. Continue?'
+    'This will replace all existing matches with the FIFA 2026 portal schedule only if no predictions exist. Continue?'
   );
 
   if (!confirmed) return;
 
   try {
-    toast('Checking predictions before reset...');
+    toast('Loading local FIFA schedule...');
+
+    const url = $('scheduleUrl')?.value.trim() || OPENFOOTBALL_2026_URL;
+
+    const response = await fetch(url, {
+      cache: 'no-store'
+    });
+
+    if (!response.ok) {
+      throw new Error(`Could not fetch schedule: ${response.status}`);
+    }
+
+    const scheduleJson = await response.json();
+
+    toast('Checking predictions and replacing schedule...');
 
     const { data, error } = await supabaseClient
-      .rpc('super_admin_clear_matches_if_no_predictions');
+      .rpc('super_admin_replace_matches_from_json', {
+        schedule_data: scheduleJson
+      });
 
     if (error) throw error;
 
-    if (!data?.success) {
-      toast(data?.message || 'Cannot reset matches because predictions already exist.');
-      return;
-    }
-
-    toast(data.message || 'Old matches deleted.');
+    toast(`Schedule replaced successfully. ${data || 0} matches loaded.`);
 
     await loadMatches();
     await loadPredictions();
@@ -1008,6 +1024,14 @@ async function resetMatchesIfNoPredictions() {
   } catch (error) {
     toast(error.message);
   }
+}
+
+window.replaceMatchesWithScheduleIfNoPredictions = replaceMatchesWithScheduleIfNoPredictions;
+
+/* Backward-compatible alias.
+   If ui.js still calls resetMatchesIfNoPredictions(), it will still work. */
+async function resetMatchesIfNoPredictions() {
+  await replaceMatchesWithScheduleIfNoPredictions();
 }
 
 window.resetMatchesIfNoPredictions = resetMatchesIfNoPredictions;
@@ -1136,11 +1160,13 @@ async function autoSyncScoresFromInternet(silent = true) {
       rerenderCurrentView();
     }
 
-    if (currentTopView === 'admin' && hasAdminAccess()) {
+    // Important mobile fix:
+    // Do not rebuild Admin/Super Admin during silent background sync.
+    if (!silent && currentTopView === 'admin' && hasAdminAccess()) {
       renderAdmin();
     }
 
-    if (currentTopView === 'superAdmin' && isSuperAdmin()) {
+    if (!silent && currentTopView === 'superAdmin' && isSuperAdmin()) {
       renderSuperAdmin();
     }
 
@@ -1160,9 +1186,16 @@ window.autoSyncScoresFromInternet = autoSyncScoresFromInternet;
 
 function normalizeOpenFootballSchedule(json, sourceUrl) {
   // New portal schedule format based on FIFA official schedule.
-  if (Array.isArray(json.matches) && json.source === 'FIFA official schedule') {
+  if (Array.isArray(json.matches)) {
     return json.matches
       .map((match, index) => {
+        const kickoffDate = new Date(match.kickoff_at);
+
+        if (!match.kickoff_at || Number.isNaN(kickoffDate.getTime())) {
+          console.warn('Skipping match with invalid kickoff_at:', match);
+          return null;
+        }
+
         const hasResult =
           match.actual_home_score !== null &&
           match.actual_away_score !== null &&
@@ -1170,15 +1203,15 @@ function normalizeOpenFootballSchedule(json, sourceUrl) {
           match.actual_away_score !== undefined;
 
         return {
-          external_id: match.external_id || `fifa-2026-m${String(index + 1).padStart(3, '0')}`,
+          external_id: match.external_id || `fifa-2026-m${String(match.match_no || index + 1).padStart(3, '0')}`,
           match_no: match.match_no || index + 1,
-          source: 'fifa_manual_portal',
-          source_url: json.source_url || sourceUrl,
+          source: match.source || 'fifa_manual_portal',
+          source_url: match.source_url || json.source_url || sourceUrl,
           home_team: match.home_team || 'TBD',
           away_team: match.away_team || 'TBD',
           stage: match.stage || 'World Cup',
           venue: match.venue || null,
-          kickoff_at: new Date(match.kickoff_at).toISOString(),
+          kickoff_at: kickoffDate.toISOString(),
           home_source: match.home_source || null,
           away_source: match.away_source || null,
           actual_home_score: hasResult ? Number(match.actual_home_score) : null,
@@ -1186,45 +1219,13 @@ function normalizeOpenFootballSchedule(json, sourceUrl) {
           last_synced_at: new Date().toISOString()
         };
       })
-      .filter(row => row.kickoff_at);
+      .filter(Boolean);
   }
 
-  // Old OpenFootball format fallback.
-  const matches = Array.isArray(json.matches) ? json.matches : [];
-
-  return matches
-    .map((match, index) => {
-      const kickoff = parseOpenFootballDateTime(match.date, match.time);
-      const externalId = `openfootball-2026-${String(index + 1).padStart(3, '0')}`;
-      const fullTimeScore = Array.isArray(match.score?.ft) ? match.score.ft : null;
-
-      const hasFullTimeScore =
-        fullTimeScore &&
-        fullTimeScore.length >= 2 &&
-        fullTimeScore[0] !== null &&
-        fullTimeScore[1] !== null &&
-        fullTimeScore[0] !== undefined &&
-        fullTimeScore[1] !== undefined;
-
-      return {
-        external_id: externalId,
-        source: 'openfootball',
-        source_url: sourceUrl,
-        home_team: match.team1 || 'TBD',
-        away_team: match.team2 || 'TBD',
-        stage: match.group || match.round || 'World Cup',
-        venue: match.ground || null,
-        kickoff_at: kickoff,
-        home_source: null,
-        away_source: null,
-        actual_home_score: hasFullTimeScore ? Number(fullTimeScore[0]) : null,
-        actual_away_score: hasFullTimeScore ? Number(fullTimeScore[1]) : null,
-        last_synced_at: new Date().toISOString()
-      };
-    })
-    .filter(row => row.kickoff_at);
+  return [];
 }
 
+/* Old OpenFootball helper kept only for compatibility. */
 function parseOpenFootballDateTime(dateValue, timeValue) {
   if (!dateValue) return null;
 
