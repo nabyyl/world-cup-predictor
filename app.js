@@ -2043,6 +2043,76 @@ $('authForm')?.addEventListener('submit', async (event) => {
   }
 });
 
+$('authForm')?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+
+  setMessage('', 'error');
+
+  const email = $('email')?.value.trim().toLowerCase();
+  const password = $('password')?.value;
+
+  if (!email || !password) {
+    setMessage('Enter email and password.', 'error');
+    return;
+  }
+
+  try {
+    if (authMode === 'login') {
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) throw error;
+
+      currentUser = data.user;
+      await enterPortal();
+    } else {
+      const fullName = $('fullName')?.value.trim() || '';
+
+      const { error } = await supabaseClient.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      setMessage(
+        'Account created. You can now login with the same email and password.',
+        'success'
+      );
+    }
+  } catch (error) {
+    setMessage(error.message, 'error');
+  }
+});
+
+$('forgotPasswordBtn')?.addEventListener('click', async () => {
+  const email = $('email')?.value.trim().toLowerCase();
+
+  if (!email) {
+    setMessage('Enter your email first, then click Forgot password.', 'error');
+    return;
+  }
+
+  try {
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + window.location.pathname
+    });
+
+    if (error) throw error;
+
+    setMessage('Password reset link sent. Please check your email.', 'success');
+  } catch (error) {
+    setMessage(error.message, 'error');
+  }
+});
+
 $('logoutBtn')?.addEventListener('click', async () => {
   await supabaseClient.auth.signOut();
 
