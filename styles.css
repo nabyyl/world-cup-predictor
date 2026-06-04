@@ -2195,3 +2195,10 @@ td .points-pill {
     animation: footballFloatSmall 3.2s ease-in-out infinite !important;
   }
 }
+
+/* Center prediction sub-menu on desktop only */
+@media (min-width: 721px) {
+  #stageFilter.stage-filter.card {
+    justify-content: center;
+  }
+}
