@@ -18,6 +18,7 @@
        Finalists = 5 each
    - Admin can review match predictions and bonus predictions
    - Super Admin controls match/result/bonus management
+   - Bonus dropdown lists load from GitHub JSON files
    - Supabase connection is prefilled so users do not see setup screen
    ============================================================ */
 
@@ -30,6 +31,9 @@ let predictionsCache = [];
 let bonusPredictionCache = null;
 let bonusResultCache = null;
 
+let bonusTeamsCache = [];
+let bonusPlayersCache = [];
+
 let currentTopView = 'predictions';
 let currentStage = 'summary';
 let currentAdminView = 'matches'; // matches | bonus
@@ -39,6 +43,55 @@ let scheduleRefreshId = null;
 let leaderboardRefreshId = null;
 
 const OPENFOOTBALL_2026_URL = './fifa-2026-portal-schedule.json';
+
+/* ============================================================
+   Bonus dropdown GitHub JSON URLs
+   Replace these with your actual RAW GitHub URLs.
+   Example:
+   https://raw.githubusercontent.com/leeban89/worldcup/main/teams.json
+   ============================================================ */
+
+const BONUS_TEAMS_JSON_URL = 'https://raw.githubusercontent.com/nabyyl/world-cup-predictor/main/teams.json';
+const BONUS_PLAYERS_JSON_URL = 'https://raw.githubusercontent.com/nabyyl/world-cup-predictor/main/players.json';
+
+const DEFAULT_BONUS_TEAMS = [
+  'Argentina',
+  'Australia',
+  'Belgium',
+  'Brazil',
+  'Canada',
+  'Colombia',
+  'Croatia',
+  'Denmark',
+  'England',
+  'France',
+  'Germany',
+  'Italy',
+  'Japan',
+  'Mexico',
+  'Morocco',
+  'Netherlands',
+  'Portugal',
+  'Saudi Arabia',
+  'South Korea',
+  'Spain',
+  'Switzerland',
+  'Uruguay',
+  'USA'
+];
+
+const DEFAULT_BONUS_PLAYERS = [
+  'Lionel Messi',
+  'Kylian Mbappé',
+  'Jude Bellingham',
+  'Vinícius Júnior',
+  'Erling Haaland',
+  'Cristiano Ronaldo',
+  'Harry Kane',
+  'Bukayo Saka',
+  'Lamine Yamal',
+  'Other'
+];
 
 const DEFAULT_SUPABASE_URL = 'https://lpbsxggijjjanvnodgsn.supabase.co';
 
@@ -270,6 +323,152 @@ async function enterPortal() {
 }
 
 /* ============================================================
+   Bonus dropdown list loader
+   ============================================================ */
+
+async function loadBonusOptionLists() {
+  const loadJsonList = async (url, fallbackList) => {
+    if (!url || url.includes('YOUR_USERNAME') || url.includes('YOUR_REPO')) {
+      return fallbackList;
+    }
+
+    try {
+      const response = await fetch(url, {
+        cache: 'no-store'
+      });
+
+      if (!response.ok) {
+        throw new Error(`Could not load ${url}: ${response.status}`);
+      }
+
+      const json = await response.json();
+
+      if (!Array.isArray(json)) {
+        throw new Error('Bonus list JSON must be an array.');
+      }
+
+      return json
+        .map(item => String(item ?? '').trim())
+        .filter(Boolean);
+    } catch (error) {
+      console.warn('Bonus list load failed. Using fallback list:', error.message);
+      return fallbackList;
+    }
+  };
+
+  const [teams, players] = await Promise.all([
+    loadJsonList(BONUS_TEAMS_JSON_URL, DEFAULT_BONUS_TEAMS),
+    loadJsonList(BONUS_PLAYERS_JSON_URL, DEFAULT_BONUS_PLAYERS)
+  ]);
+
+  bonusTeamsCache = teams;
+  bonusPlayersCache = players;
+}
+
+function setSelectOptions(selectId, options, placeholder, selectedValue) {
+  const select = $(selectId);
+
+  if (!select) return;
+
+  const previousValue = selectedValue ?? select.value ?? '';
+
+  select.innerHTML = `<option value="">${safeEscape(placeholder)}</option>`;
+
+  options.forEach(option => {
+    const value = String(option ?? '').trim();
+
+    if (!value) return;
+
+    select.insertAdjacentHTML(
+      'beforeend',
+      `<option value="${safeEscape(value)}">${safeEscape(value)}</option>`
+    );
+  });
+
+  if (previousValue) {
+    const exists = Array.from(select.options).some(option => option.value === previousValue);
+
+    if (!exists) {
+      select.insertAdjacentHTML(
+        'beforeend',
+        `<option value="${safeEscape(previousValue)}">${safeEscape(previousValue)}</option>`
+      );
+    }
+
+    select.value = previousValue;
+  }
+}
+
+function populateBonusDropdowns() {
+  const teams = bonusTeamsCache.length ? bonusTeamsCache : DEFAULT_BONUS_TEAMS;
+  const players = bonusPlayersCache.length ? bonusPlayersCache : DEFAULT_BONUS_PLAYERS;
+
+  setSelectOptions(
+    'bonusTournamentWinner',
+    teams,
+    'Select tournament winner',
+    bonusPredictionCache?.tournament_winner || ''
+  );
+
+  setSelectOptions(
+    'bonusBestPlayer',
+    players,
+    'Select best player',
+    bonusPredictionCache?.best_player || ''
+  );
+
+  setSelectOptions(
+    'bonusFinalistOne',
+    teams,
+    'Select finalist 1',
+    bonusPredictionCache?.finalist_one || ''
+  );
+
+  setSelectOptions(
+    'bonusFinalistTwo',
+    teams,
+    'Select finalist 2',
+    bonusPredictionCache?.finalist_two || ''
+  );
+}
+
+function populateBonusResultDropdowns() {
+  const teams = bonusTeamsCache.length ? bonusTeamsCache : DEFAULT_BONUS_TEAMS;
+  const players = bonusPlayersCache.length ? bonusPlayersCache : DEFAULT_BONUS_PLAYERS;
+
+  setSelectOptions(
+    'actualTournamentWinner',
+    teams,
+    'Select actual tournament winner',
+    bonusResultCache?.actual_tournament_winner || ''
+  );
+
+  setSelectOptions(
+    'actualBestPlayer',
+    players,
+    'Select actual best player',
+    bonusResultCache?.actual_best_player || ''
+  );
+
+  setSelectOptions(
+    'actualFinalistOne',
+    teams,
+    'Select actual finalist 1',
+    bonusResultCache?.actual_finalist_one || ''
+  );
+
+  setSelectOptions(
+    'actualFinalistTwo',
+    teams,
+    'Select actual finalist 2',
+    bonusResultCache?.actual_finalist_two || ''
+  );
+}
+
+window.populateBonusDropdowns = populateBonusDropdowns;
+window.populateBonusResultDropdowns = populateBonusResultDropdowns;
+
+/* ============================================================
    Live tickers + smart auto-sync
    Leaderboard refresh reduced to every 5 minutes.
    Admin and Super Admin pages are NOT auto-rebuilt every 30 sec.
@@ -352,6 +551,7 @@ function startLiveTickers() {
 
 async function refreshAll() {
   await Promise.all([
+    loadBonusOptionLists(),
     loadMatches(),
     loadPredictions(),
     loadBonusPrediction(),
@@ -502,8 +702,17 @@ function renderPredictionsRoot() {
     content.innerHTML = renderBonusPredictions(
       bonusPredictionCache,
       bonusResultCache,
-      currentProfile
+      currentProfile,
+      {
+        teams: bonusTeamsCache.length ? bonusTeamsCache : DEFAULT_BONUS_TEAMS,
+        players: bonusPlayersCache.length ? bonusPlayersCache : DEFAULT_BONUS_PLAYERS
+      }
     );
+
+    requestAnimationFrame(() => {
+      populateBonusDropdowns();
+    });
+
     return;
   }
 
@@ -655,12 +864,27 @@ async function saveBonusPrediction() {
     return;
   }
 
+  const tournamentWinner = $('bonusTournamentWinner')?.value.trim() || null;
+  const bestPlayer = $('bonusBestPlayer')?.value.trim() || null;
+  const finalistOne = $('bonusFinalistOne')?.value.trim() || null;
+  const finalistTwo = $('bonusFinalistTwo')?.value.trim() || null;
+
+  if (!tournamentWinner || !bestPlayer || !finalistOne || !finalistTwo) {
+    toast('Please complete all bonus predictions.');
+    return;
+  }
+
+  if (finalistOne === finalistTwo) {
+    toast('Finalist 1 and Finalist 2 cannot be the same team.');
+    return;
+  }
+
   const payload = {
     user_id: currentUser.id,
-    tournament_winner: $('bonusTournamentWinner')?.value.trim() || null,
-    best_player: $('bonusBestPlayer')?.value.trim() || null,
-    finalist_one: $('bonusFinalistOne')?.value.trim() || null,
-    finalist_two: $('bonusFinalistTwo')?.value.trim() || null,
+    tournament_winner: tournamentWinner,
+    best_player: bestPlayer,
+    finalist_one: finalistOne,
+    finalist_two: finalistTwo,
     updated_at: new Date().toISOString()
   };
 
@@ -920,7 +1144,11 @@ function renderSuperAdmin() {
     views.superAdmin.innerHTML = renderSuperAdminPanel(
       matchesCache || [],
       OPENFOOTBALL_2026_URL,
-      bonusResultCache
+      bonusResultCache,
+      {
+        teams: bonusTeamsCache.length ? bonusTeamsCache : DEFAULT_BONUS_TEAMS,
+        players: bonusPlayersCache.length ? bonusPlayersCache : DEFAULT_BONUS_PLAYERS
+      }
     );
 
     fillAdminMatchForm();
@@ -989,6 +1217,8 @@ window.fillAdminMatchForm = fillAdminMatchForm;
 
 function fillBonusResultForm() {
   if (!bonusResultCache) return;
+
+  populateBonusResultDropdowns();
 
   if ($('bonusLock')) {
     $('bonusLock').checked = !!bonusResultCache.is_locked;
@@ -1138,13 +1368,23 @@ async function updateBonusResults() {
     return;
   }
 
+  const actualTournamentWinner = $('actualTournamentWinner')?.value.trim() || null;
+  const actualBestPlayer = $('actualBestPlayer')?.value.trim() || null;
+  const actualFinalistOne = $('actualFinalistOne')?.value.trim() || null;
+  const actualFinalistTwo = $('actualFinalistTwo')?.value.trim() || null;
+
+  if (actualFinalistOne && actualFinalistTwo && actualFinalistOne === actualFinalistTwo) {
+    toast('Actual Finalist 1 and Finalist 2 cannot be the same team.');
+    return;
+  }
+
   const payload = {
     id: true,
     is_locked: !!$('bonusLock')?.checked,
-    actual_tournament_winner: $('actualTournamentWinner')?.value.trim() || null,
-    actual_best_player: $('actualBestPlayer')?.value.trim() || null,
-    actual_finalist_one: $('actualFinalistOne')?.value.trim() || null,
-    actual_finalist_two: $('actualFinalistTwo')?.value.trim() || null,
+    actual_tournament_winner: actualTournamentWinner,
+    actual_best_player: actualBestPlayer,
+    actual_finalist_one: actualFinalistOne,
+    actual_finalist_two: actualFinalistTwo,
     updated_at: new Date().toISOString()
   };
 
