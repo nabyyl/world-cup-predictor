@@ -297,7 +297,11 @@ function startLiveTickers() {
 
   async function smartAutoSyncLoop() {
     try {
-      if (isSuperAdmin()) {
+      const isAdminScreen =
+        currentTopView === 'admin' ||
+        currentTopView === 'superAdmin';
+
+      if (isSuperAdmin() && !isAdminScreen) {
         await autoSyncScoresFromInternet(true);
       } else {
         await loadMatches();
@@ -315,6 +319,10 @@ function startLiveTickers() {
         if (currentTopView === 'leaderboard') {
           renderLeaderboard();
         }
+
+        // Important:
+        // Do not auto-render Admin / Super Admin here.
+        // This prevents mobile admin review screens from being refreshed while viewing them.
       }
     } catch (error) {
       console.warn('Background refresh failed:', error.message);
