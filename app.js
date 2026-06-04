@@ -227,6 +227,18 @@ function initSupabase() {
     return false;
   }
 
+function initSupabase() {
+  const url = DEFAULT_SUPABASE_URL;
+  const key = DEFAULT_SUPABASE_ANON_KEY;
+
+  if (!url || !key) {
+    showElement('setupPanel');
+    hideElement('authPanel');
+    hideElement('resetPasswordPanel');
+    hideElement('portalPanel');
+    return false;
+  }
+
   supabaseClient = supabase.createClient(url, key);
 
   localStorage.setItem('wc_supabase_url', url);
