@@ -2102,7 +2102,7 @@ td .points-pill {
     border-radius: 18px !important;
     display: flex;
     flex-wrap: nowrap;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 8px;
     overflow-x: auto;
     overflow-y: hidden;
@@ -2196,9 +2196,22 @@ td .points-pill {
   }
 }
 
-/* Center prediction sub-menu on desktop only */
+/* ============================================================
+   Final submenu alignment fix
+   Desktop/tablet: center submenus
+   Mobile: keep normal horizontal scroll
+   ============================================================ */
+
 @media (min-width: 721px) {
-  #stageFilter.stage-filter.card {
-    justify-content: center;
+  #stageFilter.stage-filter.card,
+  .admin-sub-tabs {
+    justify-content: center !important;
+  }
+}
+
+@media (max-width: 720px) {
+  #stageFilter.stage-filter.card,
+  .admin-sub-tabs {
+    justify-content: flex-start !important;
   }
 }
