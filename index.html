@@ -65,23 +65,55 @@
       </div>
 
       <form id="authForm">
-  <label>Email</label>
-  <input id="email" type="email" required placeholder="name@pension.gov.mv" />
+        <label>Email</label>
+        <input id="email" type="email" required placeholder="name@pension.gov.mv" />
 
-  <label>Password</label>
-  <input id="password" type="password" required minlength="6" placeholder="Minimum 6 characters" />
+        <label>Password</label>
+        <input id="password" type="password" required minlength="6" placeholder="Minimum 6 characters" />
 
-  <label id="nameLabel" class="hidden">Full Name</label>
-  <input id="fullName" class="hidden" placeholder="Your name" />
+        <label id="nameLabel" class="hidden">Full Name</label>
+        <input id="fullName" class="hidden" placeholder="Your name" />
 
-  <button id="authSubmitBtn" type="submit">Login</button>
+        <button id="authSubmitBtn" type="submit">Login</button>
 
-  <button id="forgotPasswordBtn" type="button" class="ghost">
-    Forgot password?
-  </button>
-</form>
+        <button id="forgotPasswordBtn" type="button" class="ghost">
+          Forgot password?
+        </button>
+      </form>
 
       <p id="authMessage" class="message"></p>
+    </section>
+
+    <!-- ============ RESET PASSWORD ============ -->
+    <section id="resetPasswordPanel" class="card auth-card hidden">
+      <div class="brand-row">
+        <div class="logo-ball lottie-logo">
+          <dotlottie-player
+            src="football-logo.json"
+            background="transparent"
+            speed="1"
+            loop
+            autoplay>
+          </dotlottie-player>
+        </div>
+
+        <div>
+          <h1>Set New Password</h1>
+          <p class="muted">Enter your new password below.</p>
+        </div>
+      </div>
+
+      <form id="resetPasswordForm">
+        <label>New Password</label>
+        <input id="newPassword" type="password" required minlength="6" placeholder="Minimum 6 characters" />
+
+        <label>Confirm New Password</label>
+        <input id="confirmNewPassword" type="password" required minlength="6" placeholder="Re-enter password" />
+
+        <button type="submit">Update Password</button>
+      </form>
+
+      <p id="resetPasswordMessage" class="message"></p>
     </section>
 
     <!-- ============ PORTAL ============ -->
