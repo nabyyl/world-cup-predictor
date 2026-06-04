@@ -19,6 +19,7 @@
    - Admin can review match predictions and bonus predictions
    - Super Admin controls match/result/bonus management
    - Bonus dropdown lists load from GitHub JSON files
+   - Forgot password + reset password flow
    - Supabase connection is prefilled so users do not see setup screen
    ============================================================ */
 
@@ -46,9 +47,6 @@ const OPENFOOTBALL_2026_URL = './fifa-2026-portal-schedule.json';
 
 /* ============================================================
    Bonus dropdown GitHub JSON URLs
-   Replace these with your actual RAW GitHub URLs.
-   Example:
-   https://raw.githubusercontent.com/leeban89/worldcup/main/teams.json
    ============================================================ */
 
 const BONUS_TEAMS_JSON_URL = 'https://raw.githubusercontent.com/nabyyl/world-cup-predictor/main/teams.json';
@@ -131,6 +129,18 @@ function setMessage(message, type = 'error') {
   el.textContent = message || '';
 }
 
+function setResetMessage(message, type = 'error') {
+  const el = $('resetPasswordMessage');
+
+  if (!el) {
+    toast(message);
+    return;
+  }
+
+  el.style.color = type === 'success' ? '#86efac' : '#fb7185';
+  el.textContent = message || '';
+}
+
 function showElement(id) {
   const el = $(id);
   if (el) el.classList.remove('hidden');
@@ -139,6 +149,20 @@ function showElement(id) {
 function hideElement(id) {
   const el = $(id);
   if (el) el.classList.add('hidden');
+}
+
+function showResetPasswordPanel() {
+  hideElement('setupPanel');
+  hideElement('authPanel');
+  hideElement('portalPanel');
+  showElement('resetPasswordPanel');
+}
+
+function showAuthPanel() {
+  hideElement('setupPanel');
+  hideElement('portalPanel');
+  hideElement('resetPasswordPanel');
+  showElement('authPanel');
 }
 
 function safeEscape(value) {
@@ -227,6 +251,7 @@ function initSupabase() {
   if (!url || !key) {
     showElement('setupPanel');
     hideElement('authPanel');
+    hideElement('resetPasswordPanel');
     hideElement('portalPanel');
     return false;
   }
@@ -238,6 +263,7 @@ function initSupabase() {
 
   hideElement('setupPanel');
   showElement('authPanel');
+  hideElement('resetPasswordPanel');
   hideElement('portalPanel');
 
   return true;
@@ -250,6 +276,19 @@ async function loadSession() {
 
   if (error) {
     setMessage(error.message, 'error');
+    return;
+  }
+
+  const hash = window.location.hash || '';
+  const search = window.location.search || '';
+
+  const isRecovery =
+    hash.includes('type=recovery') ||
+    search.includes('type=recovery');
+
+  if (isRecovery) {
+    currentUser = data.session?.user || null;
+    showResetPasswordPanel();
     return;
   }
 
@@ -287,6 +326,7 @@ async function enterPortal() {
 
     hideElement('setupPanel');
     hideElement('authPanel');
+    hideElement('resetPasswordPanel');
     showElement('portalPanel');
 
     const displayName = currentProfile.full_name || currentProfile.email || 'User';
@@ -518,10 +558,6 @@ function startLiveTickers() {
         if (currentTopView === 'leaderboard') {
           renderLeaderboard();
         }
-
-        // Important:
-        // Do not auto-render Admin / Super Admin here.
-        // This prevents mobile admin review screens from being refreshed while viewing them.
       }
     } catch (error) {
       console.warn('Background refresh failed:', error.message);
@@ -2043,55 +2079,6 @@ $('authForm')?.addEventListener('submit', async (event) => {
   }
 });
 
-$('authForm')?.addEventListener('submit', async (event) => {
-  event.preventDefault();
-
-  setMessage('', 'error');
-
-  const email = $('email')?.value.trim().toLowerCase();
-  const password = $('password')?.value;
-
-  if (!email || !password) {
-    setMessage('Enter email and password.', 'error');
-    return;
-  }
-
-  try {
-    if (authMode === 'login') {
-      const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (error) throw error;
-
-      currentUser = data.user;
-      await enterPortal();
-    } else {
-      const fullName = $('fullName')?.value.trim() || '';
-
-      const { error } = await supabaseClient.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName
-          }
-        }
-      });
-
-      if (error) throw error;
-
-      setMessage(
-        'Account created. You can now login with the same email and password.',
-        'success'
-      );
-    }
-  } catch (error) {
-    setMessage(error.message, 'error');
-  }
-});
-
 $('forgotPasswordBtn')?.addEventListener('click', async () => {
   const email = $('email')?.value.trim().toLowerCase();
 
@@ -2113,6 +2100,65 @@ $('forgotPasswordBtn')?.addEventListener('click', async () => {
   }
 });
 
+$('resetPasswordForm')?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+
+  setResetMessage('', 'error');
+
+  const newPassword = $('newPassword')?.value || '';
+  const confirmNewPassword = $('confirmNewPassword')?.value || '';
+
+  if (!newPassword || !confirmNewPassword) {
+    setResetMessage('Enter and confirm your new password.', 'error');
+    return;
+  }
+
+  if (newPassword.length < 6) {
+    setResetMessage('Password must be at least 6 characters.', 'error');
+    return;
+  }
+
+  if (newPassword !== confirmNewPassword) {
+    setResetMessage('Passwords do not match.', 'error');
+    return;
+  }
+
+  try {
+    const { error } = await supabaseClient.auth.updateUser({
+      password: newPassword
+    });
+
+    if (error) throw error;
+
+    setResetMessage('Password updated successfully. Please login again.', 'success');
+
+    await supabaseClient.auth.signOut();
+
+    currentUser = null;
+    currentProfile = null;
+    bonusPredictionCache = null;
+    bonusResultCache = null;
+
+    if (lockTickerId) clearInterval(lockTickerId);
+    if (scheduleRefreshId) clearTimeout(scheduleRefreshId);
+    if (leaderboardRefreshId) clearInterval(leaderboardRefreshId);
+
+    window.history.replaceState({}, document.title, window.location.pathname);
+
+    setTimeout(() => {
+      $('newPassword').value = '';
+      $('confirmNewPassword').value = '';
+
+      hideElement('resetPasswordPanel');
+      showElement('authPanel');
+
+      setMessage('Password updated. Please login with your new password.', 'success');
+    }, 1200);
+  } catch (error) {
+    setResetMessage(error.message, 'error');
+  }
+});
+
 $('logoutBtn')?.addEventListener('click', async () => {
   await supabaseClient.auth.signOut();
 
@@ -2126,6 +2172,7 @@ $('logoutBtn')?.addEventListener('click', async () => {
   if (leaderboardRefreshId) clearInterval(leaderboardRefreshId);
 
   hideElement('portalPanel');
+  hideElement('resetPasswordPanel');
   showElement('authPanel');
 });
 
