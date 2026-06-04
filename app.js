@@ -20,9 +20,10 @@ let matchesCache = [];
 let predictionsCache = [];
 
 let currentTopView = 'predictions';
-let currentStage = 'summary'; // summary | group | r32 | r16 | qf | sf | final | results
+let currentStage = 'summary';
 let lockTickerId = null;
 let scheduleRefreshId = null;
+let leaderboardRefreshId = null;
 
 const OPENFOOTBALL_2026_URL = './fifa-2026-portal-schedule.json';
 
@@ -128,8 +129,6 @@ function hasAdminAccess() {
   return currentProfile?.role === 'admin' || currentProfile?.role === 'super_admin';
 }
 
-/* Backward-compatible helper.
-   In the new setup, admin management controls require Super Admin. */
 function isAdmin() {
   return isSuperAdmin();
 }
@@ -245,24 +244,29 @@ async function enterPortal() {
 
 /* ============================================================
    Live tickers + smart auto-sync
-   Important fix:
+   Leaderboard refresh reduced to every 5 minutes.
    Admin and Super Admin pages are NOT auto-rebuilt every 30 sec.
-   This prevents mobile page flicker / repeated error refresh loop.
    ============================================================ */
 
 function startLiveTickers() {
   if (lockTickerId) clearInterval(lockTickerId);
   if (scheduleRefreshId) clearTimeout(scheduleRefreshId);
+  if (leaderboardRefreshId) clearInterval(leaderboardRefreshId);
 
   lockTickerId = setInterval(() => {
     if (
       currentTopView === 'predictions' ||
-      currentTopView === 'myPredictions' ||
-      currentTopView === 'leaderboard'
+      currentTopView === 'myPredictions'
     ) {
       rerenderCurrentView();
     }
   }, 30 * 1000);
+
+  leaderboardRefreshId = setInterval(() => {
+    if (currentTopView === 'leaderboard') {
+      renderLeaderboard();
+    }
+  }, 5 * 60 * 1000);
 
   async function smartAutoSyncLoop() {
     try {
@@ -274,10 +278,13 @@ function startLiveTickers() {
 
         if (
           currentTopView === 'predictions' ||
-          currentTopView === 'myPredictions' ||
-          currentTopView === 'leaderboard'
+          currentTopView === 'myPredictions'
         ) {
           rerenderCurrentView();
+        }
+
+        if (currentTopView === 'leaderboard') {
+          renderLeaderboard();
         }
       }
     } catch (error) {
@@ -314,8 +321,7 @@ async function refreshAll() {
 
   if (
     currentTopView === 'predictions' ||
-    currentTopView === 'myPredictions' ||
-    currentTopView === 'leaderboard'
+    currentTopView === 'myPredictions'
   ) {
     rerenderCurrentView();
   }
@@ -442,12 +448,8 @@ function rerenderCurrentView() {
       renderMyPredictionsView();
     }
 
-    if (currentTopView === 'leaderboard') {
-      renderLeaderboard();
-    }
-
-    // Admin and Super Admin are intentionally not rebuilt here.
-    // They are rendered only when clicked or after admin actions.
+    // Leaderboard is intentionally not refreshed here every 30 seconds.
+    // It refreshes separately every 5 minutes and during smart auto-sync.
   } catch (error) {
     console.warn('View render failed:', error.message);
     toast('There was an error loading this page. Please refresh once.');
@@ -966,13 +968,6 @@ window.deleteSelectedMatch = deleteSelectedMatch;
 
 /* ============================================================
    Super Admin replace old matches with local FIFA JSON
-   Uses SQL RPC:
-   public.super_admin_replace_matches_from_json(schedule_data jsonb)
-
-   Important:
-   - Only Super Admin can run it
-   - SQL refuses to run if predictions exist
-   - This deletes old/sample matches and inserts the local JSON schedule
    ============================================================ */
 
 async function replaceMatchesWithScheduleIfNoPredictions() {
@@ -1028,8 +1023,6 @@ async function replaceMatchesWithScheduleIfNoPredictions() {
 
 window.replaceMatchesWithScheduleIfNoPredictions = replaceMatchesWithScheduleIfNoPredictions;
 
-/* Backward-compatible alias.
-   If ui.js still calls resetMatchesIfNoPredictions(), it will still work. */
 async function resetMatchesIfNoPredictions() {
   await replaceMatchesWithScheduleIfNoPredictions();
 }
@@ -1154,14 +1147,15 @@ async function autoSyncScoresFromInternet(silent = true) {
 
     if (
       currentTopView === 'predictions' ||
-      currentTopView === 'myPredictions' ||
-      currentTopView === 'leaderboard'
+      currentTopView === 'myPredictions'
     ) {
       rerenderCurrentView();
     }
 
-    // Important mobile fix:
-    // Do not rebuild Admin/Super Admin during silent background sync.
+    if (!silent && currentTopView === 'leaderboard') {
+      renderLeaderboard();
+    }
+
     if (!silent && currentTopView === 'admin' && hasAdminAccess()) {
       renderAdmin();
     }
@@ -1185,7 +1179,6 @@ async function autoSyncScoresFromInternet(silent = true) {
 window.autoSyncScoresFromInternet = autoSyncScoresFromInternet;
 
 function normalizeOpenFootballSchedule(json, sourceUrl) {
-  // New portal schedule format based on FIFA official schedule.
   if (Array.isArray(json.matches)) {
     return json.matches
       .map((match, index) => {
@@ -1225,7 +1218,6 @@ function normalizeOpenFootballSchedule(json, sourceUrl) {
   return [];
 }
 
-/* Old OpenFootball helper kept only for compatibility. */
 function parseOpenFootballDateTime(dateValue, timeValue) {
   if (!dateValue) return null;
 
@@ -1484,6 +1476,7 @@ $('logoutBtn')?.addEventListener('click', async () => {
 
   if (lockTickerId) clearInterval(lockTickerId);
   if (scheduleRefreshId) clearTimeout(scheduleRefreshId);
+  if (leaderboardRefreshId) clearInterval(leaderboardRefreshId);
 
   hideElement('portalPanel');
   showElement('authPanel');
