@@ -1,25 +1,27 @@
 -- Office World Cup Predictor - Supabase SQL setup
 -- Run this in Supabase > SQL Editor > New query > Run.
 --
--- Updated version includes:
--- - Super Admin role
--- - Limited Admin review access
--- - FIFA match_no and knockout source tracking
--- - First team to score prediction
--- - New scoring rules:
---     Exact score = 5
---     Correct winner / draw = 2
---     First team to score = 1
--- - Bonus predictions:
---     Tournament winner = 10
---     Best player = 10
---     Each correct finalist = 5
--- - Bonus results lock controlled by Super Admin
--- - Prediction audit history
--- - Admin review views
--- - Export view
--- - Super Admin schedule replacement protection
--- - Profile activation fix
+-- This version includes:
+-- match scoring:
+--   Exact score = 5 points
+--   Correct winner / correct draw = 2 points
+--   Correct first team to score = 1 point
+--   Maximum match points = 8 points
+-- bonus scoring:
+--   Tournament winner = 10 points
+--   Tournament best player = 10 points
+--   Finalists = 5 points each, max 10 points
+-- admin unlock override,
+-- admin score protection,
+-- super admin role,
+-- limited admin review access,
+-- prediction audit history,
+-- admin review views,
+-- FIFA match number and knockout source tracking,
+-- Super Admin match replacement protection,
+-- bonus prediction controls,
+-- approved office users,
+-- and profile activation fix.
 
 create extension if not exists pgcrypto;
 
@@ -48,7 +50,7 @@ create table if not exists public.matches (
   id uuid primary key default gen_random_uuid(),
 
   -- FIFA / schedule identity
-  external_id text,
+  external_id text unique,
   match_no int,
   source text not null default 'manual',
   source_url text,
@@ -68,10 +70,14 @@ create table if not exists public.matches (
   -- Lock/result controls
   is_locked boolean not null default false,
   admin_override_open boolean not null default false,
-
   actual_home_score int check (actual_home_score >= 0),
   actual_away_score int check (actual_away_score >= 0),
-  actual_first_team_to_score text,
+
+  -- First team to score:
+  -- home = home team scored first
+  -- away = away team scored first
+  -- none = no goal / 0-0
+  actual_first_team_to_score text check (actual_first_team_to_score in ('home', 'away', 'none')),
 
   result_source text not null default 'manual',
   admin_result_override boolean not null default false,
@@ -85,14 +91,17 @@ create table if not exists public.predictions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,
   match_id uuid not null references public.matches(id) on delete cascade,
-
   home_score int not null check (home_score >= 0),
   away_score int not null check (away_score >= 0),
-  first_team_to_score text,
+
+  -- First team to score prediction:
+  -- home = user predicts home team scores first
+  -- away = user predicts away team scores first
+  -- none = user predicts no goal / 0-0
+  first_team_to_score text check (first_team_to_score in ('home', 'away', 'none')),
 
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-
   unique (user_id, match_id)
 );
 
@@ -101,30 +110,28 @@ create table if not exists public.prediction_audit (
   prediction_id uuid,
   user_id uuid not null references public.profiles(id) on delete cascade,
   match_id uuid not null references public.matches(id) on delete cascade,
-
   home_score int not null check (home_score >= 0),
   away_score int not null check (away_score >= 0),
-  first_team_to_score text,
-
+  first_team_to_score text check (first_team_to_score in ('home', 'away', 'none')),
   action text not null check (action in ('insert', 'update')),
   created_at timestamptz not null default now()
 );
 
+-- User bonus predictions
 create table if not exists public.bonus_predictions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,
-
   tournament_winner text,
   best_player text,
   finalist_one text,
   finalist_two text,
-
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-
   unique (user_id)
 );
 
+-- Super Admin bonus control/results
+-- Single-row table. id = true.
 create table if not exists public.bonus_results (
   id boolean primary key default true,
   is_locked boolean not null default false,
@@ -139,6 +146,7 @@ create table if not exists public.bonus_results (
   constraint bonus_results_single_row check (id = true)
 );
 
+-- Ensure one default bonus control row exists
 insert into public.bonus_results (id, is_locked)
 values (true, false)
 on conflict (id) do nothing;
@@ -146,12 +154,6 @@ on conflict (id) do nothing;
 -- =========================================================
 -- SAFE UPGRADE LINES
 -- =========================================================
-
-alter table public.allowed_users add column if not exists is_active boolean not null default true;
-alter table public.allowed_users add column if not exists created_at timestamptz not null default now();
-
-alter table public.profiles add column if not exists status text not null default 'pending';
-alter table public.profiles add column if not exists created_at timestamptz not null default now();
 
 alter table public.matches add column if not exists external_id text;
 alter table public.matches add column if not exists match_no int;
@@ -161,56 +163,40 @@ alter table public.matches add column if not exists venue text;
 alter table public.matches add column if not exists home_source jsonb;
 alter table public.matches add column if not exists away_source jsonb;
 alter table public.matches add column if not exists admin_override_open boolean not null default false;
-alter table public.matches add column if not exists actual_first_team_to_score text;
+alter table public.matches add column if not exists last_synced_at timestamptz;
 alter table public.matches add column if not exists result_source text not null default 'manual';
 alter table public.matches add column if not exists admin_result_override boolean not null default false;
 alter table public.matches add column if not exists auto_result_synced_at timestamptz;
-alter table public.matches add column if not exists last_synced_at timestamptz;
+alter table public.matches add column if not exists actual_first_team_to_score text;
 
 alter table public.predictions add column if not exists first_team_to_score text;
 alter table public.prediction_audit add column if not exists first_team_to_score text;
 
--- =========================================================
--- CONSTRAINT FIXES / UPGRADES
--- =========================================================
+alter table public.bonus_predictions add column if not exists tournament_winner text;
+alter table public.bonus_predictions add column if not exists best_player text;
+alter table public.bonus_predictions add column if not exists finalist_one text;
+alter table public.bonus_predictions add column if not exists finalist_two text;
+alter table public.bonus_predictions add column if not exists updated_at timestamptz not null default now();
 
-alter table public.allowed_users
-drop constraint if exists allowed_users_role_check;
+alter table public.bonus_results add column if not exists is_locked boolean not null default false;
+alter table public.bonus_results add column if not exists actual_tournament_winner text;
+alter table public.bonus_results add column if not exists actual_best_player text;
+alter table public.bonus_results add column if not exists actual_finalist_one text;
+alter table public.bonus_results add column if not exists actual_finalist_two text;
+alter table public.bonus_results add column if not exists updated_at timestamptz not null default now();
 
-alter table public.allowed_users
-add constraint allowed_users_role_check
-check (role in ('user', 'admin', 'super_admin'));
-
-alter table public.profiles
-drop constraint if exists profiles_role_check;
-
-alter table public.profiles
-add constraint profiles_role_check
-check (role in ('user', 'admin', 'super_admin'));
-
-alter table public.matches
-drop constraint if exists matches_result_source_check;
-
-alter table public.matches
-add constraint matches_result_source_check
-check (result_source in ('manual', 'auto', 'admin'));
-
-alter table public.matches
-drop constraint if exists matches_actual_first_team_to_score_check;
+-- Drop old check constraints if rerunning
+alter table public.matches drop constraint if exists matches_actual_first_team_to_score_check;
+alter table public.predictions drop constraint if exists predictions_first_team_to_score_check;
+alter table public.prediction_audit drop constraint if exists prediction_audit_first_team_to_score_check;
 
 alter table public.matches
 add constraint matches_actual_first_team_to_score_check
 check (actual_first_team_to_score in ('home', 'away', 'none'));
 
 alter table public.predictions
-drop constraint if exists predictions_first_team_to_score_check;
-
-alter table public.predictions
 add constraint predictions_first_team_to_score_check
 check (first_team_to_score in ('home', 'away', 'none'));
-
-alter table public.prediction_audit
-drop constraint if exists prediction_audit_first_team_to_score_check;
 
 alter table public.prediction_audit
 add constraint prediction_audit_first_team_to_score_check
@@ -229,7 +215,8 @@ begin
   end if;
 end $$;
 
--- Unique match_no when present. Multiple null values are allowed.
+-- Unique match_no when present.
+-- Multiple null values are allowed.
 do $$
 begin
   if not exists (
@@ -259,6 +246,34 @@ on public.predictions (match_id);
 
 create index if not exists idx_bonus_predictions_user_id
 on public.bonus_predictions (user_id);
+
+-- =========================================================
+-- ROLE CHECK CONSTRAINTS
+-- user = normal user
+-- admin = limited admin review access
+-- super_admin = full system access
+-- =========================================================
+
+alter table public.allowed_users
+drop constraint if exists allowed_users_role_check;
+
+alter table public.allowed_users
+add constraint allowed_users_role_check
+check (role in ('user', 'admin', 'super_admin'));
+
+alter table public.profiles
+drop constraint if exists profiles_role_check;
+
+alter table public.profiles
+add constraint profiles_role_check
+check (role in ('user', 'admin', 'super_admin'));
+
+alter table public.matches
+drop constraint if exists matches_result_source_check;
+
+alter table public.matches
+add constraint matches_result_source_check
+check (result_source in ('manual', 'auto', 'admin'));
 
 -- =========================================================
 -- ACCESS FUNCTIONS
@@ -297,7 +312,7 @@ as $$
 $$;
 
 -- Backward compatibility.
--- In this new structure, is_admin means full Super Admin access.
+-- In this structure, is_admin means full Super Admin controls.
 create or replace function public.is_admin()
 returns boolean
 language sql
@@ -306,6 +321,104 @@ security definer
 set search_path = public
 as $$
   select public.is_super_admin();
+$$;
+
+-- =========================================================
+-- SCORING FUNCTIONS
+-- =========================================================
+
+create or replace function public.match_result_points(
+  pred_home int,
+  pred_away int,
+  actual_home int,
+  actual_away int
+)
+returns int
+language sql
+immutable
+as $$
+  select
+    case
+      when actual_home is null or actual_away is null then 0
+
+      -- Exact score = 5 + Correct winner/draw = 2
+      -- Therefore exact score gives 7 match-result points.
+      when pred_home = actual_home
+       and pred_away = actual_away then 7
+
+      -- Correct winner / correct draw only = 2
+      when sign(pred_home - pred_away) = sign(actual_home - actual_away) then 2
+
+      else 0
+    end;
+$$;
+
+create or replace function public.first_score_points(
+  pred_first text,
+  actual_first text
+)
+returns int
+language sql
+immutable
+as $$
+  select
+    case
+      when pred_first is not null
+       and actual_first is not null
+       and pred_first = actual_first
+       and actual_first <> 'none'
+      then 1
+      else 0
+    end;
+$$;
+
+create or replace function public.bonus_prediction_points(
+  pred_tournament_winner text,
+  pred_best_player text,
+  pred_finalist_one text,
+  pred_finalist_two text,
+  actual_tournament_winner text,
+  actual_best_player text,
+  actual_finalist_one text,
+  actual_finalist_two text
+)
+returns int
+language plpgsql
+immutable
+as $$
+declare
+  total int := 0;
+  pred_f1 text := lower(trim(coalesce(pred_finalist_one, '')));
+  pred_f2 text := lower(trim(coalesce(pred_finalist_two, '')));
+  actual_f1 text := lower(trim(coalesce(actual_finalist_one, '')));
+  actual_f2 text := lower(trim(coalesce(actual_finalist_two, '')));
+begin
+  -- Tournament winner = 10
+  if lower(trim(coalesce(pred_tournament_winner, ''))) <> ''
+     and lower(trim(coalesce(pred_tournament_winner, ''))) = lower(trim(coalesce(actual_tournament_winner, ''))) then
+    total := total + 10;
+  end if;
+
+  -- Tournament best player = 10
+  if lower(trim(coalesce(pred_best_player, ''))) <> ''
+     and lower(trim(coalesce(pred_best_player, ''))) = lower(trim(coalesce(actual_best_player, ''))) then
+    total := total + 10;
+  end if;
+
+  -- Finalists = 5 each, order does not matter.
+  -- Prevent duplicate user finalist picks from scoring twice for one actual finalist.
+  if pred_f1 <> '' and (pred_f1 = actual_f1 or pred_f1 = actual_f2) then
+    total := total + 5;
+  end if;
+
+  if pred_f2 <> ''
+     and pred_f2 <> pred_f1
+     and (pred_f2 = actual_f1 or pred_f2 = actual_f2) then
+    total := total + 5;
+  end if;
+
+  return total;
+end;
 $$;
 
 -- =========================================================
@@ -544,8 +657,8 @@ drop policy if exists "Admins can view prediction audit" on public.prediction_au
 drop policy if exists "Users can view own prediction audit" on public.prediction_audit;
 
 drop policy if exists "Users can view own bonus predictions and admins can view all" on public.bonus_predictions;
-drop policy if exists "Users can insert own unlocked bonus predictions" on public.bonus_predictions;
-drop policy if exists "Users can update own unlocked bonus predictions" on public.bonus_predictions;
+drop policy if exists "Users can insert own open bonus predictions" on public.bonus_predictions;
+drop policy if exists "Users can update own open bonus predictions" on public.bonus_predictions;
 drop policy if exists "Super admins can manage bonus predictions" on public.bonus_predictions;
 
 drop policy if exists "Active users can view bonus results" on public.bonus_results;
@@ -664,12 +777,13 @@ on public.prediction_audit for select
 to authenticated
 using (user_id = auth.uid());
 
+-- Bonus predictions
 create policy "Users can view own bonus predictions and admins can view all"
 on public.bonus_predictions for select
 to authenticated
 using (user_id = auth.uid() or public.has_admin_access());
 
-create policy "Users can insert own unlocked bonus predictions"
+create policy "Users can insert own open bonus predictions"
 on public.bonus_predictions for insert
 to authenticated
 with check (
@@ -682,7 +796,7 @@ with check (
   )
 );
 
-create policy "Users can update own unlocked bonus predictions"
+create policy "Users can update own open bonus predictions"
 on public.bonus_predictions for update
 to authenticated
 using (
@@ -710,6 +824,7 @@ to authenticated
 using (public.is_super_admin())
 with check (public.is_super_admin());
 
+-- Bonus results
 create policy "Active users can view bonus results"
 on public.bonus_results for select
 to authenticated
@@ -730,6 +845,7 @@ with check (public.is_super_admin());
 
 -- =========================================================
 -- DROP VIEWS BEFORE RECREATING
+-- Required because view column structure/order changed
 -- =========================================================
 
 drop view if exists public.bonus_prediction_review;
@@ -739,7 +855,180 @@ drop view if exists public.predictions_export;
 drop view if exists public.leaderboard;
 
 -- =========================================================
--- MATCH REVIEW VIEW
+-- LEADERBOARD VIEW
+-- =========================================================
+
+create or replace view public.leaderboard as
+with match_scores as (
+  select
+    pr.user_id,
+    count(pr.id)::int as predictions_count,
+
+    sum(public.match_result_points(
+      pr.home_score,
+      pr.away_score,
+      m.actual_home_score,
+      m.actual_away_score
+    ))::int as result_points,
+
+    sum(public.first_score_points(
+      pr.first_team_to_score,
+      m.actual_first_team_to_score
+    ))::int as first_score_points,
+
+    sum(
+      public.match_result_points(
+        pr.home_score,
+        pr.away_score,
+        m.actual_home_score,
+        m.actual_away_score
+      )
+      +
+      public.first_score_points(
+        pr.first_team_to_score,
+        m.actual_first_team_to_score
+      )
+    )::int as match_points,
+
+    sum(
+      case
+        when m.actual_home_score is not null
+         and m.actual_away_score is not null
+         and pr.home_score = m.actual_home_score
+         and pr.away_score = m.actual_away_score
+        then 1
+        else 0
+      end
+    )::int as exact_scores,
+
+    sum(
+      case
+        when m.actual_home_score is not null
+         and m.actual_away_score is not null
+         and sign(pr.home_score - pr.away_score) = sign(m.actual_home_score - m.actual_away_score)
+        then 1
+        else 0
+      end
+    )::int as correct_results,
+
+    sum(
+      case
+        when pr.first_team_to_score is not null
+         and m.actual_first_team_to_score is not null
+         and pr.first_team_to_score = m.actual_first_team_to_score
+         and m.actual_first_team_to_score <> 'none'
+        then 1
+        else 0
+      end
+    )::int as correct_first_scores
+
+  from public.predictions pr
+  join public.matches m on m.id = pr.match_id
+  group by pr.user_id
+),
+
+bonus_scores as (
+  select
+    bp.user_id,
+    public.bonus_prediction_points(
+      bp.tournament_winner,
+      bp.best_player,
+      bp.finalist_one,
+      bp.finalist_two,
+      br.actual_tournament_winner,
+      br.actual_best_player,
+      br.actual_finalist_one,
+      br.actual_finalist_two
+    )::int as bonus_points
+  from public.bonus_predictions bp
+  cross join public.bonus_results br
+  where br.id = true
+)
+
+select
+  p.id as user_id,
+  p.full_name,
+  p.email,
+
+  coalesce(ms.predictions_count, 0)::int as predictions_count,
+
+  coalesce(ms.match_points, 0)::int as match_points,
+  coalesce(bs.bonus_points, 0)::int as bonus_points,
+
+  (
+    coalesce(ms.match_points, 0)
+    +
+    coalesce(bs.bonus_points, 0)
+  )::int as total_points,
+
+  coalesce(ms.result_points, 0)::int as result_points,
+  coalesce(ms.first_score_points, 0)::int as first_score_points,
+
+  coalesce(ms.exact_scores, 0)::int as exact_scores,
+  coalesce(ms.correct_results, 0)::int as correct_results,
+  coalesce(ms.correct_first_scores, 0)::int as correct_first_scores
+
+from public.profiles p
+left join match_scores ms on ms.user_id = p.id
+left join bonus_scores bs on bs.user_id = p.id
+where p.status = 'active';
+
+grant select on public.leaderboard to authenticated;
+
+-- =========================================================
+-- PREDICTIONS EXPORT VIEW
+-- =========================================================
+
+create or replace view public.predictions_export as
+select
+  pr.id,
+  p.full_name,
+  p.email,
+  m.match_no,
+  m.home_team,
+  m.away_team,
+  m.stage,
+  m.kickoff_at,
+  pr.home_score,
+  pr.away_score,
+  pr.first_team_to_score,
+  m.actual_home_score,
+  m.actual_away_score,
+  m.actual_first_team_to_score,
+  public.match_result_points(
+    pr.home_score,
+    pr.away_score,
+    m.actual_home_score,
+    m.actual_away_score
+  ) as result_points,
+  public.first_score_points(
+    pr.first_team_to_score,
+    m.actual_first_team_to_score
+  ) as first_score_points,
+  (
+    public.match_result_points(
+      pr.home_score,
+      pr.away_score,
+      m.actual_home_score,
+      m.actual_away_score
+    )
+    +
+    public.first_score_points(
+      pr.first_team_to_score,
+      m.actual_first_team_to_score
+    )
+  ) as match_points,
+  pr.updated_at
+from public.predictions pr
+join public.profiles p on p.id = pr.user_id
+join public.matches m on m.id = pr.match_id
+where public.has_admin_access() or pr.user_id = auth.uid();
+
+grant select on public.predictions_export to authenticated;
+
+-- =========================================================
+-- ADMIN REVIEW VIEW
+-- Shows latest prediction and points per match
 -- =========================================================
 
 create or replace view public.match_prediction_review as
@@ -749,69 +1038,44 @@ select
   pr.match_id,
   p.full_name,
   p.email,
-
   m.match_no,
   m.home_team,
   m.away_team,
   m.stage,
   m.kickoff_at,
-
   m.actual_home_score,
   m.actual_away_score,
   m.actual_first_team_to_score,
-
   pr.home_score,
   pr.away_score,
   pr.first_team_to_score,
   pr.updated_at,
 
-  case
-    when m.actual_home_score is null or m.actual_away_score is null then 0
-    when pr.home_score = m.actual_home_score
-     and pr.away_score = m.actual_away_score then 5
-    else 0
-  end as exact_score_points,
+  public.match_result_points(
+    pr.home_score,
+    pr.away_score,
+    m.actual_home_score,
+    m.actual_away_score
+  ) as result_points,
 
-  case
-    when m.actual_home_score is null or m.actual_away_score is null then 0
-    when (
-          (pr.home_score > pr.away_score and m.actual_home_score > m.actual_away_score)
-       or (pr.home_score < pr.away_score and m.actual_home_score < m.actual_away_score)
-       or (pr.home_score = pr.away_score and m.actual_home_score = m.actual_away_score)
-    ) then 2
-    else 0
-  end as result_points,
-
-  case
-    when m.actual_first_team_to_score is null then 0
-    when pr.first_team_to_score = m.actual_first_team_to_score then 1
-    else 0
-  end as first_score_points,
+  public.first_score_points(
+    pr.first_team_to_score,
+    m.actual_first_team_to_score
+  ) as first_score_points,
 
   (
-    case
-      when m.actual_home_score is null or m.actual_away_score is null then 0
-      when pr.home_score = m.actual_home_score
-       and pr.away_score = m.actual_away_score then 5
-      else 0
-    end
+    public.match_result_points(
+      pr.home_score,
+      pr.away_score,
+      m.actual_home_score,
+      m.actual_away_score
+    )
     +
-    case
-      when m.actual_home_score is null or m.actual_away_score is null then 0
-      when (
-            (pr.home_score > pr.away_score and m.actual_home_score > m.actual_away_score)
-         or (pr.home_score < pr.away_score and m.actual_home_score < m.actual_away_score)
-         or (pr.home_score = pr.away_score and m.actual_home_score = m.actual_away_score)
-      ) then 2
-      else 0
-    end
-    +
-    case
-      when m.actual_first_team_to_score is null then 0
-      when pr.first_team_to_score = m.actual_first_team_to_score then 1
-      else 0
-    end
-  )::int as match_points
+    public.first_score_points(
+      pr.first_team_to_score,
+      m.actual_first_team_to_score
+    )
+  ) as match_points
 
 from public.predictions pr
 join public.profiles p on p.id = pr.user_id
@@ -821,7 +1085,8 @@ where public.has_admin_access();
 grant select on public.match_prediction_review to authenticated;
 
 -- =========================================================
--- PREDICTION HISTORY VIEW
+-- ADMIN HISTORY VIEW
+-- Shows every prediction change recorded in audit
 -- =========================================================
 
 create or replace view public.match_prediction_history as
@@ -849,7 +1114,8 @@ where public.has_admin_access();
 grant select on public.match_prediction_history to authenticated;
 
 -- =========================================================
--- BONUS REVIEW VIEW
+-- BONUS PREDICTION REVIEW VIEW
+-- Admin/Super Admin can review all bonus predictions
 -- =========================================================
 
 create or replace view public.bonus_prediction_review as
@@ -864,312 +1130,38 @@ select
   bp.finalist_one,
   bp.finalist_two,
 
+  br.is_locked,
   br.actual_tournament_winner,
   br.actual_best_player,
   br.actual_finalist_one,
   br.actual_finalist_two,
-  br.is_locked,
 
-  case
-    when br.actual_tournament_winner is not null
-     and lower(trim(bp.tournament_winner)) = lower(trim(br.actual_tournament_winner)) then 10
-    else 0
-  end as tournament_winner_points,
-
-  case
-    when br.actual_best_player is not null
-     and lower(trim(bp.best_player)) = lower(trim(br.actual_best_player)) then 10
-    else 0
-  end as best_player_points,
-
-  (
-    case
-      when br.actual_finalist_one is not null
-       and (
-            lower(trim(bp.finalist_one)) = lower(trim(br.actual_finalist_one))
-         or lower(trim(bp.finalist_one)) = lower(trim(br.actual_finalist_two))
-       ) then 5
-      else 0
-    end
-    +
-    case
-      when br.actual_finalist_two is not null
-       and bp.finalist_two is not null
-       and lower(trim(bp.finalist_two)) <> lower(trim(bp.finalist_one))
-       and (
-            lower(trim(bp.finalist_two)) = lower(trim(br.actual_finalist_one))
-         or lower(trim(bp.finalist_two)) = lower(trim(br.actual_finalist_two))
-       ) then 5
-      else 0
-    end
-  )::int as finalist_points,
-
-  (
-    case
-      when br.actual_tournament_winner is not null
-       and lower(trim(bp.tournament_winner)) = lower(trim(br.actual_tournament_winner)) then 10
-      else 0
-    end
-    +
-    case
-      when br.actual_best_player is not null
-       and lower(trim(bp.best_player)) = lower(trim(br.actual_best_player)) then 10
-      else 0
-    end
-    +
-    case
-      when br.actual_finalist_one is not null
-       and (
-            lower(trim(bp.finalist_one)) = lower(trim(br.actual_finalist_one))
-         or lower(trim(bp.finalist_one)) = lower(trim(br.actual_finalist_two))
-       ) then 5
-      else 0
-    end
-    +
-    case
-      when br.actual_finalist_two is not null
-       and bp.finalist_two is not null
-       and lower(trim(bp.finalist_two)) <> lower(trim(bp.finalist_one))
-       and (
-            lower(trim(bp.finalist_two)) = lower(trim(br.actual_finalist_one))
-         or lower(trim(bp.finalist_two)) = lower(trim(br.actual_finalist_two))
-       ) then 5
-      else 0
-    end
-  )::int as bonus_points,
+  public.bonus_prediction_points(
+    bp.tournament_winner,
+    bp.best_player,
+    bp.finalist_one,
+    bp.finalist_two,
+    br.actual_tournament_winner,
+    br.actual_best_player,
+    br.actual_finalist_one,
+    br.actual_finalist_two
+  ) as bonus_points,
 
   bp.updated_at
-
 from public.bonus_predictions bp
 join public.profiles p on p.id = bp.user_id
 cross join public.bonus_results br
-where public.has_admin_access() or bp.user_id = auth.uid();
+where br.id = true
+  and public.has_admin_access();
 
 grant select on public.bonus_prediction_review to authenticated;
 
 -- =========================================================
--- LEADERBOARD VIEW
--- =========================================================
-
-create or replace view public.leaderboard as
-with match_scores as (
-  select
-    p.id as user_id,
-    coalesce(count(pr.id), 0)::int as predictions_count,
-
-    coalesce(sum(
-      case
-        when m.actual_home_score is null or m.actual_away_score is null then 0
-        when pr.home_score = m.actual_home_score
-         and pr.away_score = m.actual_away_score then 5
-        else 0
-      end
-    ), 0)::int as exact_score_points,
-
-    coalesce(sum(
-      case
-        when m.actual_home_score is null or m.actual_away_score is null then 0
-        when (
-              (pr.home_score > pr.away_score and m.actual_home_score > m.actual_away_score)
-           or (pr.home_score < pr.away_score and m.actual_home_score < m.actual_away_score)
-           or (pr.home_score = pr.away_score and m.actual_home_score = m.actual_away_score)
-        ) then 2
-        else 0
-      end
-    ), 0)::int as result_points,
-
-    coalesce(sum(
-      case
-        when m.actual_first_team_to_score is null then 0
-        when pr.first_team_to_score = m.actual_first_team_to_score then 1
-        else 0
-      end
-    ), 0)::int as first_score_points,
-
-    coalesce(sum(
-      case
-        when m.actual_home_score is null or m.actual_away_score is null then 0
-        when pr.home_score = m.actual_home_score
-         and pr.away_score = m.actual_away_score then 1
-        else 0
-      end
-    ), 0)::int as exact_scores,
-
-    coalesce(sum(
-      case
-        when m.actual_home_score is null or m.actual_away_score is null then 0
-        when (
-              (pr.home_score > pr.away_score and m.actual_home_score > m.actual_away_score)
-           or (pr.home_score < pr.away_score and m.actual_home_score < m.actual_away_score)
-           or (pr.home_score = pr.away_score and m.actual_home_score = m.actual_away_score)
-        ) then 1
-        else 0
-      end
-    ), 0)::int as correct_results
-
-  from public.profiles p
-  left join public.predictions pr on pr.user_id = p.id
-  left join public.matches m on m.id = pr.match_id
-  where p.status = 'active'
-  group by p.id
-),
-
-bonus_scores as (
-  select
-    bp.user_id,
-    coalesce((
-      case
-        when br.actual_tournament_winner is not null
-         and lower(trim(bp.tournament_winner)) = lower(trim(br.actual_tournament_winner)) then 10
-        else 0
-      end
-      +
-      case
-        when br.actual_best_player is not null
-         and lower(trim(bp.best_player)) = lower(trim(br.actual_best_player)) then 10
-        else 0
-      end
-      +
-      case
-        when br.actual_finalist_one is not null
-         and (
-              lower(trim(bp.finalist_one)) = lower(trim(br.actual_finalist_one))
-           or lower(trim(bp.finalist_one)) = lower(trim(br.actual_finalist_two))
-         ) then 5
-        else 0
-      end
-      +
-      case
-        when br.actual_finalist_two is not null
-         and bp.finalist_two is not null
-         and lower(trim(bp.finalist_two)) <> lower(trim(bp.finalist_one))
-         and (
-              lower(trim(bp.finalist_two)) = lower(trim(br.actual_finalist_one))
-           or lower(trim(bp.finalist_two)) = lower(trim(br.actual_finalist_two))
-         ) then 5
-        else 0
-      end
-    ), 0)::int as bonus_points
-  from public.bonus_predictions bp
-  cross join public.bonus_results br
-)
-
-select
-  p.id as user_id,
-  p.full_name,
-  p.email,
-
-  coalesce(ms.predictions_count, 0)::int as predictions_count,
-  coalesce(ms.exact_scores, 0)::int as exact_scores,
-  coalesce(ms.correct_results, 0)::int as correct_results,
-
-  coalesce(ms.exact_score_points, 0)::int as exact_score_points,
-  coalesce(ms.result_points, 0)::int as result_points,
-  coalesce(ms.first_score_points, 0)::int as first_score_points,
-  coalesce(bs.bonus_points, 0)::int as bonus_points,
-
-  (
-    coalesce(ms.exact_score_points, 0)
-    + coalesce(ms.result_points, 0)
-    + coalesce(ms.first_score_points, 0)
-    + coalesce(bs.bonus_points, 0)
-  )::int as total_points
-
-from public.profiles p
-left join match_scores ms on ms.user_id = p.id
-left join bonus_scores bs on bs.user_id = p.id
-where p.status = 'active';
-
-grant select on public.leaderboard to authenticated;
-
--- =========================================================
--- PREDICTIONS EXPORT VIEW
--- =========================================================
-
-create or replace view public.predictions_export as
-select
-  pr.id,
-  p.full_name,
-  p.email,
-
-  m.match_no,
-  m.home_team,
-  m.away_team,
-  m.stage,
-  m.kickoff_at,
-
-  pr.home_score,
-  pr.away_score,
-  pr.first_team_to_score,
-
-  m.actual_home_score,
-  m.actual_away_score,
-  m.actual_first_team_to_score,
-
-  case
-    when m.actual_home_score is null or m.actual_away_score is null then 0
-    when pr.home_score = m.actual_home_score
-     and pr.away_score = m.actual_away_score then 5
-    else 0
-  end as exact_score_points,
-
-  case
-    when m.actual_home_score is null or m.actual_away_score is null then 0
-    when (
-          (pr.home_score > pr.away_score and m.actual_home_score > m.actual_away_score)
-       or (pr.home_score < pr.away_score and m.actual_home_score < m.actual_away_score)
-       or (pr.home_score = pr.away_score and m.actual_home_score = m.actual_away_score)
-    ) then 2
-    else 0
-  end as result_points,
-
-  case
-    when m.actual_first_team_to_score is null then 0
-    when pr.first_team_to_score = m.actual_first_team_to_score then 1
-    else 0
-  end as first_score_points,
-
-  (
-    case
-      when m.actual_home_score is null or m.actual_away_score is null then 0
-      when pr.home_score = m.actual_home_score
-       and pr.away_score = m.actual_away_score then 5
-      else 0
-    end
-    +
-    case
-      when m.actual_home_score is null or m.actual_away_score is null then 0
-      when (
-            (pr.home_score > pr.away_score and m.actual_home_score > m.actual_away_score)
-         or (pr.home_score < pr.away_score and m.actual_home_score < m.actual_away_score)
-         or (pr.home_score = pr.away_score and m.actual_home_score = m.actual_away_score)
-      ) then 2
-      else 0
-    end
-    +
-    case
-      when m.actual_first_team_to_score is null then 0
-      when pr.first_team_to_score = m.actual_first_team_to_score then 1
-      else 0
-    end
-  )::int as match_points,
-
-  pr.updated_at
-
-from public.predictions pr
-join public.profiles p on p.id = pr.user_id
-join public.matches m on m.id = pr.match_id
-where public.has_admin_access() or pr.user_id = auth.uid();
-
-grant select on public.predictions_export to authenticated;
-
--- =========================================================
 -- APPROVED USERS
--- Add/edit your office users here.
+-- Add office users here.
 -- Only emails added here can create/use accounts.
 -- =========================================================
 
--- Super Admin user
 insert into public.allowed_users (email, full_name, role, is_active)
 values ('leeban89@gmail.com', 'Ibrahim Nabeel', 'super_admin', true)
 on conflict (email)
@@ -1178,7 +1170,6 @@ do update set
   role = 'super_admin',
   is_active = true;
 
--- Make existing login profile Super Admin
 update public.profiles
 set
   full_name = 'Ibrahim Nabeel',
@@ -1186,7 +1177,6 @@ set
   status = 'active'
 where lower(email) = 'leeban89@gmail.com';
 
--- Office admins
 insert into public.allowed_users (email, full_name, role, is_active)
 values
 ('ismail.wikram@pension.gov.mv', 'Ismail Wikram Nafees', 'admin', true),
@@ -1198,7 +1188,15 @@ do update set
   role = excluded.role,
   is_active = true;
 
--- Activate profiles for users who already created accounts before being added to allowed_users.
+-- Example limited admin reviewer:
+-- insert into public.allowed_users (email, full_name, role, is_active)
+-- values ('admin.user@pension.gov.mv', 'Admin User Name', 'admin', true)
+-- on conflict (email)
+-- do update set
+--   full_name = excluded.full_name,
+--   role = 'admin',
+--   is_active = true;
+
 update public.profiles p
 set
   status = 'active',
@@ -1207,48 +1205,3 @@ set
 from public.allowed_users au
 where lower(p.email) = lower(au.email)
   and au.is_active = true;
-
--- =========================================================
--- OPTIONAL SAMPLE MATCHES
--- These are only inserted if they do not already exist.
--- You can remove them later and use Super Admin > Replace Schedule.
--- =========================================================
-
-insert into public.matches (
-  external_id,
-  match_no,
-  source,
-  home_team,
-  away_team,
-  stage,
-  venue,
-  kickoff_at,
-  result_source,
-  admin_result_override
-)
-values
-(
-  'sample-001',
-  null,
-  'manual',
-  'Mexico',
-  'South Africa',
-  'Group A',
-  'Mexico City',
-  '2026-06-12 00:00:00+05',
-  'manual',
-  false
-),
-(
-  'sample-002',
-  null,
-  'manual',
-  'Canada',
-  'TBD',
-  'Group B',
-  'Toronto',
-  '2026-06-13 05:00:00+05',
-  'manual',
-  false
-)
-on conflict (external_id) do nothing;
