@@ -59,6 +59,7 @@ const STAGES = [
   { id: 'qf', label: 'Quarter Finals', emoji: '🔥' },
   { id: 'sf', label: 'Semi Finals', emoji: '⭐' },
   { id: 'final', label: 'Final', emoji: '🏆' },
+  { id: 'bonus', label: 'Bonus', emoji: '🎁' },
   { id: 'results', label: 'Full Time', emoji: '📊' }
 ];
 
@@ -126,6 +127,17 @@ function sourceLabel(source) {
   return `${type} of Match ${source.match_no}`;
 }
 
+function firstTeamLabel(value, match) {
+  if (value === 'home') return match?.home_team || 'Home team';
+  if (value === 'away') return match?.away_team || 'Away team';
+  if (value === 'none') return 'No goal / 0-0';
+  return 'Not selected';
+}
+
+function normalizeText(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
 /* ============================================================
    Stage filter
    ============================================================ */
@@ -133,7 +145,8 @@ function sourceLabel(source) {
 function renderStageFilter(activeStageId, counts) {
   return STAGES.map(stage => {
     const c = counts[stage.id] || 0;
-    const badge = c > 0 ? ` <span class="muted small">(${c})</span>` : '';
+    const showBadge = !['summary', 'bonus'].includes(stage.id);
+    const badge = showBadge && c > 0 ? ` <span class="muted small">(${c})</span>` : '';
 
     return `
       <button data-stage="${stage.id}" class="${activeStageId === stage.id ? 'active' : ''}">
@@ -152,6 +165,7 @@ function computeStageCounts(matches) {
     qf: 0,
     sf: 0,
     final: 0,
+    bonus: 1,
     results: 0
   };
 
@@ -208,6 +222,16 @@ function renderSummary(matches, predictions, userName) {
         <div class="stat"><strong>${live.length}</strong><span>Live now</span></div>
         <div class="stat"><strong>${totalPredicted}</strong><span>Your predictions</span></div>
       </div>
+    </article>
+
+    <article class="card" style="padding:18px; margin-bottom:16px;">
+      <h2>🎁 Bonus Predictions</h2>
+      <p class="muted small">
+        Predict the tournament winner, best player, and finalists before the Super Admin locks bonus predictions.
+      </p>
+      <button onclick="currentStage='bonus'; renderPredictionsRoot();" class="secondary">
+        Open Bonus Predictions
+      </button>
     </article>
 
     ${live.length ? `
@@ -303,6 +327,8 @@ function renderMatchCards(matches, predictions, helpers, stageFilterId) {
         const homeSource = sourceLabel(match.home_source);
         const awaySource = sourceLabel(match.away_source);
 
+        const firstSelected = prediction?.first_team_to_score || '';
+
         const pill = live
           ? `<span class="status-pill live">● LIVE</span>`
           : locked
@@ -355,16 +381,63 @@ function renderMatchCards(matches, predictions, helpers, stageFilterId) {
               />
             </div>
 
+            <div class="card" style="padding:12px; box-shadow:none; margin-top:4px;">
+              <p class="muted small" style="margin:0 0 8px;">
+                First team to score <strong>(+1 point)</strong>
+              </p>
+
+              <label style="margin:6px 0;">
+                <input
+                  type="radio"
+                  name="first_${match.id}"
+                  value="home"
+                  style="width:auto"
+                  ${firstSelected === 'home' ? 'checked' : ''}
+                  ${locked ? 'disabled' : ''}
+                />
+                ${escapeHtml(match.home_team)}
+              </label>
+
+              <label style="margin:6px 0;">
+                <input
+                  type="radio"
+                  name="first_${match.id}"
+                  value="away"
+                  style="width:auto"
+                  ${firstSelected === 'away' ? 'checked' : ''}
+                  ${locked ? 'disabled' : ''}
+                />
+                ${escapeHtml(match.away_team)}
+              </label>
+
+              <label style="margin:6px 0;">
+                <input
+                  type="radio"
+                  name="first_${match.id}"
+                  value="none"
+                  style="width:auto"
+                  ${firstSelected === 'none' ? 'checked' : ''}
+                  ${locked ? 'disabled' : ''}
+                />
+                No goal / 0-0
+              </label>
+            </div>
+
             <button onclick="savePrediction('${match.id}')" ${locked ? 'disabled' : ''}>
               ${prediction ? 'Update Prediction' : 'Save Prediction'}
             </button>
 
             <p class="muted small">
-              Unlimited updates until kickoff — your last saved score counts.
+              Unlimited updates until kickoff — your last saved prediction counts.
             </p>
 
             ${prediction
-              ? `<p class="saved">Latest: ${prediction.home_score} - ${prediction.away_score}</p>`
+              ? `
+                <p class="saved">
+                  Latest: ${prediction.home_score} - ${prediction.away_score}
+                  · First scorer: ${escapeHtml(firstTeamLabel(prediction.first_team_to_score, match))}
+                </p>
+              `
               : `<p class="muted small">No prediction saved yet.</p>`
             }
 
@@ -374,6 +447,93 @@ function renderMatchCards(matches, predictions, helpers, stageFilterId) {
           </article>
         `;
       }).join('')}
+    </div>
+  `;
+}
+
+/* ============================================================
+   Bonus Predictions
+   ============================================================ */
+
+function renderBonusPredictions(bonusPrediction, bonusResult, currentProfile) {
+  const locked = !!bonusResult?.is_locked;
+
+  return `
+    <div class="card admin-card">
+      <h2>🎁 Bonus Predictions</h2>
+      <p class="muted small">
+        These are tournament-level predictions. They can be edited until the Super Admin locks the bonus page.
+      </p>
+
+      <div class="rules-grid" style="margin-bottom:16px;">
+        <div>
+          <strong>10 pts</strong>
+          <span>Tournament winner</span>
+        </div>
+        <div>
+          <strong>10 pts</strong>
+          <span>Best player</span>
+        </div>
+        <div>
+          <strong>5 pts</strong>
+          <span>Each correct finalist</span>
+        </div>
+      </div>
+
+      <p class="${locked ? 'message' : 'saved'}">
+        ${locked ? 'Bonus predictions are locked.' : 'Bonus predictions are open.'}
+      </p>
+    </div>
+
+    <div class="card admin-card" style="margin-top:16px;">
+      <h2>Your Bonus Picks</h2>
+
+      <label>Tournament Winner</label>
+      <input
+        id="bonusTournamentWinner"
+        placeholder="e.g. Brazil"
+        value="${escapeHtml(bonusPrediction?.tournament_winner || '')}"
+        ${locked ? 'disabled' : ''}
+      />
+
+      <label>Tournament Best Player</label>
+      <input
+        id="bonusBestPlayer"
+        placeholder="e.g. Kylian Mbappé"
+        value="${escapeHtml(bonusPrediction?.best_player || '')}"
+        ${locked ? 'disabled' : ''}
+      />
+
+      <div class="inline-row">
+        <div>
+          <label>Finalist 1</label>
+          <input
+            id="bonusFinalistOne"
+            placeholder="e.g. Argentina"
+            value="${escapeHtml(bonusPrediction?.finalist_one || '')}"
+            ${locked ? 'disabled' : ''}
+          />
+        </div>
+
+        <div>
+          <label>Finalist 2</label>
+          <input
+            id="bonusFinalistTwo"
+            placeholder="e.g. France"
+            value="${escapeHtml(bonusPrediction?.finalist_two || '')}"
+            ${locked ? 'disabled' : ''}
+          />
+        </div>
+      </div>
+
+      <button onclick="saveBonusPrediction()" ${locked ? 'disabled' : ''}>
+        ${bonusPrediction ? 'Update Bonus Predictions' : 'Save Bonus Predictions'}
+      </button>
+
+      ${bonusPrediction?.updated_at
+        ? `<p class="muted small">Last updated: ${new Date(bonusPrediction.updated_at).toLocaleString()}</p>`
+        : `<p class="muted small">No bonus prediction saved yet.</p>`
+      }
     </div>
   `;
 }
@@ -425,10 +585,16 @@ function renderResultsMatches(matches, predictions) {
               ${escapeHtml(match.stage || 'Match')}${match.venue ? ' • ' + escapeHtml(match.venue) : ''}
             </p>
 
+            <p class="muted small">
+              First team to score:
+              <strong>${escapeHtml(firstTeamLabel(match.actual_first_team_to_score, match))}</strong>
+            </p>
+
             ${prediction
               ? `
                 <p class="${won ? 'saved' : 'muted'}">
                   Your pick: ${prediction.home_score} - ${prediction.away_score}
+                  · First scorer: ${escapeHtml(firstTeamLabel(prediction.first_team_to_score, match))}
                   • <strong>${pts.points} pt${pts.points === 1 ? '' : 's'}</strong>
                   ${pts.label ? `· ${pts.label}` : ''}
                 </p>
@@ -470,7 +636,7 @@ function renderMyPredictions(matches, predictions) {
     .sort((a, b) => new Date(b.pred.updated_at) - new Date(a.pred.updated_at));
 
   let totalPoints = 0;
-  let wins = 0;
+  let hits = 0;
   let played = 0;
 
   for (const { pred, match } of rows) {
@@ -481,11 +647,11 @@ function renderMyPredictions(matches, predictions) {
 
       totalPoints += score.points;
 
-      if (score.points > 0) wins += 1;
+      if (score.points > 0) hits += 1;
     }
   }
 
-  const accuracy = played ? Math.round((wins / played) * 100) : 0;
+  const accuracy = played ? Math.round((hits / played) * 100) : 0;
 
   return `
     <div class="card mp-card">
@@ -497,7 +663,7 @@ function renderMyPredictions(matches, predictions) {
       </div>
 
       <div class="mp-summary">
-        <div class="stat"><strong>${totalPoints}</strong><span>Total points</span></div>
+        <div class="stat"><strong>${totalPoints}</strong><span>Match points</span></div>
         <div class="stat"><strong>${predictions.length}</strong><span>Predictions</span></div>
         <div class="stat"><strong>${played}</strong><span>Settled</span></div>
         <div class="stat"><strong>${accuracy}%</strong><span>Hit rate</span></div>
@@ -530,6 +696,7 @@ function renderMyPredictions(matches, predictions) {
                   ${formatDateShort(match.kickoff_at)}
                   • ${escapeHtml(match.stage || '—')}
                   · saved ${formatRelative(pred.updated_at)}
+                  · First scorer: ${escapeHtml(firstTeamLabel(pred.first_team_to_score, match))}
                 </div>
               </div>
 
@@ -555,7 +722,10 @@ function renderMyPredictions(matches, predictions) {
 
 /* ============================================================
    Scoring helper
-   5 = exact · 4 = result + goal diff · 3 = result only
+   Exact score = 5
+   Correct winner / correct draw = 2
+   First team to score = 1
+   Maximum per match = 8
    ============================================================ */
 
 function scorePrediction(prediction, match) {
@@ -563,27 +733,41 @@ function scorePrediction(prediction, match) {
     return { points: 0, label: '' };
   }
 
-  const ph = prediction.home_score;
-  const pa = prediction.away_score;
-  const ah = match.actual_home_score;
-  const aa = match.actual_away_score;
+  const ph = Number(prediction.home_score);
+  const pa = Number(prediction.away_score);
+  const ah = Number(match.actual_home_score);
+  const aa = Number(match.actual_away_score);
 
-  if (ph === ah && pa === aa) {
-    return { points: 5, label: 'Exact score' };
-  }
+  let points = 0;
+  const labels = [];
 
   const predResult = Math.sign(ph - pa);
-  const actResult = Math.sign(ah - aa);
+  const actualResult = Math.sign(ah - aa);
 
-  if (predResult === actResult) {
-    if ((ph - pa) === (ah - aa)) {
-      return { points: 4, label: 'Result + goal diff' };
-    }
-
-    return { points: 3, label: 'Correct result' };
+  if (ph === ah && pa === aa) {
+    points += 5;
+    labels.push('Exact score');
   }
 
-  return { points: 0, label: '' };
+  if (predResult === actualResult) {
+    points += 2;
+    labels.push('Correct result');
+  }
+
+  if (
+    prediction.first_team_to_score &&
+    match.actual_first_team_to_score &&
+    match.actual_first_team_to_score !== 'none' &&
+    prediction.first_team_to_score === match.actual_first_team_to_score
+  ) {
+    points += 1;
+    labels.push('First scorer');
+  }
+
+  return {
+    points,
+    label: labels.join(' + ')
+  };
 }
 
 /* ============================================================
@@ -594,15 +778,21 @@ function renderLeaderboardTable(rows) {
   return `
     <div class="card table-card">
       <h2>Leaderboard</h2>
+      <p class="muted small">
+        Total points include match points and bonus points.
+      </p>
 
       <table>
         <thead>
           <tr>
             <th>Rank</th>
             <th>Name</th>
-            <th>Points</th>
+            <th>Total</th>
+            <th>Match</th>
+            <th>Bonus</th>
             <th>Exact</th>
             <th>Result</th>
+            <th>First Score</th>
             <th>Picks</th>
           </tr>
         </thead>
@@ -612,10 +802,13 @@ function renderLeaderboardTable(rows) {
             <tr>
               <td><span class="rank">${index + 1}</span></td>
               <td>${escapeHtml(row.full_name || row.email)}</td>
-              <td><span class="points-pill">${row.total_points}</span></td>
-              <td>${row.exact_scores}</td>
-              <td>${row.correct_results}</td>
-              <td>${row.predictions_count}</td>
+              <td><span class="points-pill">${row.total_points ?? 0}</span></td>
+              <td>${row.match_points ?? 0}</td>
+              <td>${row.bonus_points ?? 0}</td>
+              <td>${row.exact_scores ?? 0}</td>
+              <td>${row.correct_results ?? 0}</td>
+              <td>${row.correct_first_scores ?? 0}</td>
+              <td>${row.predictions_count ?? 0}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -629,6 +822,32 @@ function renderLeaderboardError(message) {
     <div class="card table-card">
       <p class="message">${escapeHtml(message)}</p>
     </div>
+  `;
+}
+
+/* ============================================================
+   Admin Review Page Shell
+   ============================================================ */
+
+function renderAdminPageShell(activeView) {
+  return `
+    <div class="card admin-card">
+      <h2>Admin Review</h2>
+      <p class="muted small">
+        Review match predictions, user histories, and bonus predictions.
+      </p>
+
+      <div class="stage-filter card" style="margin-top:14px;">
+        <button class="${activeView === 'matches' ? 'active' : ''}" onclick="switchAdminView('matches')">
+          ⚽ Match Predictions
+        </button>
+        <button class="${activeView === 'bonus' ? 'active' : ''}" onclick="switchAdminView('bonus')">
+          🎁 Bonus Predictions
+        </button>
+      </div>
+    </div>
+
+    <div id="adminInnerContent" style="margin-top:16px;"></div>
   `;
 }
 
@@ -649,8 +868,7 @@ function renderAdminReviewPage(matches) {
     <div class="card admin-card">
       <h2>Admin Match Review</h2>
       <p class="muted small">
-        Select a match to view each user’s latest prediction and the points earned from that match.
-        You can also open each user's prediction history for that match.
+        Select a match to view each user’s latest prediction, first-team-to-score pick, and points earned.
       </p>
     </div>
 
@@ -686,6 +904,10 @@ function renderAdminReviewPage(matches) {
               ? `Result: ${match.actual_home_score} - ${match.actual_away_score}`
               : 'Result pending'
             }
+          </p>
+
+          <p class="muted small">
+            First scorer: ${escapeHtml(firstTeamLabel(match.actual_first_team_to_score, match))}
           </p>
 
           <p class="muted small">Click to review predictions</p>
@@ -725,6 +947,10 @@ function renderAdminMatchReview(match, rows) {
           : 'Final Result: Pending'
         }
       </p>
+
+      <p class="muted small">
+        Actual first scorer: <strong>${escapeHtml(firstTeamLabel(match.actual_first_team_to_score, match))}</strong>
+      </p>
     </div>
 
     <div class="card table-card" style="margin-top:16px;">
@@ -734,8 +960,11 @@ function renderAdminMatchReview(match, rows) {
         <thead>
           <tr>
             <th>Name</th>
-            <th>Prediction</th>
-            <th>Points</th>
+            <th>Score Pick</th>
+            <th>First Scorer Pick</th>
+            <th>Result Points</th>
+            <th>First Score</th>
+            <th>Total</th>
             <th>Last Updated</th>
             <th>History</th>
           </tr>
@@ -748,7 +977,10 @@ function renderAdminMatchReview(match, rows) {
                 <tr>
                   <td>${escapeHtml(row.full_name || row.email)}</td>
                   <td>${row.home_score} - ${row.away_score}</td>
-                  <td><span class="points-pill">${row.match_points}</span></td>
+                  <td>${escapeHtml(firstTeamLabel(row.first_team_to_score, match))}</td>
+                  <td>${row.result_points ?? 0}</td>
+                  <td>${row.first_score_points ?? 0}</td>
+                  <td><span class="points-pill">${row.match_points ?? 0}</span></td>
                   <td>${new Date(row.updated_at).toLocaleString()}</td>
                   <td>
                     <button class="secondary" onclick="openUserPredictionHistory('${row.user_id}', '${row.match_id}')">
@@ -759,7 +991,7 @@ function renderAdminMatchReview(match, rows) {
               `).join('')
               : `
                 <tr>
-                  <td colspan="5" class="muted">
+                  <td colspan="8" class="muted">
                     No predictions submitted for this match yet.
                   </td>
                 </tr>
@@ -797,6 +1029,7 @@ function renderUserPredictionHistory(match, rows) {
           <tr>
             <th>Date / Time</th>
             <th>Prediction</th>
+            <th>First Scorer</th>
             <th>Action</th>
           </tr>
         </thead>
@@ -808,13 +1041,67 @@ function renderUserPredictionHistory(match, rows) {
                 <tr>
                   <td>${new Date(row.created_at).toLocaleString()}</td>
                   <td>${row.home_score} - ${row.away_score}</td>
+                  <td>${escapeHtml(firstTeamLabel(row.first_team_to_score, match))}</td>
                   <td>${escapeHtml(row.action)}</td>
                 </tr>
               `).join('')
               : `
                 <tr>
-                  <td colspan="3" class="muted">
+                  <td colspan="4" class="muted">
                     No history available. History is tracked only after the audit table was added.
+                  </td>
+                </tr>
+              `
+          }
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+/* ============================================================
+   Admin Bonus Review
+   ============================================================ */
+
+function renderAdminBonusPredictionReview(rows) {
+  return `
+    <div class="card table-card">
+      <h2>Bonus Predictions</h2>
+      <p class="muted small">
+        Review tournament winner, best player, finalists, and bonus points.
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Winner</th>
+            <th>Best Player</th>
+            <th>Finalist 1</th>
+            <th>Finalist 2</th>
+            <th>Bonus Points</th>
+            <th>Updated</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          ${
+            rows.length
+              ? rows.map(row => `
+                <tr>
+                  <td>${escapeHtml(row.full_name || row.email)}</td>
+                  <td>${escapeHtml(row.tournament_winner || '—')}</td>
+                  <td>${escapeHtml(row.best_player || '—')}</td>
+                  <td>${escapeHtml(row.finalist_one || '—')}</td>
+                  <td>${escapeHtml(row.finalist_two || '—')}</td>
+                  <td><span class="points-pill">${row.bonus_points ?? 0}</span></td>
+                  <td>${row.updated_at ? new Date(row.updated_at).toLocaleString() : '—'}</td>
+                </tr>
+              `).join('')
+              : `
+                <tr>
+                  <td colspan="7" class="muted">
+                    No bonus predictions submitted yet.
                   </td>
                 </tr>
               `
@@ -830,7 +1117,7 @@ function renderUserPredictionHistory(match, rows) {
    Full controls only for Super Admin
    ============================================================ */
 
-function renderSuperAdminPanel(matches, scheduleUrl) {
+function renderSuperAdminPanel(matches, scheduleUrl, bonusResult) {
   const selectedOptions = matches.map(match => `
     <option value="${match.id}">
       ${match.match_no ? `M${match.match_no} - ` : ''}
@@ -852,9 +1139,12 @@ function renderSuperAdminPanel(matches, scheduleUrl) {
 
         <button onclick="syncScheduleFromInternet()">Sync Schedule & Scores Now</button>
 
+        <button onclick="replaceMatchesWithScheduleIfNoPredictions()" class="secondary">
+          Replace Old Matches With Schedule
+        </button>
+
         <p class="muted small">
-          Updates match number, teams, stage, venue, kickoff time, knockout source links, and scores when present.
-          Existing predictions are preserved.
+          Sync preserves predictions. Replace deletes old matches only if no predictions exist.
         </p>
       </div>
 
@@ -904,6 +1194,14 @@ function renderSuperAdminPanel(matches, scheduleUrl) {
           </div>
         </div>
 
+        <label>First Team to Score</label>
+        <select id="adminFirstTeamToScore">
+          <option value="">Not selected</option>
+          <option value="home">Home team</option>
+          <option value="away">Away team</option>
+          <option value="none">No goal / 0-0</option>
+        </select>
+
         <label>
           <input id="adminLock" type="checkbox" style="width:auto" />
           Manual lock
@@ -929,6 +1227,42 @@ function renderSuperAdminPanel(matches, scheduleUrl) {
       </div>
 
       <div class="card admin-card">
+        <h2>Bonus Prediction Control</h2>
+        <p class="muted small">
+          Lock bonus predictions and enter final bonus results after the tournament.
+        </p>
+
+        <label>
+          <input id="bonusLock" type="checkbox" style="width:auto" ${bonusResult?.is_locked ? 'checked' : ''} />
+          Lock bonus predictions
+        </label>
+
+        <label>Actual Tournament Winner</label>
+        <input id="actualTournamentWinner" value="${escapeHtml(bonusResult?.actual_tournament_winner || '')}" placeholder="e.g. Brazil" />
+
+        <label>Actual Best Player</label>
+        <input id="actualBestPlayer" value="${escapeHtml(bonusResult?.actual_best_player || '')}" placeholder="e.g. Kylian Mbappé" />
+
+        <div class="inline-row">
+          <div>
+            <label>Actual Finalist 1</label>
+            <input id="actualFinalistOne" value="${escapeHtml(bonusResult?.actual_finalist_one || '')}" placeholder="e.g. Argentina" />
+          </div>
+
+          <div>
+            <label>Actual Finalist 2</label>
+            <input id="actualFinalistTwo" value="${escapeHtml(bonusResult?.actual_finalist_two || '')}" placeholder="e.g. France" />
+          </div>
+        </div>
+
+        <button onclick="updateBonusResults()">Update Bonus Settings</button>
+
+        <p class="muted small">
+          Finalist points are order-free. Each correct finalist gives 5 points, maximum 10.
+        </p>
+      </div>
+
+      <div class="card admin-card">
         <h2>Office Users / Export</h2>
         <p class="muted small">
           Add approved users and roles in Supabase SQL.
@@ -946,5 +1280,5 @@ function renderSuperAdminPanel(matches, scheduleUrl) {
 /* Backward compatibility.
    If any old code still calls renderAdminPanel, show Super Admin panel. */
 function renderAdminPanel(matches, scheduleUrl) {
-  return renderSuperAdminPanel(matches, scheduleUrl);
+  return renderSuperAdminPanel(matches, scheduleUrl, null);
 }
