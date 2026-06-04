@@ -19,7 +19,7 @@
    - Admin can review match predictions and bonus predictions
    - Super Admin controls match/result/bonus management
    - Bonus dropdown lists load from GitHub JSON files
-   - Forgot password + reset password flow
+   - Forgot password redirects to reset-password.html
    - Supabase connection is prefilled so users do not see setup screen
    ============================================================ */
 
@@ -129,18 +129,6 @@ function setMessage(message, type = 'error') {
   el.textContent = message || '';
 }
 
-function setResetMessage(message, type = 'error') {
-  const el = $('resetPasswordMessage');
-
-  if (!el) {
-    toast(message);
-    return;
-  }
-
-  el.style.color = type === 'success' ? '#86efac' : '#fb7185';
-  el.textContent = message || '';
-}
-
 function showElement(id) {
   const el = $(id);
   if (el) el.classList.remove('hidden');
@@ -149,20 +137,6 @@ function showElement(id) {
 function hideElement(id) {
   const el = $(id);
   if (el) el.classList.add('hidden');
-}
-
-function showResetPasswordPanel() {
-  hideElement('setupPanel');
-  hideElement('authPanel');
-  hideElement('portalPanel');
-  showElement('resetPasswordPanel');
-}
-
-function showAuthPanel() {
-  hideElement('setupPanel');
-  hideElement('portalPanel');
-  hideElement('resetPasswordPanel');
-  showElement('authPanel');
 }
 
 function safeEscape(value) {
@@ -276,19 +250,6 @@ async function loadSession() {
 
   if (error) {
     setMessage(error.message, 'error');
-    return;
-  }
-
-  const hash = window.location.hash || '';
-  const search = window.location.search || '';
-
-  const isRecovery =
-    hash.includes('type=recovery') ||
-    search.includes('type=recovery');
-
-  if (isRecovery) {
-    currentUser = data.session?.user || null;
-    showResetPasswordPanel();
     return;
   }
 
@@ -2101,52 +2062,6 @@ $('forgotPasswordBtn')?.addEventListener('click', async () => {
     setMessage('Password reset link sent. Please check your email.', 'success');
   } catch (error) {
     setMessage(error.message, 'error');
-  }
-});
-
-  if (newPassword.length < 6) {
-    setResetMessage('Password must be at least 6 characters.', 'error');
-    return;
-  }
-
-  if (newPassword !== confirmNewPassword) {
-    setResetMessage('Passwords do not match.', 'error');
-    return;
-  }
-
-  try {
-    const { error } = await supabaseClient.auth.updateUser({
-      password: newPassword
-    });
-
-    if (error) throw error;
-
-    setResetMessage('Password updated successfully. Please login again.', 'success');
-
-    await supabaseClient.auth.signOut();
-
-    currentUser = null;
-    currentProfile = null;
-    bonusPredictionCache = null;
-    bonusResultCache = null;
-
-    if (lockTickerId) clearInterval(lockTickerId);
-    if (scheduleRefreshId) clearTimeout(scheduleRefreshId);
-    if (leaderboardRefreshId) clearInterval(leaderboardRefreshId);
-
-    window.history.replaceState({}, document.title, window.location.pathname);
-
-    setTimeout(() => {
-      $('newPassword').value = '';
-      $('confirmNewPassword').value = '';
-
-      hideElement('resetPasswordPanel');
-      showElement('authPanel');
-
-      setMessage('Password updated. Please login with your new password.', 'success');
-    }, 1200);
-  } catch (error) {
-    setResetMessage(error.message, 'error');
   }
 });
 
