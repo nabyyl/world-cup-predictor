@@ -216,11 +216,8 @@ function isAdmin() {
    ============================================================ */
 
 function initSupabase() {
-  const savedUrl = localStorage.getItem('wc_supabase_url');
-  const savedKey = localStorage.getItem('wc_supabase_anon_key');
-
-  const url = savedUrl && savedUrl.trim() ? savedUrl.trim() : DEFAULT_SUPABASE_URL;
-  const key = savedKey && savedKey.trim() ? savedKey.trim() : DEFAULT_SUPABASE_ANON_KEY;
+  const url = DEFAULT_SUPABASE_URL;
+  const key = DEFAULT_SUPABASE_ANON_KEY;
 
   if (!url || !key) {
     showElement('setupPanel');
@@ -229,6 +226,19 @@ function initSupabase() {
     hideElement('portalPanel');
     return false;
   }
+
+  supabaseClient = supabase.createClient(url, key);
+
+  localStorage.setItem('wc_supabase_url', url);
+  localStorage.setItem('wc_supabase_anon_key', key);
+
+  hideElement('setupPanel');
+  showElement('authPanel');
+  hideElement('resetPasswordPanel');
+  hideElement('portalPanel');
+
+  return true;
+}
 
   supabaseClient = supabase.createClient(url, key);
 
