@@ -54,10 +54,10 @@ function formatRelative(value) {
 const STAGES = [
   { id: 'summary', label: 'Summary', emoji: '⚡' },
   { id: 'group', label: 'Group', emoji: '🌍' },
-  { id: 'r32', label: 'R32', emoji: '🏟️' },
-  { id: 'r16', label: 'R16', emoji: '🎯' },
-  { id: 'qf', label: 'QF', emoji: '🔥' },
-  { id: 'sf', label: 'SF', emoji: '⭐' },
+  { id: 'r32', label: 'R-32', emoji: '🏟️' },
+  { id: 'r16', label: 'R-16', emoji: '🎯' },
+  { id: 'qf', label: 'Quarter Final', emoji: '🔥' },
+  { id: 'sf', label: 'Semi Final', emoji: '⭐' },
   { id: 'final', label: 'Final', emoji: '🏆' },
   { id: 'bonus', label: 'Bonus', emoji: '🎁' },
   { id: 'results', label: 'Full Time', emoji: '📊' }
