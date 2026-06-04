@@ -53,11 +53,11 @@ function formatRelative(value) {
 
 const STAGES = [
   { id: 'summary', label: 'Summary', emoji: '⚡' },
-  { id: 'group', label: 'Group Stage', emoji: '🌍' },
-  { id: 'r32', label: 'Round of 32', emoji: '🏟️' },
-  { id: 'r16', label: 'Round of 16', emoji: '🎯' },
-  { id: 'qf', label: 'Quarter Finals', emoji: '🔥' },
-  { id: 'sf', label: 'Semi Finals', emoji: '⭐' },
+  { id: 'group', label: 'Group', emoji: '🌍' },
+  { id: 'r32', label: 'R32', emoji: '🏟️' },
+  { id: 'r16', label: 'R16', emoji: '🎯' },
+  { id: 'qf', label: 'QF', emoji: '🔥' },
+  { id: 'sf', label: 'SF', emoji: '⭐' },
   { id: 'final', label: 'Final', emoji: '🏆' },
   { id: 'bonus', label: 'Bonus', emoji: '🎁' },
   { id: 'results', label: 'Full Time', emoji: '📊' }
@@ -224,16 +224,6 @@ function renderSummary(matches, predictions, userName) {
       </div>
     </article>
 
-    <article class="card" style="padding:18px; margin-bottom:16px;">
-      <h2>🎁 Bonus Predictions</h2>
-      <p class="muted small">
-        Predict the tournament winner, best player, and finalists before the Super Admin locks bonus predictions.
-      </p>
-      <button onclick="currentStage='bonus'; renderPredictionsRoot();" class="secondary">
-        Open Bonus Predictions
-      </button>
-    </article>
-
     ${live.length ? `
       <article class="card" style="padding:18px; margin-bottom:16px;">
         <h2>🔴 Live now</h2>
@@ -243,7 +233,7 @@ function renderSummary(matches, predictions, userName) {
       </article>
     ` : ''}
 
-    <article class="card" style="padding:18px;">
+    <article class="card" style="padding:18px; margin-bottom:16px;">
       <h2>Next up</h2>
       <p class="muted small">The next ${Math.min(6, upcoming.length)} fixtures — click any to jump to its prediction card.</p>
 
@@ -261,6 +251,19 @@ function renderSummary(matches, predictions, userName) {
           </div>
         `
       }
+    </article>
+
+    <article class="card bonus-summary-card">
+      <div>
+        <h2>🎁 Bonus Predictions</h2>
+        <p class="muted small">
+          Predict the tournament winner, best player, and finalists before the Super Admin locks bonus predictions.
+        </p>
+      </div>
+
+      <button onclick="currentStage='bonus'; renderPredictionsRoot();" class="secondary">
+        Open Bonus Predictions
+      </button>
     </article>
   `;
 }
