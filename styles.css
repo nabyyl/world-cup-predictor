@@ -1726,7 +1726,8 @@ td .points-pill {
   margin-top: 0;
 }
 
-.bonus-field input {
+.bonus-field input,
+.bonus-field select {
   margin-top: 4px;
 }
 
@@ -2312,5 +2313,83 @@ td .points-pill {
   .logo-ball,
   .logo-ball.small {
     animation: footballFloatSmall 3.2s ease-in-out infinite !important;
+  }
+}
+
+/* ============================================================
+   Bonus Dropdown Styling
+   Added for GitHub-loaded teams.json and players.json dropdowns
+   ============================================================ */
+
+.bonus-field select,
+.admin-card select {
+  margin-top: 4px;
+}
+
+.bonus-field select {
+  width: 100%;
+}
+
+.bonus-grid select,
+.inline-row select,
+#bonusTournamentWinner,
+#bonusBestPlayer,
+#bonusFinalistOne,
+#bonusFinalistTwo,
+#actualTournamentWinner,
+#actualBestPlayer,
+#actualFinalistOne,
+#actualFinalistTwo {
+  min-height: 48px;
+  cursor: pointer;
+}
+
+#bonusTournamentWinner:disabled,
+#bonusBestPlayer:disabled,
+#bonusFinalistOne:disabled,
+#bonusFinalistTwo:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+select option {
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+[data-theme="light"] select option {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+/* Make bonus dropdown section feel like proper cards */
+#bonusTournamentWinner,
+#bonusBestPlayer,
+#bonusFinalistOne,
+#bonusFinalistTwo {
+  background: var(--input-bg);
+  border-color: var(--glass-border);
+}
+
+/* Super Admin actual bonus result dropdowns */
+#actualTournamentWinner,
+#actualBestPlayer,
+#actualFinalistOne,
+#actualFinalistTwo {
+  background: var(--input-bg);
+  border-color: var(--glass-border);
+}
+
+/* Mobile spacing improvement */
+@media (max-width: 720px) {
+  #bonusTournamentWinner,
+  #bonusBestPlayer,
+  #bonusFinalistOne,
+  #bonusFinalistTwo,
+  #actualTournamentWinner,
+  #actualBestPlayer,
+  #actualFinalistOne,
+  #actualFinalistTwo {
+    min-height: 50px;
   }
 }
