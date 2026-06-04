@@ -1,26 +1,39 @@
 /* ============================================================
    app.js — World Cup 2026 Prediction League
    - Liquid glass UI with dark/light theme
-   - Sub-tabs inside Predictions (Summary / stages / Full Time)
+   - Sub-tabs inside Predictions (Summary / stages / Bonus / Full Time)
    - User chip with avatar
    - Click a Next-Up card to jump to that match
    - Auto-locks matches at kickoff (UI + Supabase RLS)
    - Uses FIFA portal schedule JSON file
    - Supports match_no, home_source, away_source
    - Auto-fills knockout winners/losers into next matches
-   - Super Admin controls match/result management
-   - Admin can review matches, latest predictions, points and history
+   - New scoring:
+       Exact score = 5
+       Correct winner / draw = 2
+       First team to score = 1
+   - Bonus predictions:
+       Tournament winner = 10
+       Best player = 10
+       Finalists = 5 each
+   - Admin can review match predictions and bonus predictions
+   - Super Admin controls match/result/bonus management
    - Supabase connection is prefilled so users do not see setup screen
    ============================================================ */
 
 let supabaseClient;
 let currentUser = null;
 let currentProfile = null;
+
 let matchesCache = [];
 let predictionsCache = [];
+let bonusPredictionCache = null;
+let bonusResultCache = null;
 
 let currentTopView = 'predictions';
 let currentStage = 'summary';
+let currentAdminView = 'matches'; // matches | bonus
+
 let lockTickerId = null;
 let scheduleRefreshId = null;
 let leaderboardRefreshId = null;
@@ -30,6 +43,8 @@ const OPENFOOTBALL_2026_URL = './fifa-2026-portal-schedule.json';
 const DEFAULT_SUPABASE_URL = 'https://lpbsxggijjjanvnodgsn.supabase.co';
 
 const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_RUaY8xsNZDZTjTUyq4SKWg_HbiLGxon';
+
+const SUPER_ADMIN_SYNC_PASSWORD = 'stanley';
 
 const $ = (id) => document.getElementById(id);
 
@@ -71,6 +86,18 @@ function showElement(id) {
 function hideElement(id) {
   const el = $(id);
   if (el) el.classList.add('hidden');
+}
+
+function safeEscape(value) {
+  if (typeof escapeHtml === 'function') return escapeHtml(value);
+
+  return String(value ?? '').replace(/[&<>'"]/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    "'": '&#39;',
+    '"': '&quot;'
+  }[char]));
 }
 
 /* ============================================================
@@ -275,6 +302,8 @@ function startLiveTickers() {
       } else {
         await loadMatches();
         await loadPredictions();
+        await loadBonusPrediction();
+        await loadBonusResults();
 
         if (
           currentTopView === 'predictions' ||
@@ -316,7 +345,9 @@ function startLiveTickers() {
 async function refreshAll() {
   await Promise.all([
     loadMatches(),
-    loadPredictions()
+    loadPredictions(),
+    loadBonusPrediction(),
+    loadBonusResults()
   ]);
 
   if (
@@ -331,7 +362,7 @@ async function refreshAll() {
   }
 
   if (currentTopView === 'admin') {
-    renderAdmin();
+    await renderAdmin();
   }
 
   if (currentTopView === 'superAdmin') {
@@ -359,6 +390,42 @@ async function loadPredictions() {
   if (error) throw error;
 
   predictionsCache = data || [];
+}
+
+async function loadBonusPrediction() {
+  if (!currentUser) {
+    bonusPredictionCache = null;
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from('bonus_predictions')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  bonusPredictionCache = data || null;
+}
+
+async function loadBonusResults() {
+  const { data, error } = await supabaseClient
+    .from('bonus_results')
+    .select('*')
+    .eq('id', true)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  bonusResultCache = data || {
+    id: true,
+    is_locked: false,
+    actual_tournament_winner: null,
+    actual_best_player: null,
+    actual_finalist_one: null,
+    actual_finalist_two: null
+  };
 }
 
 function predictionFor(matchId) {
@@ -412,6 +479,26 @@ function renderPredictionsRoot() {
     return;
   }
 
+  if (currentStage === 'bonus') {
+    if (typeof renderBonusPredictions !== 'function') {
+      content.innerHTML = `
+        <div class="card empty-state">
+          <span class="emoji">🏆</span>
+          <h3>Bonus Predictions unavailable</h3>
+          <p class="muted small">Please update ui.js to include renderBonusPredictions().</p>
+        </div>
+      `;
+      return;
+    }
+
+    content.innerHTML = renderBonusPredictions(
+      bonusPredictionCache,
+      bonusResultCache,
+      currentProfile
+    );
+    return;
+  }
+
   if (currentStage === 'results') {
     content.innerHTML = renderResultsMatches(matchesCache, predictionsCache);
     return;
@@ -447,9 +534,6 @@ function rerenderCurrentView() {
     if (currentTopView === 'myPredictions') {
       renderMyPredictionsView();
     }
-
-    // Leaderboard is intentionally not refreshed here every 30 seconds.
-    // It refreshes separately every 5 minutes and during smart auto-sync.
   } catch (error) {
     console.warn('View render failed:', error.message);
     toast('There was an error loading this page. Please refresh once.');
@@ -490,7 +574,7 @@ function navigateToMatch(matchId) {
 window.navigateToMatch = navigateToMatch;
 
 /* ============================================================
-   Save prediction
+   Save match prediction
    ============================================================ */
 
 async function savePrediction(matchId) {
@@ -517,11 +601,15 @@ async function savePrediction(matchId) {
     return;
   }
 
+  const firstTeamToScore =
+    document.querySelector(`input[name="first_${matchId}"]:checked`)?.value || null;
+
   const payload = {
     user_id: currentUser.id,
     match_id: matchId,
     home_score: home,
     away_score: away,
+    first_team_to_score: firstTeamToScore,
     updated_at: new Date().toISOString()
   };
 
@@ -543,6 +631,52 @@ async function savePrediction(matchId) {
 }
 
 window.savePrediction = savePrediction;
+
+/* ============================================================
+   Save bonus prediction
+   ============================================================ */
+
+async function saveBonusPrediction() {
+  if (!currentUser) {
+    toast('Please login first.');
+    return;
+  }
+
+  if (bonusResultCache?.is_locked) {
+    toast('Bonus predictions are locked.');
+    return;
+  }
+
+  const payload = {
+    user_id: currentUser.id,
+    tournament_winner: $('bonusTournamentWinner')?.value.trim() || null,
+    best_player: $('bonusBestPlayer')?.value.trim() || null,
+    finalist_one: $('bonusFinalistOne')?.value.trim() || null,
+    finalist_two: $('bonusFinalistTwo')?.value.trim() || null,
+    updated_at: new Date().toISOString()
+  };
+
+  const { error } = await supabaseClient
+    .from('bonus_predictions')
+    .upsert(payload, {
+      onConflict: 'user_id'
+    });
+
+  if (error) {
+    toast(error.message);
+    return;
+  }
+
+  toast('Bonus predictions saved.');
+
+  await loadBonusPrediction();
+
+  if (currentTopView === 'predictions' && currentStage === 'bonus') {
+    renderPredictionsRoot();
+  }
+}
+
+window.saveBonusPrediction = saveBonusPrediction;
 
 /* ============================================================
    Leaderboard
@@ -570,7 +704,7 @@ async function renderLeaderboard() {
    Admin review page — limited Admin + Super Admin
    ============================================================ */
 
-function renderAdmin() {
+async function renderAdmin() {
   if (!views.admin) return;
 
   if (!hasAdminAccess()) {
@@ -584,14 +718,42 @@ function renderAdmin() {
   }
 
   try {
-    views.admin.innerHTML = renderAdminReviewPage(matchesCache || []);
+    if (typeof renderAdminPageShell === 'function') {
+      views.admin.innerHTML = renderAdminPageShell(currentAdminView);
+    } else {
+      views.admin.innerHTML = `
+        <div class="card admin-card">
+          <h2>Admin Review</h2>
+          <div class="stage-filter card" style="margin-top:14px;">
+            <button class="${currentAdminView === 'matches' ? 'active' : ''}" onclick="switchAdminView('matches')">⚽ Match Predictions</button>
+            <button class="${currentAdminView === 'bonus' ? 'active' : ''}" onclick="switchAdminView('bonus')">🏆 Bonus Predictions</button>
+          </div>
+        </div>
+        <div id="adminInnerContent" style="margin-top:16px;"></div>
+      `;
+    }
+
+    const inner = $('adminInnerContent') || views.admin;
+
+    if (currentAdminView === 'bonus') {
+      await renderAdminBonusReviewInto(inner);
+      return;
+    }
+
+    const matchHtml = renderAdminReviewPage(matchesCache || []);
+
+    if ($('adminInnerContent')) {
+      $('adminInnerContent').innerHTML = matchHtml;
+    } else {
+      views.admin.innerHTML += matchHtml;
+    }
   } catch (error) {
     console.error('Admin page error:', error);
 
     views.admin.innerHTML = `
       <div class="card admin-card">
         <h2>Admin page could not load</h2>
-        <p class="message">${escapeHtml(error.message)}</p>
+        <p class="message">${safeEscape(error.message)}</p>
         <p class="muted small">
           This is usually caused by an old ui.js file or missing admin review function.
         </p>
@@ -599,6 +761,78 @@ function renderAdmin() {
     `;
   }
 }
+
+async function renderAdminBonusReviewInto(container) {
+  const { data, error } = await supabaseClient
+    .from('bonus_prediction_review')
+    .select('*')
+    .order('bonus_points', { ascending: false })
+    .order('full_name', { ascending: true });
+
+  if (error) {
+    container.innerHTML = `
+      <div class="card admin-card">
+        <h2>Bonus Predictions</h2>
+        <p class="message">${safeEscape(error.message)}</p>
+      </div>
+    `;
+    return;
+  }
+
+  if (typeof renderAdminBonusPredictionReview === 'function') {
+    container.innerHTML = renderAdminBonusPredictionReview(data || []);
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="card table-card">
+      <h2>Bonus Predictions</h2>
+      <p class="muted small">Latest bonus predictions submitted by users.</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Winner</th>
+            <th>Best Player</th>
+            <th>Finalist 1</th>
+            <th>Finalist 2</th>
+            <th>Bonus Points</th>
+            <th>Updated</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${
+            (data || []).length
+              ? data.map(row => `
+                <tr>
+                  <td>${safeEscape(row.full_name || row.email)}</td>
+                  <td>${safeEscape(row.tournament_winner || '—')}</td>
+                  <td>${safeEscape(row.best_player || '—')}</td>
+                  <td>${safeEscape(row.finalist_one || '—')}</td>
+                  <td>${safeEscape(row.finalist_two || '—')}</td>
+                  <td><span class="points-pill">${row.bonus_points ?? 0}</span></td>
+                  <td>${row.updated_at ? new Date(row.updated_at).toLocaleString() : '—'}</td>
+                </tr>
+              `).join('')
+              : `
+                <tr>
+                  <td colspan="7" class="muted">No bonus predictions submitted yet.</td>
+                </tr>
+              `
+          }
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function switchAdminView(viewName) {
+  currentAdminView = viewName === 'bonus' ? 'bonus' : 'matches';
+  renderAdmin();
+}
+
+window.switchAdminView = switchAdminView;
 
 async function openAdminMatchReview(matchId) {
   if (!hasAdminAccess()) {
@@ -651,6 +885,7 @@ async function openUserPredictionHistory(userId, matchId) {
 window.openUserPredictionHistory = openUserPredictionHistory;
 
 function backToAdminMatches() {
+  currentAdminView = 'matches';
   renderAdmin();
 }
 
@@ -676,17 +911,19 @@ function renderSuperAdmin() {
   try {
     views.superAdmin.innerHTML = renderSuperAdminPanel(
       matchesCache || [],
-      OPENFOOTBALL_2026_URL
+      OPENFOOTBALL_2026_URL,
+      bonusResultCache
     );
 
     fillAdminMatchForm();
+    fillBonusResultForm();
   } catch (error) {
     console.error('Super Admin page error:', error);
 
     views.superAdmin.innerHTML = `
       <div class="card admin-card">
         <h2>Super Admin page could not load</h2>
-        <p class="message">${escapeHtml(error.message)}</p>
+        <p class="message">${safeEscape(error.message)}</p>
         <p class="muted small">
           Check that ui.js has the latest Super Admin render function.
         </p>
@@ -710,6 +947,10 @@ function fillAdminMatchForm() {
 
   if ($('adminActualAway')) {
     $('adminActualAway').value = match.actual_away_score ?? '';
+  }
+
+  if ($('adminFirstTeamToScore')) {
+    $('adminFirstTeamToScore').value = match.actual_first_team_to_score ?? '';
   }
 
   if ($('adminLock')) {
@@ -738,6 +979,32 @@ function fillAdminMatchForm() {
 
 window.fillAdminMatchForm = fillAdminMatchForm;
 
+function fillBonusResultForm() {
+  if (!bonusResultCache) return;
+
+  if ($('bonusLock')) {
+    $('bonusLock').checked = !!bonusResultCache.is_locked;
+  }
+
+  if ($('actualTournamentWinner')) {
+    $('actualTournamentWinner').value = bonusResultCache.actual_tournament_winner ?? '';
+  }
+
+  if ($('actualBestPlayer')) {
+    $('actualBestPlayer').value = bonusResultCache.actual_best_player ?? '';
+  }
+
+  if ($('actualFinalistOne')) {
+    $('actualFinalistOne').value = bonusResultCache.actual_finalist_one ?? '';
+  }
+
+  if ($('actualFinalistTwo')) {
+    $('actualFinalistTwo').value = bonusResultCache.actual_finalist_two ?? '';
+  }
+}
+
+window.fillBonusResultForm = fillBonusResultForm;
+
 async function addMatch() {
   if (!isSuperAdmin()) {
     toast('Super Admin access required.');
@@ -755,6 +1022,7 @@ async function addMatch() {
     kickoff_at: kickoffValue ? new Date(kickoffValue).toISOString() : null,
     home_source: null,
     away_source: null,
+    actual_first_team_to_score: null,
     is_locked: false,
     admin_override_open: false,
     source: 'manual',
@@ -801,6 +1069,7 @@ async function updateResult() {
 
   const homeRaw = $('adminActualHome')?.value ?? '';
   const awayRaw = $('adminActualAway')?.value ?? '';
+  const firstScorerRaw = $('adminFirstTeamToScore')?.value || null;
 
   const hasResult = homeRaw !== '' && awayRaw !== '';
 
@@ -809,6 +1078,7 @@ async function updateResult() {
     admin_override_open: !!$('adminOverrideOpen')?.checked,
     actual_home_score: homeRaw === '' ? null : Number(homeRaw),
     actual_away_score: awayRaw === '' ? null : Number(awayRaw),
+    actual_first_team_to_score: firstScorerRaw || null,
     result_source: hasResult ? 'admin' : 'manual',
     admin_result_override: hasResult ? true : !!$('adminResultOverride')?.checked
   };
@@ -853,6 +1123,48 @@ async function updateResult() {
 }
 
 window.updateResult = updateResult;
+
+async function updateBonusResults() {
+  if (!isSuperAdmin()) {
+    toast('Super Admin access required.');
+    return;
+  }
+
+  const payload = {
+    id: true,
+    is_locked: !!$('bonusLock')?.checked,
+    actual_tournament_winner: $('actualTournamentWinner')?.value.trim() || null,
+    actual_best_player: $('actualBestPlayer')?.value.trim() || null,
+    actual_finalist_one: $('actualFinalistOne')?.value.trim() || null,
+    actual_finalist_two: $('actualFinalistTwo')?.value.trim() || null,
+    updated_at: new Date().toISOString()
+  };
+
+  const { error } = await supabaseClient
+    .from('bonus_results')
+    .upsert(payload, {
+      onConflict: 'id'
+    });
+
+  if (error) {
+    toast(error.message);
+    return;
+  }
+
+  toast('Bonus settings/results updated.');
+
+  await loadBonusResults();
+
+  if (currentTopView === 'superAdmin') {
+    renderSuperAdmin();
+  }
+
+  if (currentTopView === 'predictions' && currentStage === 'bonus') {
+    renderPredictionsRoot();
+  }
+}
+
+window.updateBonusResults = updateBonusResults;
 
 async function updateDependentKnockoutMatches(completedMatch) {
   if (!completedMatch || !matchHasResult(completedMatch)) return;
@@ -968,11 +1280,19 @@ window.deleteSelectedMatch = deleteSelectedMatch;
 
 /* ============================================================
    Super Admin replace old matches with local FIFA JSON
+   Password protected with "stanley"
    ============================================================ */
 
 async function replaceMatchesWithScheduleIfNoPredictions() {
   if (!isSuperAdmin()) {
     toast('Super Admin access required.');
+    return;
+  }
+
+  const password = prompt('Enter schedule replacement password to continue:');
+
+  if (password !== SUPER_ADMIN_SYNC_PASSWORD) {
+    toast('Incorrect password. Schedule replacement cancelled.');
     return;
   }
 
@@ -1008,8 +1328,7 @@ async function replaceMatchesWithScheduleIfNoPredictions() {
 
     toast(`Schedule replaced successfully. ${data || 0} matches loaded.`);
 
-    await loadMatches();
-    await loadPredictions();
+    await refreshAll();
 
     if (currentTopView === 'superAdmin') {
       renderSuperAdmin();
@@ -1031,11 +1350,20 @@ window.resetMatchesIfNoPredictions = resetMatchesIfNoPredictions;
 
 /* ============================================================
    Schedule + score sync from FIFA portal JSON — Super Admin only
+   Manual sync is password protected with "stanley"
+   Background auto-sync remains password-free
    ============================================================ */
 
 async function syncScheduleFromInternet() {
   if (!isSuperAdmin()) {
     toast('Super Admin access required.');
+    return;
+  }
+
+  const password = prompt('Enter sync password to continue:');
+
+  if (password !== SUPER_ADMIN_SYNC_PASSWORD) {
+    toast('Incorrect password. Sync cancelled.');
     return;
   }
 
@@ -1109,6 +1437,7 @@ async function autoSyncScoresFromInternet(silent = true) {
           ...row,
           actual_home_score: existing.actual_home_score,
           actual_away_score: existing.actual_away_score,
+          actual_first_team_to_score: existing.actual_first_team_to_score,
           result_source: existing.result_source || 'admin',
           admin_result_override: true,
           auto_result_synced_at: existing.auto_result_synced_at
@@ -1128,6 +1457,7 @@ async function autoSyncScoresFromInternet(silent = true) {
         ...row,
         actual_home_score: existing.actual_home_score,
         actual_away_score: existing.actual_away_score,
+        actual_first_team_to_score: existing.actual_first_team_to_score,
         result_source: existing.result_source || 'manual',
         admin_result_override: existing.admin_result_override || false,
         auto_result_synced_at: existing.auto_result_synced_at
@@ -1144,6 +1474,8 @@ async function autoSyncScoresFromInternet(silent = true) {
 
     await loadMatches();
     await loadPredictions();
+    await loadBonusPrediction();
+    await loadBonusResults();
 
     if (
       currentTopView === 'predictions' ||
@@ -1209,6 +1541,7 @@ function normalizeOpenFootballSchedule(json, sourceUrl) {
           away_source: match.away_source || null,
           actual_home_score: hasResult ? Number(match.actual_home_score) : null,
           actual_away_score: hasResult ? Number(match.actual_away_score) : null,
+          actual_first_team_to_score: match.actual_first_team_to_score || null,
           last_synced_at: new Date().toISOString()
         };
       })
@@ -1216,33 +1549,6 @@ function normalizeOpenFootballSchedule(json, sourceUrl) {
   }
 
   return [];
-}
-
-function parseOpenFootballDateTime(dateValue, timeValue) {
-  if (!dateValue) return null;
-
-  const time = String(timeValue || '00:00').trim();
-  const match = time.match(/^(\d{1,2}):(\d{2})(?:\s*UTC([+-]\d{1,2}))?$/i);
-
-  if (!match) {
-    return new Date(`${dateValue}T00:00:00Z`).toISOString();
-  }
-
-  const hour = Number(match[1]);
-  const minute = Number(match[2]);
-  const offset = match[3] !== undefined ? Number(match[3]) : 0;
-  const dateParts = dateValue.split('-').map(Number);
-
-  const utcMs = Date.UTC(
-    dateParts[0],
-    dateParts[1] - 1,
-    dateParts[2],
-    hour - offset,
-    minute,
-    0
-  );
-
-  return new Date(utcMs).toISOString();
 }
 
 /* ============================================================
@@ -1270,6 +1576,13 @@ async function downloadPredictionsCsv() {
       row.kickoff_at,
       row.home_score,
       row.away_score,
+      row.first_team_to_score ?? '',
+      row.actual_home_score ?? '',
+      row.actual_away_score ?? '',
+      row.actual_first_team_to_score ?? '',
+      row.result_points ?? 0,
+      row.first_score_points ?? 0,
+      row.match_points ?? 0,
       row.updated_at
     ]);
   } else {
@@ -1286,6 +1599,13 @@ async function downloadPredictionsCsv() {
         match.kickoff_at,
         prediction.home_score,
         prediction.away_score,
+        prediction.first_team_to_score ?? '',
+        match.actual_home_score ?? '',
+        match.actual_away_score ?? '',
+        match.actual_first_team_to_score ?? '',
+        '',
+        '',
+        '',
         prediction.updated_at
       ];
     });
@@ -1302,6 +1622,13 @@ async function downloadPredictionsCsv() {
       'Kickoff',
       'Pred Home',
       'Pred Away',
+      'Pred First Team To Score',
+      'Actual Home',
+      'Actual Away',
+      'Actual First Team To Score',
+      'Result Points',
+      'First Score Points',
+      'Match Points',
       'Updated'
     ],
     ...rows
@@ -1473,6 +1800,8 @@ $('logoutBtn')?.addEventListener('click', async () => {
 
   currentUser = null;
   currentProfile = null;
+  bonusPredictionCache = null;
+  bonusResultCache = null;
 
   if (lockTickerId) clearInterval(lockTickerId);
   if (scheduleRefreshId) clearTimeout(scheduleRefreshId);
