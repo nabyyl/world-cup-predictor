@@ -227,31 +227,6 @@ function initSupabase() {
     return false;
   }
 
-function initSupabase() {
-  const url = DEFAULT_SUPABASE_URL;
-  const key = DEFAULT_SUPABASE_ANON_KEY;
-
-  if (!url || !key) {
-    showElement('setupPanel');
-    hideElement('authPanel');
-    hideElement('resetPasswordPanel');
-    hideElement('portalPanel');
-    return false;
-  }
-
-  supabaseClient = supabase.createClient(url, key);
-
-  localStorage.setItem('wc_supabase_url', url);
-  localStorage.setItem('wc_supabase_anon_key', key);
-
-  hideElement('setupPanel');
-  showElement('authPanel');
-  hideElement('resetPasswordPanel');
-  hideElement('portalPanel');
-
-  return true;
-}
-
   supabaseClient = supabase.createClient(url, key);
 
   localStorage.setItem('wc_supabase_url', url);
@@ -1972,17 +1947,6 @@ function showView(name) {
    ============================================================ */
 
 $('saveConfigBtn')?.addEventListener('click', () => {
-  const url = $('supabaseUrl')?.value.trim();
-  const key = $('supabaseAnonKey')?.value.trim();
-
-  if (!url || !key) {
-    toast('Enter Supabase URL and anon key.');
-    return;
-  }
-
-  localStorage.setItem('wc_supabase_url', url);
-  localStorage.setItem('wc_supabase_anon_key', key);
-
   initSupabase();
   loadSession();
 });
