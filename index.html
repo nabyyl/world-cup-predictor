@@ -147,23 +147,58 @@
           </div>
 
           <div>
-            <strong>4 pts</strong>
-            <span>Correct result + goal difference</span>
+            <strong>2 pts</strong>
+            <span>Correct winner / draw</span>
           </div>
 
           <div>
-            <strong>3 pts</strong>
-            <span>Correct result: winner / draw</span>
+            <strong>1 pt</strong>
+            <span>Correct first team to score</span>
+          </div>
+
+          <div>
+            <strong>10 pts</strong>
+            <span>Correct tournament winner</span>
+          </div>
+
+          <div>
+            <strong>10 pts</strong>
+            <span>Correct best player</span>
+          </div>
+
+          <div>
+            <strong>5 pts</strong>
+            <span>Each correct finalist</span>
           </div>
         </div>
 
         <p class="muted">
-          You can change your prediction <strong>unlimited times</strong> before kickoff.
+          For each match, you can earn points from multiple areas. For example, if you predict the
+          exact score, the correct result, and the first team to score, your points will accumulate.
+        </p>
+
+        <p class="muted">
+          Match prediction points are:
+          <strong>5 points for exact score</strong>,
+          <strong>2 points for correct winner or draw</strong>, and
+          <strong>1 point for correctly guessing which team scores first</strong>.
+        </p>
+
+        <p class="muted">
+          Bonus prediction points are:
+          <strong>10 points for tournament winner</strong>,
+          <strong>10 points for best player</strong>, and
+          <strong>5 points for each correct finalist</strong>.
+          Bonus predictions can be locked manually by the Super Admin.
+        </p>
+
+        <p class="muted">
+          You can change your match prediction <strong>unlimited times</strong> before kickoff.
           The last saved prediction before the match starts is the one that counts.
         </p>
 
         <p class="muted">
-          Predictions are <strong>auto-locked the moment a match starts</strong> — both in the
+          Match predictions are <strong>auto-locked the moment a match starts</strong> — both in the
           UI and at the database level. Supabase rejects edits after kickoff.
           Super Admin can reopen a match using override only if needed.
         </p>
