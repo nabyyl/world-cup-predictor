@@ -2102,7 +2102,7 @@ td .points-pill {
     border-radius: 18px !important;
     display: flex;
     flex-wrap: nowrap;
-    justify-content: flex-start;
+    justify-content: center;
     gap: 8px;
     overflow-x: auto;
     overflow-y: hidden;
