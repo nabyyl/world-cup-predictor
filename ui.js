@@ -139,6 +139,18 @@ function normalizeText(value) {
 }
 
 /* ============================================================
+   Dropdown helper
+   ============================================================ */
+
+function selectedTempOption(value) {
+  const clean = String(value || '').trim();
+
+  if (!clean) return '';
+
+  return `<option value="${escapeHtml(clean)}" selected>${escapeHtml(clean)}</option>`;
+}
+
+/* ============================================================
    Stage filter
    ============================================================ */
 
@@ -458,7 +470,7 @@ function renderMatchCards(matches, predictions, helpers, stageFilterId) {
    Bonus Predictions
    ============================================================ */
 
-function renderBonusPredictions(bonusPrediction, bonusResult, currentProfile) {
+function renderBonusPredictions(bonusPrediction, bonusResult, currentProfile, bonusOptions = {}) {
   const locked = !!bonusResult?.is_locked;
 
   return `
@@ -492,40 +504,32 @@ function renderBonusPredictions(bonusPrediction, bonusResult, currentProfile) {
       <h2>Your Bonus Picks</h2>
 
       <label>Tournament Winner</label>
-      <input
-        id="bonusTournamentWinner"
-        placeholder="e.g. Brazil"
-        value="${escapeHtml(bonusPrediction?.tournament_winner || '')}"
-        ${locked ? 'disabled' : ''}
-      />
+      <select id="bonusTournamentWinner" ${locked ? 'disabled' : ''}>
+        <option value="">Select tournament winner</option>
+        ${selectedTempOption(bonusPrediction?.tournament_winner)}
+      </select>
 
       <label>Tournament Best Player</label>
-      <input
-        id="bonusBestPlayer"
-        placeholder="e.g. Kylian Mbappé"
-        value="${escapeHtml(bonusPrediction?.best_player || '')}"
-        ${locked ? 'disabled' : ''}
-      />
+      <select id="bonusBestPlayer" ${locked ? 'disabled' : ''}>
+        <option value="">Select best player</option>
+        ${selectedTempOption(bonusPrediction?.best_player)}
+      </select>
 
       <div class="inline-row">
         <div>
           <label>Finalist 1</label>
-          <input
-            id="bonusFinalistOne"
-            placeholder="e.g. Argentina"
-            value="${escapeHtml(bonusPrediction?.finalist_one || '')}"
-            ${locked ? 'disabled' : ''}
-          />
+          <select id="bonusFinalistOne" ${locked ? 'disabled' : ''}>
+            <option value="">Select finalist 1</option>
+            ${selectedTempOption(bonusPrediction?.finalist_one)}
+          </select>
         </div>
 
         <div>
           <label>Finalist 2</label>
-          <input
-            id="bonusFinalistTwo"
-            placeholder="e.g. France"
-            value="${escapeHtml(bonusPrediction?.finalist_two || '')}"
-            ${locked ? 'disabled' : ''}
-          />
+          <select id="bonusFinalistTwo" ${locked ? 'disabled' : ''}>
+            <option value="">Select finalist 2</option>
+            ${selectedTempOption(bonusPrediction?.finalist_two)}
+          </select>
         </div>
       </div>
 
@@ -1120,7 +1124,7 @@ function renderAdminBonusPredictionReview(rows) {
    Full controls only for Super Admin
    ============================================================ */
 
-function renderSuperAdminPanel(matches, scheduleUrl, bonusResult) {
+function renderSuperAdminPanel(matches, scheduleUrl, bonusResult, bonusOptions = {}) {
   const selectedOptions = matches.map(match => `
     <option value="${match.id}">
       ${match.match_no ? `M${match.match_no} - ` : ''}
@@ -1241,20 +1245,32 @@ function renderSuperAdminPanel(matches, scheduleUrl, bonusResult) {
         </label>
 
         <label>Actual Tournament Winner</label>
-        <input id="actualTournamentWinner" value="${escapeHtml(bonusResult?.actual_tournament_winner || '')}" placeholder="e.g. Brazil" />
+        <select id="actualTournamentWinner">
+          <option value="">Select actual tournament winner</option>
+          ${selectedTempOption(bonusResult?.actual_tournament_winner)}
+        </select>
 
         <label>Actual Best Player</label>
-        <input id="actualBestPlayer" value="${escapeHtml(bonusResult?.actual_best_player || '')}" placeholder="e.g. Kylian Mbappé" />
+        <select id="actualBestPlayer">
+          <option value="">Select actual best player</option>
+          ${selectedTempOption(bonusResult?.actual_best_player)}
+        </select>
 
         <div class="inline-row">
           <div>
             <label>Actual Finalist 1</label>
-            <input id="actualFinalistOne" value="${escapeHtml(bonusResult?.actual_finalist_one || '')}" placeholder="e.g. Argentina" />
+            <select id="actualFinalistOne">
+              <option value="">Select actual finalist 1</option>
+              ${selectedTempOption(bonusResult?.actual_finalist_one)}
+            </select>
           </div>
 
           <div>
             <label>Actual Finalist 2</label>
-            <input id="actualFinalistTwo" value="${escapeHtml(bonusResult?.actual_finalist_two || '')}" placeholder="e.g. France" />
+            <select id="actualFinalistTwo">
+              <option value="">Select actual finalist 2</option>
+              ${selectedTempOption(bonusResult?.actual_finalist_two)}
+            </select>
           </div>
         </div>
 
