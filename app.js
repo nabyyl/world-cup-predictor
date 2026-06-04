@@ -2088,8 +2088,12 @@ $('forgotPasswordBtn')?.addEventListener('click', async () => {
   }
 
   try {
+    const resetUrl =
+      window.location.origin +
+      window.location.pathname.replace(/\/[^\/]*$/, '/reset-password.html');
+
     const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + window.location.pathname
+      redirectTo: resetUrl
     });
 
     if (error) throw error;
@@ -2099,19 +2103,6 @@ $('forgotPasswordBtn')?.addEventListener('click', async () => {
     setMessage(error.message, 'error');
   }
 });
-
-$('resetPasswordForm')?.addEventListener('submit', async (event) => {
-  event.preventDefault();
-
-  setResetMessage('', 'error');
-
-  const newPassword = $('newPassword')?.value || '';
-  const confirmNewPassword = $('confirmNewPassword')?.value || '';
-
-  if (!newPassword || !confirmNewPassword) {
-    setResetMessage('Enter and confirm your new password.', 'error');
-    return;
-  }
 
   if (newPassword.length < 6) {
     setResetMessage('Password must be at least 6 characters.', 'error');
