@@ -8,7 +8,7 @@
 
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%BD%3C/text%3E%3C/svg%3E">
 
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=7" />
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -26,22 +26,8 @@
 
   <main class="app-shell">
 
-    <!-- ============ SETUP ============ -->
-    <section id="setupPanel" class="card setup-card">
-      <h1>World Cup 2026 Prediction League</h1>
-      <p class="muted">Enter your Supabase details once. These are saved only in this browser.</p>
-
-      <label>Supabase Project URL</label>
-      <input id="supabaseUrl" placeholder="https://your-project.supabase.co" />
-
-      <label>Supabase Anon Public Key</label>
-      <input id="supabaseAnonKey" placeholder="Paste your Supabase publishable / anon key" />
-
-      <button id="saveConfigBtn">Save & Continue</button>
-    </section>
-
     <!-- ============ AUTH ============ -->
-    <section id="authPanel" class="card auth-card hidden">
+    <section id="authPanel" class="card auth-card">
       <div class="brand-row">
         <div class="logo-ball lottie-logo">
           <dotlottie-player
@@ -263,7 +249,7 @@
   <div id="toast" class="toast hidden"></div>
 
   <!-- ui.js must load before app.js -->
-  <script src="ui.js"></script>
-  <script src="app.js"></script>
+  <script src="ui.js?v=7"></script>
+  <script src="app.js?v=7"></script>
 </body>
 </html>
