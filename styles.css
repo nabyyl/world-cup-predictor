@@ -834,16 +834,16 @@ button.ghost {
 /* ---------- Match cards ---------- */
 .view-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 14px;
 }
 
 .match-card {
-  padding: 20px 18px;
+  padding: 16px 16px;
   text-align: center;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 7px;
   scroll-margin-top: 90px;
   transition:
     transform var(--transition-smooth),
@@ -869,7 +869,8 @@ button.ghost {
   justify-content: space-between;
   gap: 10px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
+  margin-bottom: 2px;
 }
 
 .teams {
@@ -877,8 +878,8 @@ button.ghost {
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   justify-items: center;
-  gap: 12px;
-  margin: 6px 0 4px;
+  gap: 8px;
+  margin: 2px 0 2px;
 }
 
 .team-wrap,
@@ -891,7 +892,8 @@ button.ghost {
 }
 
 .team-name {
-  font-size: 19px;
+  font-size: 18px;
+  line-height: 1.15;
   font-weight: 850;
   text-align: center;
   overflow-wrap: anywhere;
@@ -899,9 +901,9 @@ button.ghost {
 
 .team-flag {
   display: block;
-  font-size: 28px;
+  font-size: 24px;
   line-height: 1;
-  margin-top: 6px;
+  margin-top: 4px;
   filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.18));
 }
 
@@ -928,19 +930,25 @@ button.ghost {
   opacity: .7;
 }
 
+.match-card > p {
+  margin: 4px 0;
+  line-height: 1.38;
+}
+
 .score-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin: 6px auto 2px;
-  width: min(280px, 100%);
+  margin: 4px auto 0;
+  gap: 8px;
+  width: min(260px, 100%);
 }
 
 .score-row input {
   text-align: center;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 850;
-  padding: 14px;
+  padding: 11px 12px;
+  min-height: 48px;
 }
 
 .status-pill {
@@ -986,6 +994,7 @@ button.ghost {
 .ext-link {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   color: var(--accent-2);
   text-decoration: none;
@@ -1223,9 +1232,9 @@ button.ghost {
 /* ---------- Prediction option boxes ---------- */
 .first-score-box,
 .who-win-box {
-  margin: 8px auto 2px;
-  width: min(340px, 100%);
-  padding: 14px;
+  margin: 6px auto 0;
+  padding: 10px;
+  width: min(330px, 100%);
   border-radius: var(--radius-md);
   flex: 0 0 auto;
 }
@@ -1237,19 +1246,19 @@ button.ghost {
 
 .first-score-title,
 .who-win-title {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 900;
   color: var(--text-soft);
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   text-transform: uppercase;
-  letter-spacing: .10em;
+  letter-spacing: .08em;
   text-align: center;
 }
 
 .first-score-options {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 7px;
 }
 
 .first-score-option,
@@ -1267,8 +1276,8 @@ button.ghost {
 }
 
 .first-score-option span {
-  min-height: 40px;
-  padding: 9px 11px;
+  min-height: 36px;
+  padding: 7px 9px;
   border-radius: 999px;
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
@@ -1304,7 +1313,7 @@ button.ghost {
   box-shadow: 0 6px 18px color-mix(in srgb, var(--accent-2) 35%, transparent);
 }
 
-/* ---------- Who Will Win UI Improvements ---------- */
+/* ---------- Who Will Win UI ---------- */
 .who-win-box {
   background:
     linear-gradient(
@@ -1319,19 +1328,19 @@ button.ghost {
 .who-win-options {
   display: grid;
   grid-template-columns: 1fr 1fr 0.78fr;
-  gap: 8px;
+  gap: 7px;
   align-items: stretch;
 }
 
 .who-win-option span {
   width: 100%;
-  min-height: 46px;
-  padding: 9px 10px;
-  border-radius: 16px;
+  min-height: 36px;
+  padding: 7px 9px;
+  border-radius: 14px;
   background: color-mix(in srgb, var(--glass-bg-stronger) 70%, transparent);
   border: 1px solid color-mix(in srgb, var(--glass-border) 85%, var(--accent-2));
   color: var(--text-soft);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 850;
   display: flex;
   align-items: center;
@@ -1367,11 +1376,24 @@ button.ghost {
 }
 
 .who-win-note {
-  margin-top: 10px;
+  margin-top: 7px;
   color: var(--muted);
-  font-size: 11.5px;
+  font-size: 10.8px;
   line-height: 1.35;
   text-align: center;
+}
+
+/* ---------- Save button inside match card ---------- */
+.match-card button {
+  margin-top: 7px;
+  padding: 10px 14px;
+  min-height: 42px;
+}
+
+.match-card button + p {
+  margin-top: 5px;
+  margin-bottom: 2px;
+  font-size: 12px;
 }
 
 /* ---------- My Predictions ---------- */
@@ -1616,21 +1638,21 @@ td .points-pill {
   font-weight: 900;
 }
 
-/* Leaderboard flag beside name - no liquid bubble */
+/* Leaderboard flag beside name */
 .leaderboard-name {
   display: inline-grid;
-  grid-template-columns: 24px minmax(0, auto);
+  grid-template-columns: 34px minmax(0, auto);
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
 }
 
 .leaderboard-flag {
-  width: 24px;
+  width: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 26px;
   line-height: 1;
 }
 
@@ -1651,6 +1673,24 @@ td .points-pill {
 }
 
 .support-team-badge span:not(:first-child) {
+  display: none;
+}
+
+.table-card td .support-team-badge {
+  width: 34px;
+  min-width: 34px;
+  padding: 0;
+  margin-right: 8px;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: inherit;
+  font-size: 26px;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.table-card td .support-team-badge span:not(:first-child) {
   display: none;
 }
 
@@ -2224,6 +2264,16 @@ td .points-pill {
   margin: 0;
 }
 
+.profile-current-flag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  line-height: 1;
+  width: 34px;
+  min-width: 34px;
+}
+
 .profile-team-select {
   padding: 18px;
   border-radius: 22px;
@@ -2303,6 +2353,49 @@ td .points-pill {
   min-width: 130px;
 }
 
+/* ---------- Same team supporters ---------- */
+.profile-same-team-card {
+  margin-bottom: 18px;
+  padding: 18px;
+  border-radius: 22px;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent-2) 12%, var(--glass-bg-strong)),
+      color-mix(in srgb, var(--accent) 10%, var(--glass-bg-strong))
+    );
+  border: 1px solid color-mix(in srgb, var(--accent-2) 32%, var(--glass-border));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 10px 28px color-mix(in srgb, var(--accent-2) 12%, transparent);
+}
+
+.profile-same-team-card h2 {
+  margin-bottom: 6px;
+  font-size: clamp(18px, 2vw, 22px);
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.profile-same-team-card p {
+  margin: 0 0 10px;
+}
+
+.same-team-names {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--glass-bg-stronger);
+  border: 1px solid var(--glass-border);
+  color: var(--text-soft);
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
 .supporter-summary-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
@@ -2328,6 +2421,40 @@ td .points-pill {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.4;
+}
+
+.supporter-card.active-supporter-card {
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent-2) 14%, var(--glass-bg-strong)),
+      color-mix(in srgb, var(--accent) 12%, var(--glass-bg-strong))
+    );
+  border-color: color-mix(in srgb, var(--accent-2) 42%, var(--glass-border));
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent-2) 14%, transparent);
+}
+
+.supporter-card.active-supporter-card strong {
+  color: var(--text);
+}
+
+/* Keep profile modal support badges normal */
+.profile-modal .support-team-badge {
+  width: auto;
+  min-width: 0;
+  padding: 6px 10px;
+  margin-right: 0;
+  border-radius: 999px;
+  background: var(--glass-bg-stronger) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 850;
+  gap: 6px;
+}
+
+.profile-modal .support-team-badge span:not(:first-child) {
+  display: inline;
 }
 
 @keyframes modalBackdropIn {
@@ -2476,6 +2603,32 @@ select option {
 [data-theme="light"] .support-team-option span {
   background: rgba(255, 255, 255, 0.78);
   color: #334155;
+}
+
+[data-theme="light"] .profile-same-team-card {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.94),
+      color-mix(in srgb, var(--accent-2) 8%, rgba(255, 255, 255, 0.94))
+    );
+  border-color: rgba(15, 23, 42, 0.14);
+}
+
+[data-theme="light"] .same-team-names {
+  background: rgba(255, 255, 255, 0.86);
+  border-color: rgba(15, 23, 42, 0.13);
+  color: #334155;
+}
+
+[data-theme="light"] .supporter-card.active-supporter-card {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.92),
+      color-mix(in srgb, var(--accent-2) 9%, rgba(255, 255, 255, 0.92))
+    );
+  border-color: color-mix(in srgb, var(--accent-2) 32%, rgba(15, 23, 42, 0.14));
 }
 
 /* ---------- Responsive ---------- */
@@ -2733,6 +2886,46 @@ select option {
     gap: 8px;
   }
 
+  .match-card {
+    padding: 14px 13px;
+    gap: 6px;
+  }
+
+  .team-name {
+    font-size: 17px;
+  }
+
+  .team-flag {
+    font-size: 22px;
+  }
+
+  .score-row input {
+    font-size: 18px;
+    min-height: 44px;
+  }
+
+  .first-score-box,
+  .who-win-box {
+    width: 100%;
+    padding: 9px;
+  }
+
+  .first-score-title,
+  .who-win-title {
+    font-size: 11.5px;
+    letter-spacing: .09em;
+  }
+
+  .first-score-option span,
+  .who-win-option span {
+    min-height: 35px;
+    font-size: 11.5px;
+  }
+
+  .who-win-note {
+    font-size: 11px;
+  }
+
   #adminView .view-grid {
     grid-template-columns: 1fr;
   }
@@ -2782,28 +2975,6 @@ select option {
     padding: 12px;
   }
 
-  .first-score-box,
-  .who-win-box {
-    width: 100%;
-    padding: 12px;
-  }
-
-  .first-score-title,
-  .who-win-title {
-    font-size: 11.5px;
-    letter-spacing: .09em;
-  }
-
-  .first-score-option span,
-  .who-win-option span {
-    min-height: 40px;
-    font-size: 12.5px;
-  }
-
-  .who-win-note {
-    font-size: 11px;
-  }
-
   #adminView .stage-filter,
   #superAdminView .stage-filter,
   #adminView .admin-sub-tabs {
@@ -2851,12 +3022,34 @@ select option {
     border-radius: 12px !important;
   }
 
-  .team-flag {
+  .leaderboard-flag,
+  .table-card td .support-team-badge {
+    width: 32px;
+    min-width: 32px;
     font-size: 24px;
   }
 
   .profile-modal {
     padding: 18px 14px;
+  }
+
+  .profile-same-team-card {
+    padding: 15px;
+    border-radius: 20px;
+  }
+
+  .profile-same-team-card h2 {
+    font-size: 18px;
+  }
+
+  .same-team-names {
+    font-size: 12.5px;
+  }
+
+  .profile-current-flag {
+    font-size: 24px;
+    width: 30px;
+    min-width: 30px;
   }
 }
 
@@ -2924,364 +3117,5 @@ select option {
   .logo-ball,
   .logo-ball.small {
     animation: footballFloatSmall 3.2s ease-in-out infinite !important;
-  }
-}
-
-/* ============================================================
-   Compact Match Cards + Bigger Leaderboard Flags
-   Add at the END of styles.css
-   ============================================================ */
-
-/* ---------- Compact match cards ---------- */
-.match-card {
-  padding: 16px 16px;
-  gap: 7px;
-}
-
-.match-top {
-  font-size: 12px;
-  margin-bottom: 2px;
-}
-
-.teams {
-  margin: 2px 0 2px;
-  gap: 8px;
-}
-
-.team-name {
-  font-size: 18px;
-  line-height: 1.15;
-}
-
-.team-flag {
-  font-size: 24px;
-  margin-top: 4px;
-}
-
-.match-card > p {
-  margin: 4px 0;
-  line-height: 1.38;
-}
-
-.score-row {
-  margin: 4px auto 0;
-  gap: 8px;
-  width: min(260px, 100%);
-}
-
-.score-row input {
-  font-size: 20px;
-  padding: 11px 12px;
-  min-height: 48px;
-}
-
-/* ---------- Compact prediction option boxes ---------- */
-.first-score-box,
-.who-win-box {
-  margin: 6px auto 0;
-  padding: 10px;
-  width: min(330px, 100%);
-}
-
-.first-score-title,
-.who-win-title {
-  font-size: 11px;
-  margin-bottom: 8px;
-  letter-spacing: .08em;
-}
-
-.first-score-options,
-.who-win-options {
-  gap: 7px;
-}
-
-.first-score-option span,
-.who-win-option span {
-  min-height: 36px;
-  padding: 7px 9px;
-  font-size: 12px;
-}
-
-.who-win-note {
-  margin-top: 7px;
-  font-size: 10.8px;
-}
-
-/* ---------- Save button slightly shorter ---------- */
-.match-card button {
-  margin-top: 7px;
-  padding: 10px 14px;
-  min-height: 42px;
-}
-
-/* Text under save button */
-.match-card button + p {
-  margin-top: 5px;
-  margin-bottom: 2px;
-  font-size: 12px;
-}
-
-/* Make grid cards feel less stretched */
-.view-grid {
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 14px;
-}
-
-/* ============================================================
-   Leaderboard flag beside name
-   ============================================================ */
-
-.leaderboard-name {
-  display: inline-grid;
-  grid-template-columns: 34px minmax(0, auto);
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.leaderboard-flag {
-  width: 34px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 26px;
-  line-height: 1;
-}
-
-/* If leaderboard is still using support-team-badge inside Name column,
-   make it look like a simple flag, not a liquid glass bubble */
-.table-card td .support-team-badge {
-  width: 34px;
-  min-width: 34px;
-  padding: 0;
-  margin-right: 8px;
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  color: inherit;
-  font-size: 26px;
-  line-height: 1;
-  vertical-align: middle;
-}
-
-/* Hide support team text in leaderboard badge, keep only flag */
-.table-card td .support-team-badge span:not(:first-child) {
-  display: none;
-}
-
-/* Keep profile modal support badges normal */
-.profile-modal .support-team-badge {
-  width: auto;
-  min-width: 0;
-  padding: 4px 9px;
-  margin-right: 0;
-  background: var(--glass-bg-stronger) !important;
-  border: 1px solid var(--glass-border) !important;
-  font-size: 12px;
-}
-
-.profile-modal .support-team-badge span:not(:first-child) {
-  display: inline;
-}
-
-/* ============================================================
-   Mobile compacting
-   ============================================================ */
-
-@media (max-width: 560px) {
-  .match-card {
-    padding: 14px 13px;
-    gap: 6px;
-  }
-
-  .team-name {
-    font-size: 17px;
-  }
-
-  .team-flag {
-    font-size: 22px;
-  }
-
-  .score-row input {
-    font-size: 18px;
-    min-height: 44px;
-  }
-
-  .first-score-box,
-  .who-win-box {
-    padding: 9px;
-  }
-
-  .first-score-option span,
-  .who-win-option span {
-    min-height: 35px;
-    font-size: 11.5px;
-  }
-
-  .leaderboard-flag,
-  .table-card td .support-team-badge {
-    width: 32px;
-    min-width: 32px;
-    font-size: 24px;
-  }
-}
-
-/* ============================================================
-   Final Profile Modal Fixes
-   Add at the very END of styles.css
-   ============================================================ */
-
-.profile-current-team-card {
-  position: relative;
-}
-
-.profile-current-flag {
-  width: 44px;
-  height: 44px;
-  flex: 0 0 44px;
-  display: grid;
-  place-items: center;
-  font-size: 28px;
-  line-height: 1;
-  border-radius: 999px;
-  background: var(--glass-bg-stronger);
-  border: 1px solid var(--glass-border);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
-}
-
-.profile-current-team {
-  max-width: 100%;
-}
-
-.profile-current-team div {
-  min-width: 0;
-}
-
-.profile-current-team strong {
-  max-width: 190px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.profile-same-team-card {
-  padding: 18px;
-  margin-bottom: 18px;
-  border-radius: 22px;
-  background:
-    radial-gradient(circle at top left, color-mix(in srgb, var(--accent) 18%, transparent), transparent 42%),
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--accent-2) 10%, var(--glass-bg-strong)),
-      color-mix(in srgb, var(--accent) 8%, var(--glass-bg-strong))
-    );
-  border: 1px solid color-mix(in srgb, var(--accent-2) 30%, var(--glass-border));
-}
-
-.profile-same-team-card h2 {
-  margin-bottom: 4px;
-  font-size: clamp(18px, 2vw, 22px);
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.profile-same-team-card p {
-  margin: 0;
-}
-
-.same-team-names {
-  margin-top: 12px;
-  padding: 12px 14px;
-  border-radius: 16px;
-  background: var(--glass-bg-strong);
-  border: 1px solid var(--glass-border);
-  color: var(--text-soft);
-  font-size: 13px;
-  font-weight: 750;
-  line-height: 1.45;
-  overflow-wrap: anywhere;
-}
-
-/* Bigger and cleaner leaderboard flag */
-.leaderboard-name {
-  display: inline-grid;
-  grid-template-columns: 34px minmax(0, auto);
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.leaderboard-flag {
-  width: 34px;
-  height: 34px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 26px;
-  line-height: 1;
-}
-
-/* Prevent profile badge rules from being affected by table badge cleanup */
-.profile-modal .support-team-badge {
-  width: auto !important;
-  min-width: 0 !important;
-  padding: 6px 12px !important;
-  margin-right: 0 !important;
-  background: var(--glass-bg-stronger) !important;
-  border: 1px solid var(--glass-border) !important;
-  font-size: 13px !important;
-  gap: 7px !important;
-}
-
-.profile-modal .support-team-badge span:not(:first-child) {
-  display: inline !important;
-}
-
-/* Mobile profile polish */
-@media (max-width: 720px) {
-  .profile-current-team {
-    width: 100%;
-    justify-content: flex-start;
-  }
-
-  .profile-current-team strong {
-    max-width: 220px;
-  }
-
-  .profile-same-team-card {
-    padding: 16px;
-  }
-}
-
-@media (max-width: 420px) {
-  .profile-current-team {
-    align-items: flex-start;
-    border-radius: 18px;
-    white-space: normal;
-  }
-
-  .profile-current-team strong {
-    max-width: 170px;
-    white-space: normal;
-  }
-
-  .profile-current-flag {
-    width: 40px;
-    height: 40px;
-    flex-basis: 40px;
-    font-size: 25px;
-  }
-
-  .leaderboard-name {
-    grid-template-columns: 30px minmax(0, auto);
-    gap: 8px;
-  }
-
-  .leaderboard-flag {
-    width: 30px;
-    height: 30px;
-    font-size: 24px;
   }
 }
