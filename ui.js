@@ -144,6 +144,17 @@ function supportBadge(teamName) {
   `;
 }
 
+function leaderboardName(row) {
+  return `
+    <span class="leaderboard-name">
+      <span class="leaderboard-flag">
+        ${row.supported_team ? teamFlag(row.supported_team) : '🏳️'}
+      </span>
+      <span>${escapeHtml(row.full_name || row.email)}</span>
+    </span>
+  `;
+}
+
 /* ============================================================
    Stage classification
    ============================================================ */
@@ -169,7 +180,7 @@ function classifyStage(rawStage) {
   if (s.includes('round of 16') || s.includes('r16') || s.includes('round-of-16')) return 'r16';
   if (s.includes('quarter')) return 'qf';
   if (s.includes('semi')) return 'sf';
-  if (s.includes('final') || s.includes('3rd')) return 'final';
+  if (s.includes('final') || s.includes('3rd') || s.includes('third place')) return 'final';
 
   return 'group';
 }
@@ -988,16 +999,7 @@ function renderLeaderboardTable(rows) {
           ${(rows || []).map((row, index) => `
             <tr>
               <td><span class="rank">${index + 1}</span></td>
-
-              <td>
-                <span class="leaderboard-name">
-                  <span class="leaderboard-flag">
-                    ${row.supported_team ? teamFlag(row.supported_team) : '🏳️'}
-                  </span>
-                  <span>${escapeHtml(row.full_name || row.email)}</span>
-                </span>
-              </td>
-
+              <td>${leaderboardName(row)}</td>
               <td><span class="points-pill">${row.total_points ?? 0}</span></td>
               <td>${row.match_points ?? 0}</td>
               <td>${row.bonus_points ?? 0}</td>
@@ -1027,6 +1029,13 @@ function renderLeaderboardError(message) {
 
 function renderUserProfileModal(currentProfile, teams = [], supporterRows = []) {
   const selectedTeam = currentProfile?.supported_team || '';
+  const sameTeamRow = selectedTeam
+    ? (supporterRows || []).find(row => normalizeText(row.supported_team) === normalizeText(selectedTeam))
+    : null;
+
+  const otherRows = (supporterRows || []).filter(row =>
+    !selectedTeam || normalizeText(row.supported_team) !== normalizeText(selectedTeam)
+  );
 
   return `
     <div class="modal-backdrop" id="profileModalBackdrop" onclick="closeUserProfileModal(event)">
@@ -1034,19 +1043,65 @@ function renderUserProfileModal(currentProfile, teams = [], supporterRows = []) 
         <div class="profile-modal-head">
           <div>
             <h2>My Profile</h2>
-            <p class="muted small">Choose the team you support and see who supports each team.</p>
+            <p class="muted small">Choose your supported team and see who supports the same team.</p>
           </div>
 
           <button class="profile-close-btn" onclick="closeUserProfileModal()">×</button>
         </div>
 
-        <div class="profile-info-card">
-          <strong>${escapeHtml(currentProfile?.full_name || currentProfile?.email || 'User')}</strong>
-          <span class="muted small">${escapeHtml(currentProfile?.email || '')}</span>
-          <div style="margin-top:10px;">
-            ${selectedTeam ? supportBadge(selectedTeam) : '<span class="muted small">No supported team selected yet.</span>'}
+        <div class="profile-info-card profile-current-team-card">
+          <div>
+            <strong>${escapeHtml(currentProfile?.full_name || currentProfile?.email || 'User')}</strong>
+            <span class="muted small">${escapeHtml(currentProfile?.email || '')}</span>
+          </div>
+
+          <div class="profile-current-team">
+            ${
+              selectedTeam
+                ? `
+                  <span class="profile-current-flag">${teamFlag(selectedTeam)}</span>
+                  <div>
+                    <span class="muted small">Supporting</span>
+                    <strong>${escapeHtml(selectedTeam)}</strong>
+                  </div>
+                `
+                : `
+                  <span class="profile-current-flag">🏳️</span>
+                  <div>
+                    <span class="muted small">Supporting</span>
+                    <strong>No team selected</strong>
+                  </div>
+                `
+            }
           </div>
         </div>
+
+        ${
+          selectedTeam
+            ? `
+              <div class="profile-same-team-card">
+                <div>
+                  <h2>${teamFlag(selectedTeam)} ${escapeHtml(selectedTeam)} Supporters</h2>
+                  <p class="muted small">
+                    ${
+                      sameTeamRow
+                        ? `${sameTeamRow.supporters_count || 0} supporter${Number(sameTeamRow.supporters_count) === 1 ? '' : 's'} selected this team.`
+                        : 'You are the first supporter shown for this team.'
+                    }
+                  </p>
+                </div>
+
+                <div class="same-team-names">
+                  ${
+                    sameTeamRow?.supporter_names
+                      ? escapeHtml(sameTeamRow.supporter_names)
+                      : escapeHtml(currentProfile?.full_name || currentProfile?.email || 'You')
+                  }
+                </div>
+              </div>
+            `
+            : ''
+        }
 
         <div class="profile-team-select">
           <label>Select your supported team</label>
@@ -1072,12 +1127,12 @@ function renderUserProfileModal(currentProfile, teams = [], supporterRows = []) 
         </div>
 
         <div style="margin-top:18px;">
-          <h2>Supporters</h2>
-          <p class="muted small">See who supports the same team and other teams.</p>
+          <h2>All Supporters</h2>
+          <p class="muted small">Supporter summary by team.</p>
 
           <div class="supporter-summary-grid">
-            ${(supporterRows || []).length
-              ? supporterRows.map(row => `
+            ${otherRows.length
+              ? otherRows.map(row => `
                 <div class="supporter-card">
                   <strong>${teamFlag(row.supported_team)} ${escapeHtml(row.supported_team)}</strong>
                   <span>${row.supporters_count || 0} supporter${Number(row.supporters_count) === 1 ? '' : 's'}</span>
@@ -1088,8 +1143,8 @@ function renderUserProfileModal(currentProfile, teams = [], supporterRows = []) 
               `).join('')
               : `
                 <div class="supporter-card">
-                  <strong>🏳️ No supporters yet</strong>
-                  <span>Once users select their teams, they will appear here.</span>
+                  <strong>🏳️ No other supporters yet</strong>
+                  <span>Once more users select teams, they will appear here.</span>
                 </div>
               `
             }
