@@ -839,7 +839,7 @@ button.ghost {
 }
 
 .match-card {
-  padding: 16px 16px;
+  padding: 16px;
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -879,7 +879,7 @@ button.ghost {
   align-items: center;
   justify-items: center;
   gap: 8px;
-  margin: 2px 0 2px;
+  margin: 2px 0;
 }
 
 .team-wrap,
@@ -1174,7 +1174,7 @@ button.ghost {
   border-radius: inherit;
   z-index: -1;
   background: conic-gradient(
-    from var(--glow-angle, 0deg),
+    from 0deg,
     var(--accent-glow),
     var(--accent-glow-2),
     var(--accent-glow-3),
@@ -1192,19 +1192,6 @@ button.ghost {
 
 .next-card:hover::after {
   opacity: .9;
-  animation: glow-rotate 4s linear infinite;
-}
-
-@property --glow-angle {
-  syntax: '<angle>';
-  initial-value: 0deg;
-  inherits: false;
-}
-
-@keyframes glow-rotate {
-  to {
-    --glow-angle: 360deg;
-  }
 }
 
 .next-card .when {
@@ -1962,6 +1949,18 @@ td .points-pill {
   margin-top: 4px;
 }
 
+.bonus-card > button {
+  display: block;
+  width: fit-content;
+  min-width: 230px;
+  margin-top: 18px;
+  margin-left: 0;
+}
+
+.bonus-card > p.muted.small {
+  margin-top: 14px;
+}
+
 .bonus-points-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -2555,7 +2554,6 @@ select option {
 
 [data-theme="light"] .status-pill,
 [data-theme="light"] .stage-tag,
-[data-theme="light"] .rank,
 [data-theme="light"] .points-mini {
   color: #334155;
   background: rgba(255, 255, 255, 0.90);
@@ -2734,6 +2732,11 @@ select option {
 
   .bonus-grid {
     grid-template-columns: 1fr;
+  }
+
+  .bonus-card > button {
+    width: 100%;
+    min-width: 0;
   }
 
   .bonus-head {
@@ -3117,34 +3120,5 @@ select option {
   .logo-ball,
   .logo-ball.small {
     animation: footballFloatSmall 3.2s ease-in-out infinite !important;
-  }
-}
-
-/* ============================================================
-   Bonus Page Button Layout Fix
-   ============================================================ */
-
-.bonus-card > button {
-  display: block;
-  width: fit-content;
-  min-width: 230px;
-  margin-top: 18px;
-  margin-left: 0;
-}
-
-.bonus-card > p.muted.small {
-  margin-top: 14px;
-}
-
-@media (min-width: 900px) {
-  .bonus-card > button {
-    margin-top: 18px;
-  }
-}
-
-@media (max-width: 720px) {
-  .bonus-card > button {
-    width: 100%;
-    min-width: 0;
   }
 }
