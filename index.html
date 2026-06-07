@@ -8,7 +8,7 @@
 
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%BD%3C/text%3E%3C/svg%3E">
 
-  <link rel="stylesheet" href="styles.css?v=10" />
+  <link rel="stylesheet" href="styles.css?v=12" />
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -120,7 +120,12 @@
         </div>
 
         <div class="header-actions">
-          <div id="userChip" class="user-chip" title="Open profile and choose supported team">
+          <div
+            id="userChip"
+            class="user-chip"
+            title="Open profile and choose supported team"
+            role="button"
+            tabindex="0">
             <span class="user-avatar" aria-hidden="true">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
@@ -254,7 +259,7 @@
   <div id="toast" class="toast hidden"></div>
 
   <!-- ui.js must load before app.js -->
-  <script src="ui.js?v=10"></script>
-  <script src="app.js?v=10"></script>
+  <script src="ui.js?v=12"></script>
+  <script src="app.js?v=12"></script>
 </body>
 </html>
