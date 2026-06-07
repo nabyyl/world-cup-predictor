@@ -3125,3 +3125,163 @@ select option {
     font-size: 24px;
   }
 }
+
+/* ============================================================
+   Final Profile Modal Fixes
+   Add at the very END of styles.css
+   ============================================================ */
+
+.profile-current-team-card {
+  position: relative;
+}
+
+.profile-current-flag {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+  line-height: 1;
+  border-radius: 999px;
+  background: var(--glass-bg-stronger);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+}
+
+.profile-current-team {
+  max-width: 100%;
+}
+
+.profile-current-team div {
+  min-width: 0;
+}
+
+.profile-current-team strong {
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-same-team-card {
+  padding: 18px;
+  margin-bottom: 18px;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--accent) 18%, transparent), transparent 42%),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent-2) 10%, var(--glass-bg-strong)),
+      color-mix(in srgb, var(--accent) 8%, var(--glass-bg-strong))
+    );
+  border: 1px solid color-mix(in srgb, var(--accent-2) 30%, var(--glass-border));
+}
+
+.profile-same-team-card h2 {
+  margin-bottom: 4px;
+  font-size: clamp(18px, 2vw, 22px);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.profile-same-team-card p {
+  margin: 0;
+}
+
+.same-team-names {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+  color: var(--text-soft);
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+/* Bigger and cleaner leaderboard flag */
+.leaderboard-name {
+  display: inline-grid;
+  grid-template-columns: 34px minmax(0, auto);
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.leaderboard-flag {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  line-height: 1;
+}
+
+/* Prevent profile badge rules from being affected by table badge cleanup */
+.profile-modal .support-team-badge {
+  width: auto !important;
+  min-width: 0 !important;
+  padding: 6px 12px !important;
+  margin-right: 0 !important;
+  background: var(--glass-bg-stronger) !important;
+  border: 1px solid var(--glass-border) !important;
+  font-size: 13px !important;
+  gap: 7px !important;
+}
+
+.profile-modal .support-team-badge span:not(:first-child) {
+  display: inline !important;
+}
+
+/* Mobile profile polish */
+@media (max-width: 720px) {
+  .profile-current-team {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .profile-current-team strong {
+    max-width: 220px;
+  }
+
+  .profile-same-team-card {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 420px) {
+  .profile-current-team {
+    align-items: flex-start;
+    border-radius: 18px;
+    white-space: normal;
+  }
+
+  .profile-current-team strong {
+    max-width: 170px;
+    white-space: normal;
+  }
+
+  .profile-current-flag {
+    width: 40px;
+    height: 40px;
+    flex-basis: 40px;
+    font-size: 25px;
+  }
+
+  .leaderboard-name {
+    grid-template-columns: 30px minmax(0, auto);
+    gap: 8px;
+  }
+
+  .leaderboard-flag {
+    width: 30px;
+    height: 30px;
+    font-size: 24px;
+  }
+}
