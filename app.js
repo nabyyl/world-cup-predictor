@@ -8,20 +8,17 @@
    - Uses FIFA portal schedule JSON file
    - Supports match_no, home_source, away_source
    - Auto-fills knockout winners/losers into next matches
-   - Country flags
-   - User supported-team customization
-   - Supporter summary
-   - New scoring:
+   - Scoring:
        Exact score = 5
-       Correct winner / draw = 2
+       Who will win / draw = 2
        First team to score = 1
    - Bonus predictions:
        Tournament winner = 10
        Best player = 10
        Finalists = 5 each
-   - Admin can review match predictions and bonus predictions
-   - Super Admin controls match/result/bonus management
-   - Super Admin exports final predictions/scores and active users
+   - User supported-team customization
+   - Team supporter summary
+   - Super Admin exports
    - Bonus dropdown lists load from GitHub JSON files
    - Forgot password redirects to reset-password.html
    - Supabase connection is prefilled so users do not see setup screen
@@ -35,10 +32,10 @@ let matchesCache = [];
 let predictionsCache = [];
 let bonusPredictionCache = null;
 let bonusResultCache = null;
-let supporterSummaryCache = [];
 
 let bonusTeamsCache = [];
 let bonusPlayersCache = [];
+let supporterSummaryCache = [];
 
 let currentTopView = 'predictions';
 let currentStage = 'summary';
@@ -58,29 +55,54 @@ const BONUS_TEAMS_JSON_URL = 'https://raw.githubusercontent.com/nabyyl/world-cup
 const BONUS_PLAYERS_JSON_URL = 'https://raw.githubusercontent.com/nabyyl/world-cup-predictor/main/players.json';
 
 const DEFAULT_BONUS_TEAMS = [
+  'Algeria',
   'Argentina',
   'Australia',
+  'Austria',
   'Belgium',
+  'Bosnia and Herzegovina',
   'Brazil',
   'Canada',
+  'Cape Verde',
   'Colombia',
   'Croatia',
-  'Denmark',
+  'Curaçao',
+  'Czechia',
+  'DR Congo',
+  'Ecuador',
+  'Egypt',
   'England',
   'France',
   'Germany',
-  'Italy',
+  'Ghana',
+  'Haiti',
+  'Iran',
+  'Iraq',
+  'Ivory Coast',
   'Japan',
+  'Jordan',
   'Mexico',
   'Morocco',
   'Netherlands',
+  'New Zealand',
+  'Norway',
+  'Panama',
+  'Paraguay',
   'Portugal',
+  'Qatar',
   'Saudi Arabia',
+  'Scotland',
+  'Senegal',
+  'South Africa',
   'South Korea',
   'Spain',
+  'Sweden',
   'Switzerland',
+  'Tunisia',
+  'Türkiye',
   'Uruguay',
-  'USA'
+  'United States',
+  'Uzbekistan'
 ];
 
 const DEFAULT_BONUS_PLAYERS = [
@@ -95,33 +117,6 @@ const DEFAULT_BONUS_PLAYERS = [
   'Lamine Yamal',
   'Other'
 ];
-
-const COUNTRY_FLAGS = {
-  Argentina: '🇦🇷',
-  Australia: '🇦🇺',
-  Belgium: '🇧🇪',
-  Brazil: '🇧🇷',
-  Canada: '🇨🇦',
-  Colombia: '🇨🇴',
-  Croatia: '🇭🇷',
-  Denmark: '🇩🇰',
-  England: '🏴',
-  France: '🇫🇷',
-  Germany: '🇩🇪',
-  Italy: '🇮🇹',
-  Japan: '🇯🇵',
-  Mexico: '🇲🇽',
-  Morocco: '🇲🇦',
-  Netherlands: '🇳🇱',
-  Portugal: '🇵🇹',
-  'Saudi Arabia': '🇸🇦',
-  'South Korea': '🇰🇷',
-  Spain: '🇪🇸',
-  Switzerland: '🇨🇭',
-  Uruguay: '🇺🇾',
-  USA: '🇺🇸',
-  TBD: '🏳️'
-};
 
 const DEFAULT_SUPABASE_URL = 'https://lpbsxggijjjanvnodgsn.supabase.co';
 
@@ -182,48 +177,6 @@ function safeEscape(value) {
     '"': '&quot;'
   }[char]));
 }
-
-function normalizeTeamName(value) {
-  return String(value || '').trim();
-}
-
-function flagForTeam(teamName) {
-  const name = normalizeTeamName(teamName);
-
-  if (!name) return '🏳️';
-
-  return COUNTRY_FLAGS[name] || '🏳️';
-}
-
-function teamWithFlag(teamName) {
-  const name = normalizeTeamName(teamName);
-
-  if (!name) return '🏳️ TBD';
-
-  return `${flagForTeam(name)} ${name}`;
-}
-
-function predictionWinnerFromScores(home, away) {
-  const h = Number(home);
-  const a = Number(away);
-
-  if (h > a) return 'home';
-  if (h < a) return 'away';
-
-  return 'draw';
-}
-
-function whoWillWinLabel(value, match) {
-  if (value === 'home') return match?.home_team || 'Home team';
-  if (value === 'away') return match?.away_team || 'Away team';
-  if (value === 'draw') return 'Draw';
-
-  return 'Not selected';
-}
-
-window.flagForTeam = flagForTeam;
-window.teamWithFlag = teamWithFlag;
-window.whoWillWinLabel = whoWillWinLabel;
 
 /* ============================================================
    Theme handling
@@ -394,23 +347,8 @@ function updateUserChip() {
         ? 'Admin'
         : 'User';
 
-  const supportPrefix = currentProfile?.supported_team
-    ? `${flagForTeam(currentProfile.supported_team)} `
-    : '';
-
-  setText('userName', `${supportPrefix}${displayName}`);
-  setText('userRole', displayRole);
-
-  const chip =
-    document.querySelector('.user-chip') ||
-    $('userChip') ||
-    $('userName')?.closest('.user-chip');
-
-  if (chip) {
-    chip.style.cursor = 'pointer';
-    chip.title = 'Open profile';
-    chip.onclick = openUserProfilePage;
-  }
+  setText('userName', displayName);
+  setText('userRole', currentProfile?.supported_team ? `${displayRole} · ${currentProfile.supported_team}` : displayRole);
 }
 
 /* ============================================================
@@ -472,40 +410,6 @@ function setSelectOptions(selectId, options, placeholder, selectedValue) {
 
     select.insertAdjacentHTML(
       'beforeend',
-      `<option value="${safeEscape(value)}">${safeEscape(teamWithFlag(value))}</option>`
-    );
-  });
-
-  if (previousValue) {
-    const exists = Array.from(select.options).some(option => option.value === previousValue);
-
-    if (!exists) {
-      select.insertAdjacentHTML(
-        'beforeend',
-        `<option value="${safeEscape(previousValue)}">${safeEscape(teamWithFlag(previousValue))}</option>`
-      );
-    }
-
-    select.value = previousValue;
-  }
-}
-
-function setPlainSelectOptions(selectId, options, placeholder, selectedValue) {
-  const select = $(selectId);
-
-  if (!select) return;
-
-  const previousValue = selectedValue ?? select.value ?? '';
-
-  select.innerHTML = `<option value="">${safeEscape(placeholder)}</option>`;
-
-  options.forEach(option => {
-    const value = String(option ?? '').trim();
-
-    if (!value) return;
-
-    select.insertAdjacentHTML(
-      'beforeend',
       `<option value="${safeEscape(value)}">${safeEscape(value)}</option>`
     );
   });
@@ -535,7 +439,7 @@ function populateBonusDropdowns() {
     bonusPredictionCache?.tournament_winner || ''
   );
 
-  setPlainSelectOptions(
+  setSelectOptions(
     'bonusBestPlayer',
     players,
     'Select best player',
@@ -568,7 +472,7 @@ function populateBonusResultDropdowns() {
     bonusResultCache?.actual_tournament_winner || ''
   );
 
-  setPlainSelectOptions(
+  setSelectOptions(
     'actualBestPlayer',
     players,
     'Select actual best player',
@@ -594,169 +498,7 @@ window.populateBonusDropdowns = populateBonusDropdowns;
 window.populateBonusResultDropdowns = populateBonusResultDropdowns;
 
 /* ============================================================
-   Supporter profile page
-   ============================================================ */
-
-async function loadSupporterSummary() {
-  const { data, error } = await supabaseClient
-    .from('supporter_summary')
-    .select('*');
-
-  if (error) {
-    console.warn('Supporter summary load failed:', error.message);
-    supporterSummaryCache = [];
-    return;
-  }
-
-  supporterSummaryCache = data || [];
-}
-
-function ensureProfileModal() {
-  let modal = $('profileModal');
-
-  if (modal) return modal;
-
-  modal = document.createElement('div');
-  modal.id = 'profileModal';
-  modal.className = 'profile-modal hidden';
-  modal.innerHTML = `
-    <div class="profile-backdrop" onclick="closeUserProfilePage()"></div>
-    <div class="card profile-panel">
-      <button class="secondary profile-close-btn" onclick="closeUserProfilePage()">Close</button>
-      <div id="profilePanelContent"></div>
-    </div>
-  `;
-
-  document.body.appendChild(modal);
-
-  return modal;
-}
-
-async function openUserProfilePage() {
-  if (!currentProfile) return;
-
-  await loadSupporterSummary();
-
-  const modal = ensureProfileModal();
-  const content = $('profilePanelContent');
-
-  if (!content) return;
-
-  const teams = bonusTeamsCache.length ? bonusTeamsCache : DEFAULT_BONUS_TEAMS;
-  const selectedTeam = currentProfile.supported_team || '';
-
-  const sameTeam = selectedTeam
-    ? supporterSummaryCache.find(row => row.supported_team === selectedTeam)
-    : null;
-
-  content.innerHTML = `
-    <div class="profile-head">
-      <div>
-        <h2>My Profile</h2>
-        <p class="muted small">
-          Choose the country you support. It will show near your name on the leaderboard.
-        </p>
-      </div>
-    </div>
-
-    <div class="profile-current-team">
-      <span class="profile-flag">${selectedTeam ? flagForTeam(selectedTeam) : '🏳️'}</span>
-      <div>
-        <strong>${selectedTeam ? safeEscape(selectedTeam) : 'No team selected yet'}</strong>
-        <p class="muted small">
-          ${
-            sameTeam
-              ? `${sameTeam.supporters_count} supporter${sameTeam.supporters_count === 1 ? '' : 's'} for this team`
-              : 'Pick a team to join its supporter group.'
-          }
-        </p>
-      </div>
-    </div>
-
-    <label>Team you support</label>
-    <select id="profileSupportedTeam">
-      <option value="">Select your team</option>
-      ${teams.map(team => `
-        <option value="${safeEscape(team)}" ${team === selectedTeam ? 'selected' : ''}>
-          ${safeEscape(teamWithFlag(team))}
-        </option>
-      `).join('')}
-    </select>
-
-    <button onclick="saveSupportedTeam()">Save Supported Team</button>
-
-    <div class="supporter-board">
-      <h2>Supporters</h2>
-      <p class="muted small">See who supports each team.</p>
-
-      <div class="supporter-list">
-        ${
-          supporterSummaryCache.length
-            ? supporterSummaryCache.map(row => `
-              <div class="supporter-row">
-                <div>
-                  <strong>${safeEscape(teamWithFlag(row.supported_team))}</strong>
-                  <p class="muted small">${safeEscape(row.supporter_names || '')}</p>
-                </div>
-                <span class="points-pill">${row.supporters_count}</span>
-              </div>
-            `).join('')
-            : `
-              <div class="empty-state">
-                <span class="emoji">🏟️</span>
-                <h3>No supporters yet</h3>
-                <p class="muted small">Be the first to pick a team.</p>
-              </div>
-            `
-        }
-      </div>
-    </div>
-  `;
-
-  modal.classList.remove('hidden');
-}
-
-function closeUserProfilePage() {
-  const modal = $('profileModal');
-  if (modal) modal.classList.add('hidden');
-}
-
-async function saveSupportedTeam() {
-  const team = $('profileSupportedTeam')?.value || '';
-
-  const { data, error } = await supabaseClient
-    .rpc('update_my_supported_team', {
-      team_name: team
-    });
-
-  if (error) {
-    toast(error.message);
-    return;
-  }
-
-  currentProfile = data;
-
-  toast('Supported team saved.');
-
-  updateUserChip();
-
-  await loadSupporterSummary();
-
-  if (currentTopView === 'leaderboard') {
-    renderLeaderboard();
-  }
-
-  openUserProfilePage();
-}
-
-window.openUserProfilePage = openUserProfilePage;
-window.closeUserProfilePage = closeUserProfilePage;
-window.saveSupportedTeam = saveSupportedTeam;
-
-/* ============================================================
    Live tickers + smart auto-sync
-   Leaderboard refresh reduced to every 5 minutes.
-   Admin and Super Admin pages are NOT auto-rebuilt every 30 sec.
    ============================================================ */
 
 function startLiveTickers() {
@@ -792,7 +534,6 @@ function startLiveTickers() {
         await loadPredictions();
         await loadBonusPrediction();
         await loadBonusResults();
-        await loadSupporterSummary();
 
         if (
           currentTopView === 'predictions' ||
@@ -919,6 +660,20 @@ async function loadBonusResults() {
   };
 }
 
+async function loadSupporterSummary() {
+  const { data, error } = await supabaseClient
+    .from('supporter_summary')
+    .select('*');
+
+  if (error) {
+    console.warn('Supporter summary load failed:', error.message);
+    supporterSummaryCache = [];
+    return;
+  }
+
+  supporterSummaryCache = data || [];
+}
+
 function predictionFor(matchId) {
   return predictionsCache.find(p => p.match_id === matchId);
 }
@@ -965,11 +720,7 @@ function renderPredictionsRoot() {
     content.innerHTML = renderSummary(
       matchesCache,
       predictionsCache,
-      currentProfile?.full_name || currentProfile?.email,
-      {
-        profile: currentProfile,
-        supporterSummary: supporterSummaryCache
-      }
+      currentProfile?.full_name || currentProfile?.email
     );
     return;
   }
@@ -1109,16 +860,10 @@ async function savePrediction(matchId) {
     document.querySelector(`input[name="first_${matchId}"]:checked`)?.value || null;
 
   const whoWillWin =
-    document.querySelector(`input[name="winner_${matchId}"]:checked`)?.value ||
-    predictionWinnerFromScores(home, away);
+    document.querySelector(`input[name="winner_${matchId}"]:checked`)?.value || null;
 
-  if (!['home', 'away', 'draw'].includes(whoWillWin)) {
-    toast('Select who will win.');
-    return;
-  }
-
-  if (firstTeamToScore && !['home', 'away'].includes(firstTeamToScore)) {
-    toast('Select a valid first team to score.');
+  if (!whoWillWin) {
+    toast('Select who will win or choose draw.');
     return;
   }
 
@@ -1143,7 +888,7 @@ async function savePrediction(matchId) {
     return;
   }
 
-  toast('Prediction saved. Latest saved prediction will count.');
+  toast('Prediction saved. Latest saved score will count.');
 
   await loadPredictions();
   rerenderCurrentView();
@@ -1213,6 +958,93 @@ async function saveBonusPrediction() {
 window.saveBonusPrediction = saveBonusPrediction;
 
 /* ============================================================
+   User profile / supported team
+   ============================================================ */
+
+async function openUserProfileModal() {
+  try {
+    await loadSupporterSummary();
+
+    const existing = $('profileModalBackdrop');
+    if (existing) existing.remove();
+
+    const teams = bonusTeamsCache.length ? bonusTeamsCache : DEFAULT_BONUS_TEAMS;
+
+    const html = renderUserProfileModal(
+      currentProfile,
+      teams,
+      supporterSummaryCache
+    );
+
+    document.body.insertAdjacentHTML('beforeend', html);
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+function closeUserProfileModal(event) {
+  if (event && event.target?.id !== 'profileModalBackdrop') return;
+
+  const modal = $('profileModalBackdrop');
+  if (modal) modal.remove();
+}
+
+async function saveSupportedTeam() {
+  const selectedTeam =
+    document.querySelector('input[name="supportedTeam"]:checked')?.value || '';
+
+  if (!selectedTeam) {
+    toast('Select a team first.');
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .rpc('update_my_supported_team', {
+      team_name: selectedTeam
+    });
+
+  if (error) {
+    toast(error.message);
+    return;
+  }
+
+  currentProfile = data;
+  updateUserChip();
+
+  await loadSupporterSummary();
+
+  toast('Supported team saved.');
+
+  closeUserProfileModal();
+}
+
+async function clearSupportedTeam() {
+  const { data, error } = await supabaseClient
+    .rpc('update_my_supported_team', {
+      team_name: ''
+    });
+
+  if (error) {
+    toast(error.message);
+    return;
+  }
+
+  currentProfile = data;
+  updateUserChip();
+
+  await loadSupporterSummary();
+
+  toast('Supported team cleared.');
+
+  closeUserProfileModal();
+}
+
+window.openUserProfileModal = openUserProfileModal;
+window.closeUserProfileModal = closeUserProfileModal;
+window.saveSupportedTeam = saveSupportedTeam;
+window.clearSupportedTeam = clearSupportedTeam;
+
+/* ============================================================
    Leaderboard
    ============================================================ */
 
@@ -1235,7 +1067,7 @@ async function renderLeaderboard() {
 }
 
 /* ============================================================
-   Admin review page — limited Admin + Super Admin
+   Admin review page
    ============================================================ */
 
 async function renderAdmin() {
@@ -1322,43 +1154,6 @@ async function renderAdminBonusReviewInto(container) {
     <div class="card table-card">
       <h2>Bonus Predictions</h2>
       <p class="muted small">Latest bonus predictions submitted by users.</p>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Supported</th>
-            <th>Winner</th>
-            <th>Best Player</th>
-            <th>Finalist 1</th>
-            <th>Finalist 2</th>
-            <th>Bonus Points</th>
-            <th>Updated</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${
-            (data || []).length
-              ? data.map(row => `
-                <tr>
-                  <td>${safeEscape(row.full_name || row.email)}</td>
-                  <td>${safeEscape(row.supported_team ? teamWithFlag(row.supported_team) : '—')}</td>
-                  <td>${safeEscape(row.tournament_winner ? teamWithFlag(row.tournament_winner) : '—')}</td>
-                  <td>${safeEscape(row.best_player || '—')}</td>
-                  <td>${safeEscape(row.finalist_one ? teamWithFlag(row.finalist_one) : '—')}</td>
-                  <td>${safeEscape(row.finalist_two ? teamWithFlag(row.finalist_two) : '—')}</td>
-                  <td><span class="points-pill">${row.bonus_points ?? 0}</span></td>
-                  <td>${row.updated_at ? new Date(row.updated_at).toLocaleString() : '—'}</td>
-                </tr>
-              `).join('')
-              : `
-                <tr>
-                  <td colspan="8" class="muted">No bonus predictions submitted yet.</td>
-                </tr>
-              `
-          }
-        </tbody>
-      </table>
     </div>
   `;
 }
@@ -1428,7 +1223,7 @@ function backToAdminMatches() {
 window.backToAdminMatches = backToAdminMatches;
 
 /* ============================================================
-   Super Admin page — full system controls
+   Super Admin page
    ============================================================ */
 
 function renderSuperAdmin() {
@@ -1832,7 +1627,6 @@ window.deleteSelectedMatch = deleteSelectedMatch;
 
 /* ============================================================
    Super Admin replace old matches with local FIFA JSON
-   Password protected with "stanley"
    ============================================================ */
 
 async function replaceMatchesWithScheduleIfNoPredictions() {
@@ -1901,9 +1695,7 @@ async function resetMatchesIfNoPredictions() {
 window.resetMatchesIfNoPredictions = resetMatchesIfNoPredictions;
 
 /* ============================================================
-   Schedule + score sync from FIFA portal JSON — Super Admin only
-   Manual sync is password protected with "stanley"
-   Background auto-sync remains password-free
+   Schedule + score sync from FIFA portal JSON
    ============================================================ */
 
 async function syncScheduleFromInternet() {
@@ -2028,7 +1820,6 @@ async function autoSyncScoresFromInternet(silent = true) {
     await loadPredictions();
     await loadBonusPrediction();
     await loadBonusResults();
-    await loadSupporterSummary();
 
     if (
       currentTopView === 'predictions' ||
@@ -2105,211 +1896,8 @@ function normalizeOpenFootballSchedule(json, sourceUrl) {
 }
 
 /* ============================================================
-   CSV exports
+   CSV export helpers
    ============================================================ */
-
-async function downloadPredictionsCsv() {
-  await downloadCsvFromView({
-    viewName: 'predictions_export',
-    fileName: 'world-cup-visible-predictions.csv',
-    orderColumn: 'kickoff_at',
-    headers: [
-      'Name',
-      'Email',
-      'Supported Team',
-      'Match No',
-      'Home',
-      'Away',
-      'Stage',
-      'Venue',
-      'Kickoff',
-      'Pred Home',
-      'Pred Away',
-      'Who Will Win',
-      'Pred First Team To Score',
-      'Actual Home',
-      'Actual Away',
-      'Actual Winner',
-      'Actual First Team To Score',
-      'Exact Score Points',
-      'Who Will Win Points',
-      'Result Points',
-      'First Score Points',
-      'Match Points',
-      'Updated'
-    ],
-    rowMapper: row => [
-      row.full_name,
-      row.email,
-      row.supported_team ?? '',
-      row.match_no ?? '',
-      row.home_team,
-      row.away_team,
-      row.stage,
-      row.venue ?? '',
-      row.kickoff_at,
-      row.home_score,
-      row.away_score,
-      row.who_will_win ?? '',
-      row.first_team_to_score ?? '',
-      row.actual_home_score ?? '',
-      row.actual_away_score ?? '',
-      row.actual_winner ?? '',
-      row.actual_first_team_to_score ?? '',
-      row.exact_score_points ?? 0,
-      row.who_will_win_points ?? 0,
-      row.result_points ?? 0,
-      row.first_score_points ?? 0,
-      row.match_points ?? 0,
-      row.updated_at
-    ]
-  });
-}
-
-async function downloadFinalPredictionsCsv() {
-  if (!isSuperAdmin()) {
-    toast('Super Admin access required.');
-    return;
-  }
-
-  await downloadCsvFromView({
-    viewName: 'final_predictions_export',
-    fileName: 'world-cup-final-predictions-and-scores.csv',
-    orderColumn: 'match_no',
-    headers: [
-      'Match No',
-      'Stage',
-      'Venue',
-      'Kickoff',
-      'Home Team',
-      'Away Team',
-      'Actual Home',
-      'Actual Away',
-      'Actual Winner',
-      'Actual First Team To Score',
-      'Name',
-      'Email',
-      'Supported Team',
-      'Pred Home',
-      'Pred Away',
-      'Who Will Win',
-      'Pred First Team To Score',
-      'Exact Score Points',
-      'Who Will Win Points',
-      'First Score Points',
-      'Total Match Points',
-      'Updated'
-    ],
-    rowMapper: row => [
-      row.match_no ?? '',
-      row.stage ?? '',
-      row.venue ?? '',
-      row.kickoff_at ?? '',
-      row.home_team ?? '',
-      row.away_team ?? '',
-      row.actual_home_score ?? '',
-      row.actual_away_score ?? '',
-      row.actual_winner ?? '',
-      row.actual_first_team_to_score ?? '',
-      row.full_name ?? '',
-      row.email ?? '',
-      row.supported_team ?? '',
-      row.predicted_home_score ?? '',
-      row.predicted_away_score ?? '',
-      row.who_will_win ?? '',
-      row.first_team_to_score ?? '',
-      row.exact_score_points ?? 0,
-      row.who_will_win_points ?? 0,
-      row.first_score_points ?? 0,
-      row.total_match_points ?? 0,
-      row.updated_at ?? ''
-    ]
-  });
-}
-
-async function downloadActiveUsersCsv() {
-  if (!isSuperAdmin()) {
-    toast('Super Admin access required.');
-    return;
-  }
-
-  await downloadCsvFromView({
-    viewName: 'active_users_export',
-    fileName: 'world-cup-active-users.csv',
-    orderColumn: 'full_name',
-    headers: [
-      'User ID',
-      'Name',
-      'Email',
-      'Role',
-      'Status',
-      'Supported Team',
-      'Created At',
-      'Total Predictions',
-      'Bonus Prediction Submitted',
-      'Match Points',
-      'Bonus Points',
-      'Total Points'
-    ],
-    rowMapper: row => [
-      row.user_id ?? '',
-      row.full_name ?? '',
-      row.email ?? '',
-      row.role ?? '',
-      row.status ?? '',
-      row.supported_team ?? '',
-      row.created_at ?? '',
-      row.total_predictions ?? 0,
-      row.bonus_prediction_submitted ? 'Yes' : 'No',
-      row.match_points ?? 0,
-      row.bonus_points ?? 0,
-      row.total_points ?? 0
-    ]
-  });
-}
-
-async function downloadCsvFromView({ viewName, fileName, orderColumn, headers, rowMapper }) {
-  let query = supabaseClient
-    .from(viewName)
-    .select('*');
-
-  if (orderColumn) {
-    query = query.order(orderColumn, { ascending: true });
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    toast(error.message);
-    return;
-  }
-
-  const rows = (data || []).map(rowMapper);
-
-  const csv = [
-    headers,
-    ...rows
-  ]
-    .map(row => row.map(csvEscape).join(','))
-    .join('\n');
-
-  const blob = new Blob([csv], {
-    type: 'text/csv'
-  });
-
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-
-  a.href = url;
-  a.download = fileName;
-  a.click();
-
-  URL.revokeObjectURL(url);
-}
-
-window.downloadPredictionsCsv = downloadPredictionsCsv;
-window.downloadFinalPredictionsCsv = downloadFinalPredictionsCsv;
-window.downloadActiveUsersCsv = downloadActiveUsersCsv;
 
 function csvEscape(value) {
   const str = String(value ?? '');
@@ -2320,6 +1908,219 @@ function csvEscape(value) {
 
   return str;
 }
+
+function downloadCsv(filename, headers, rows) {
+  const csv = [
+    headers,
+    ...rows
+  ]
+    .map(row => row.map(csvEscape).join(','))
+    .join('\n');
+
+  const blob = new Blob([csv], {
+    type: 'text/csv;charset=utf-8;'
+  });
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+
+  a.href = url;
+  a.download = filename;
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
+async function downloadPredictionsCsv() {
+  const { data, error } = await supabaseClient
+    .from('predictions_export')
+    .select('*')
+    .order('kickoff_at', {
+      ascending: true
+    });
+
+  if (error) {
+    toast(error.message);
+    return;
+  }
+
+  const headers = [
+    'Name',
+    'Email',
+    'Supported Team',
+    'Match No',
+    'Home',
+    'Away',
+    'Stage',
+    'Venue',
+    'Kickoff',
+    'Pred Home',
+    'Pred Away',
+    'Who Will Win',
+    'Pred First Team To Score',
+    'Actual Home',
+    'Actual Away',
+    'Actual Winner',
+    'Actual First Team To Score',
+    'Exact Score Points',
+    'Who Will Win Points',
+    'First Score Points',
+    'Match Points',
+    'Updated'
+  ];
+
+  const rows = (data || []).map(row => [
+    row.full_name,
+    row.email,
+    row.supported_team ?? '',
+    row.match_no ?? '',
+    row.home_team,
+    row.away_team,
+    row.stage,
+    row.venue ?? '',
+    row.kickoff_at,
+    row.home_score,
+    row.away_score,
+    row.who_will_win ?? '',
+    row.first_team_to_score ?? '',
+    row.actual_home_score ?? '',
+    row.actual_away_score ?? '',
+    row.actual_winner ?? '',
+    row.actual_first_team_to_score ?? '',
+    row.exact_score_points ?? 0,
+    row.who_will_win_points ?? 0,
+    row.first_score_points ?? 0,
+    row.match_points ?? 0,
+    row.updated_at
+  ]);
+
+  downloadCsv('world-cup-visible-predictions.csv', headers, rows);
+}
+
+window.downloadPredictionsCsv = downloadPredictionsCsv;
+
+async function downloadFinalPredictionsCsv() {
+  if (!isSuperAdmin()) {
+    toast('Super Admin access required.');
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from('final_predictions_export')
+    .select('*')
+    .order('match_no', { ascending: true })
+    .order('full_name', { ascending: true });
+
+  if (error) {
+    toast(error.message);
+    return;
+  }
+
+  const headers = [
+    'Match No',
+    'Stage',
+    'Venue',
+    'Kickoff',
+    'Home Team',
+    'Away Team',
+    'Actual Home Score',
+    'Actual Away Score',
+    'Actual Winner',
+    'Actual First Team To Score',
+    'Name',
+    'Email',
+    'Supported Team',
+    'Predicted Home Score',
+    'Predicted Away Score',
+    'Who Will Win',
+    'First Team To Score',
+    'Exact Score Points',
+    'Who Will Win Points',
+    'First Score Points',
+    'Total Match Points',
+    'Updated'
+  ];
+
+  const rows = (data || []).map(row => [
+    row.match_no ?? '',
+    row.stage ?? '',
+    row.venue ?? '',
+    row.kickoff_at ?? '',
+    row.home_team ?? '',
+    row.away_team ?? '',
+    row.actual_home_score ?? '',
+    row.actual_away_score ?? '',
+    row.actual_winner ?? '',
+    row.actual_first_team_to_score ?? '',
+    row.full_name ?? '',
+    row.email ?? '',
+    row.supported_team ?? '',
+    row.predicted_home_score ?? '',
+    row.predicted_away_score ?? '',
+    row.who_will_win ?? '',
+    row.first_team_to_score ?? '',
+    row.exact_score_points ?? 0,
+    row.who_will_win_points ?? 0,
+    row.first_score_points ?? 0,
+    row.total_match_points ?? 0,
+    row.updated_at ?? ''
+  ]);
+
+  downloadCsv('world-cup-final-predictions-and-scores.csv', headers, rows);
+}
+
+window.downloadFinalPredictionsCsv = downloadFinalPredictionsCsv;
+
+async function downloadActiveUsersCsv() {
+  if (!isSuperAdmin()) {
+    toast('Super Admin access required.');
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from('active_users_export')
+    .select('*')
+    .order('full_name', { ascending: true });
+
+  if (error) {
+    toast(error.message);
+    return;
+  }
+
+  const headers = [
+    'User ID',
+    'Full Name',
+    'Email',
+    'Role',
+    'Status',
+    'Supported Team',
+    'Created At',
+    'Total Predictions',
+    'Bonus Prediction Submitted',
+    'Match Points',
+    'Bonus Points',
+    'Total Points'
+  ];
+
+  const rows = (data || []).map(row => [
+    row.user_id ?? '',
+    row.full_name ?? '',
+    row.email ?? '',
+    row.role ?? '',
+    row.status ?? '',
+    row.supported_team ?? '',
+    row.created_at ?? '',
+    row.total_predictions ?? 0,
+    row.bonus_prediction_submitted ? 'Yes' : 'No',
+    row.match_points ?? 0,
+    row.bonus_points ?? 0,
+    row.total_points ?? 0
+  ]);
+
+  downloadCsv('world-cup-active-users.csv', headers, rows);
+}
+
+window.downloadActiveUsersCsv = downloadActiveUsersCsv;
 
 /* ============================================================
    Top-level view switching
@@ -2475,7 +2276,6 @@ $('logoutBtn')?.addEventListener('click', async () => {
   currentProfile = null;
   bonusPredictionCache = null;
   bonusResultCache = null;
-  supporterSummaryCache = [];
 
   if (lockTickerId) clearInterval(lockTickerId);
   if (scheduleRefreshId) clearTimeout(scheduleRefreshId);
@@ -2489,6 +2289,10 @@ $('logoutBtn')?.addEventListener('click', async () => {
 $('themeToggleBtn')?.addEventListener('click', () => {
   const current = document.documentElement.getAttribute('data-theme') || 'dark';
   applyTheme(current === 'dark' ? 'light' : 'dark');
+});
+
+$('userChip')?.addEventListener('click', () => {
+  openUserProfileModal();
 });
 
 document.querySelectorAll('.nav-tabs button').forEach(button => {
