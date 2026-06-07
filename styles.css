@@ -3070,3 +3070,24 @@ select option {
 [data-theme="light"] .who-win-option input:checked + span {
   color: #ffffff;
 }
+
+/* ============================================================
+   Leaderboard supported team flag beside name
+   ============================================================ */
+
+.leaderboard-name {
+  display: inline-grid;
+  grid-template-columns: 24px minmax(0, auto);
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.leaderboard-flag {
+  width: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+}
