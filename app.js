@@ -348,7 +348,13 @@ function updateUserChip() {
         : 'User';
 
   setText('userName', displayName);
-  setText('userRole', currentProfile?.supported_team ? `${displayRole} · ${currentProfile.supported_team}` : displayRole);
+
+  setText(
+    'userRole',
+    currentProfile?.supported_team
+      ? `${displayRole} · ${currentProfile.supported_team}`
+      : displayRole
+  );
 }
 
 /* ============================================================
@@ -2276,6 +2282,7 @@ $('logoutBtn')?.addEventListener('click', async () => {
   currentProfile = null;
   bonusPredictionCache = null;
   bonusResultCache = null;
+  supporterSummaryCache = [];
 
   if (lockTickerId) clearInterval(lockTickerId);
   if (scheduleRefreshId) clearTimeout(scheduleRefreshId);
