@@ -48,6 +48,75 @@ function formatRelative(value) {
 }
 
 /* ============================================================
+   Country flags
+   ============================================================ */
+
+const TEAM_FLAGS = {
+  Argentina: '🇦🇷',
+  Australia: '🇦🇺',
+  Belgium: '🇧🇪',
+  Brazil: '🇧🇷',
+  Canada: '🇨🇦',
+  Colombia: '🇨🇴',
+  Croatia: '🇭🇷',
+  Denmark: '🇩🇰',
+  England: '🏴',
+  France: '🇫🇷',
+  Germany: '🇩🇪',
+  Italy: '🇮🇹',
+  Japan: '🇯🇵',
+  Mexico: '🇲🇽',
+  Morocco: '🇲🇦',
+  Netherlands: '🇳🇱',
+  Portugal: '🇵🇹',
+  'Saudi Arabia': '🇸🇦',
+  'South Korea': '🇰🇷',
+  Spain: '🇪🇸',
+  Switzerland: '🇨🇭',
+  Uruguay: '🇺🇾',
+  USA: '🇺🇸',
+  'United States': '🇺🇸',
+  TBD: '🏳️'
+};
+
+function teamFlag(teamName) {
+  const clean = String(teamName || '').trim();
+
+  if (!clean) return '🏳️';
+
+  return TEAM_FLAGS[clean] || '🏳️';
+}
+
+function teamWithFlag(teamName) {
+  return `
+    <span class="team-flag-row">
+      <span class="team-flag small">${teamFlag(teamName)}</span>
+      <span>${escapeHtml(teamName || 'TBD')}</span>
+    </span>
+  `;
+}
+
+function teamBlock(teamName) {
+  return `
+    <div class="team-wrap">
+      <div class="team-name">${escapeHtml(teamName || 'TBD')}</div>
+      <div class="team-flag">${teamFlag(teamName)}</div>
+    </div>
+  `;
+}
+
+function supportBadge(teamName) {
+  if (!teamName) return '';
+
+  return `
+    <span class="support-team-badge">
+      <span>${teamFlag(teamName)}</span>
+      <span>${escapeHtml(teamName)}</span>
+    </span>
+  `;
+}
+
+/* ============================================================
    Stage classification
    ============================================================ */
 
@@ -132,6 +201,35 @@ function firstTeamLabel(value, match) {
   if (value === 'away') return match?.away_team || 'Away team';
   if (value === 'none') return 'No goal / 0-0';
   return 'Not selected';
+}
+
+function winnerLabel(value, match) {
+  if (value === 'home') return match?.home_team || 'Home team';
+  if (value === 'away') return match?.away_team || 'Away team';
+  if (value === 'draw') return 'Draw';
+  return 'Not selected';
+}
+
+function actualWinner(match) {
+  if (!matchHasResult(match)) return null;
+
+  const home = Number(match.actual_home_score);
+  const away = Number(match.actual_away_score);
+
+  if (home > away) return 'home';
+  if (away > home) return 'away';
+  return 'draw';
+}
+
+function predictedWinnerFromScore(prediction) {
+  if (!prediction) return null;
+
+  const home = Number(prediction.home_score);
+  const away = Number(prediction.away_score);
+
+  if (home > away) return 'home';
+  if (away > home) return 'away';
+  return 'draw';
 }
 
 function normalizeText(value) {
@@ -285,9 +383,9 @@ function nextUpCard(match) {
     <div class="next-card" onclick="navigateToMatch('${match.id}')" data-match-id="${match.id}">
       <span class="stage-tag">${escapeHtml(matchNumberLabel(match))} · ${escapeHtml(match.stage || 'Match')}</span>
       <div class="matchup">
-        ${escapeHtml(match.home_team)}
+        ${teamWithFlag(match.home_team)}
         <span class="muted">vs</span>
-        ${escapeHtml(match.away_team)}
+        ${teamWithFlag(match.away_team)}
       </div>
       <div class="when">
         ${formatDate(match.kickoff_at)}${match.venue ? ' • ' + escapeHtml(match.venue) : ''}
@@ -301,9 +399,9 @@ function liveMiniCard(match) {
     <div class="next-card" onclick="navigateToMatch('${match.id}')" data-match-id="${match.id}">
       <span class="status-pill live">● LIVE</span>
       <div class="matchup">
-        ${escapeHtml(match.home_team)}
+        ${teamWithFlag(match.home_team)}
         <span class="muted">vs</span>
-        ${escapeHtml(match.away_team)}
+        ${teamWithFlag(match.away_team)}
       </div>
       <a class="ext-link" href="${googleSearchUrl(match)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
         View live on Google ↗
@@ -343,6 +441,9 @@ function renderMatchCards(matches, predictions, helpers, stageFilterId) {
         const awaySource = sourceLabel(match.away_source);
 
         const firstSelected = prediction?.first_team_to_score || '';
+        const winnerSelected =
+          prediction?.who_will_win ||
+          (prediction ? predictedWinnerFromScore(prediction) : '');
 
         const pill = live
           ? `<span class="status-pill live">● LIVE</span>`
@@ -358,9 +459,9 @@ function renderMatchCards(matches, predictions, helpers, stageFilterId) {
             </div>
 
             <div class="teams">
-              <div class="team-name home">${escapeHtml(match.home_team)}</div>
+              ${teamBlock(match.home_team)}
               <div class="vs">vs</div>
-              <div class="team-name away">${escapeHtml(match.away_team)}</div>
+              ${teamBlock(match.away_team)}
             </div>
 
             <p class="muted small">
@@ -396,46 +497,75 @@ function renderMatchCards(matches, predictions, helpers, stageFilterId) {
               />
             </div>
 
-            <div class="card" style="padding:12px; box-shadow:none; margin-top:4px;">
-              <p class="muted small" style="margin:0 0 8px;">
-                First team to score <strong>(+1 point)</strong>
-              </p>
+            <div class="first-score-box">
+              <div class="first-score-title">First team to score (+1 point)</div>
 
-              <label style="margin:6px 0;">
-                <input
-                  type="radio"
-                  name="first_${match.id}"
-                  value="home"
-                  style="width:auto"
-                  ${firstSelected === 'home' ? 'checked' : ''}
-                  ${locked ? 'disabled' : ''}
-                />
-                ${escapeHtml(match.home_team)}
-              </label>
+              <div class="first-score-options">
+                <label class="first-score-option">
+                  <input
+                    type="radio"
+                    name="first_${match.id}"
+                    value="home"
+                    ${firstSelected === 'home' ? 'checked' : ''}
+                    ${locked ? 'disabled' : ''}
+                  />
+                  <span>${teamFlag(match.home_team)} ${escapeHtml(match.home_team)}</span>
+                </label>
 
-              <label style="margin:6px 0;">
-                <input
-                  type="radio"
-                  name="first_${match.id}"
-                  value="away"
-                  style="width:auto"
-                  ${firstSelected === 'away' ? 'checked' : ''}
-                  ${locked ? 'disabled' : ''}
-                />
-                ${escapeHtml(match.away_team)}
-              </label>
+                <label class="first-score-option">
+                  <input
+                    type="radio"
+                    name="first_${match.id}"
+                    value="away"
+                    ${firstSelected === 'away' ? 'checked' : ''}
+                    ${locked ? 'disabled' : ''}
+                  />
+                  <span>${teamFlag(match.away_team)} ${escapeHtml(match.away_team)}</span>
+                </label>
+              </div>
+            </div>
 
-              <label style="margin:6px 0;">
-                <input
-                  type="radio"
-                  name="first_${match.id}"
-                  value="none"
-                  style="width:auto"
-                  ${firstSelected === 'none' ? 'checked' : ''}
-                  ${locked ? 'disabled' : ''}
-                />
-                No goal / 0-0
-              </label>
+            <div class="who-win-box">
+              <div class="who-win-title">Who will win? (+2 points)</div>
+
+              <div class="who-win-options">
+                <label class="who-win-option">
+                  <input
+                    type="radio"
+                    name="winner_${match.id}"
+                    value="home"
+                    ${winnerSelected === 'home' ? 'checked' : ''}
+                    ${locked ? 'disabled' : ''}
+                  />
+                  <span>${teamFlag(match.home_team)} ${escapeHtml(match.home_team)}</span>
+                </label>
+
+                <label class="who-win-option">
+                  <input
+                    type="radio"
+                    name="winner_${match.id}"
+                    value="away"
+                    ${winnerSelected === 'away' ? 'checked' : ''}
+                    ${locked ? 'disabled' : ''}
+                  />
+                  <span>${teamFlag(match.away_team)} ${escapeHtml(match.away_team)}</span>
+                </label>
+
+                <label class="who-win-option">
+                  <input
+                    type="radio"
+                    name="winner_${match.id}"
+                    value="draw"
+                    ${winnerSelected === 'draw' ? 'checked' : ''}
+                    ${locked ? 'disabled' : ''}
+                  />
+                  <span>Draw</span>
+                </label>
+              </div>
+
+              <div class="who-win-note">
+                This is linked to the 2-point correct winner / draw rule.
+              </div>
             </div>
 
             <button onclick="savePrediction('${match.id}')" ${locked ? 'disabled' : ''}>
@@ -450,6 +580,7 @@ function renderMatchCards(matches, predictions, helpers, stageFilterId) {
               ? `
                 <p class="saved">
                   Latest: ${prediction.home_score} - ${prediction.away_score}
+                  · Winner: ${escapeHtml(winnerLabel(winnerSelected, match))}
                   · First scorer: ${escapeHtml(firstTeamLabel(prediction.first_team_to_score, match))}
                 </p>
               `
@@ -500,23 +631,32 @@ function renderBonusPredictions(bonusPrediction, bonusResult, currentProfile, bo
       </p>
     </div>
 
-    <div class="card admin-card" style="margin-top:16px;">
-      <h2>Your Bonus Picks</h2>
-
-      <label>Tournament Winner</label>
-      <select id="bonusTournamentWinner" ${locked ? 'disabled' : ''}>
-        <option value="">Select tournament winner</option>
-        ${selectedTempOption(bonusPrediction?.tournament_winner)}
-      </select>
-
-      <label>Tournament Best Player</label>
-      <select id="bonusBestPlayer" ${locked ? 'disabled' : ''}>
-        <option value="">Select best player</option>
-        ${selectedTempOption(bonusPrediction?.best_player)}
-      </select>
-
-      <div class="inline-row">
+    <div class="card bonus-card" style="margin-top:16px;">
+      <div class="bonus-head">
         <div>
+          <h2>Your Bonus Picks</h2>
+          <p class="muted small">Choose from the dropdowns. Finalist 1 and Finalist 2 cannot be the same team.</p>
+        </div>
+      </div>
+
+      <div class="bonus-grid">
+        <div class="bonus-field">
+          <label>Tournament Winner</label>
+          <select id="bonusTournamentWinner" ${locked ? 'disabled' : ''}>
+            <option value="">Select tournament winner</option>
+            ${selectedTempOption(bonusPrediction?.tournament_winner)}
+          </select>
+        </div>
+
+        <div class="bonus-field">
+          <label>Tournament Best Player</label>
+          <select id="bonusBestPlayer" ${locked ? 'disabled' : ''}>
+            <option value="">Select best player</option>
+            ${selectedTempOption(bonusPrediction?.best_player)}
+          </select>
+        </div>
+
+        <div class="bonus-field">
           <label>Finalist 1</label>
           <select id="bonusFinalistOne" ${locked ? 'disabled' : ''}>
             <option value="">Select finalist 1</option>
@@ -524,7 +664,7 @@ function renderBonusPredictions(bonusPrediction, bonusResult, currentProfile, bo
           </select>
         </div>
 
-        <div>
+        <div class="bonus-field">
           <label>Finalist 2</label>
           <select id="bonusFinalistTwo" ${locked ? 'disabled' : ''}>
             <option value="">Select finalist 2</option>
@@ -579,17 +719,22 @@ function renderResultsMatches(matches, predictions) {
             </div>
 
             <div class="teams">
-              <div class="team-name home">${escapeHtml(match.home_team)}</div>
+              ${teamBlock(match.home_team)}
               <div class="vs">
                 <span style="font-size:22px; font-weight:900; color: var(--text);">
                   ${match.actual_home_score} - ${match.actual_away_score}
                 </span>
               </div>
-              <div class="team-name away">${escapeHtml(match.away_team)}</div>
+              ${teamBlock(match.away_team)}
             </div>
 
             <p class="muted small">
               ${escapeHtml(match.stage || 'Match')}${match.venue ? ' • ' + escapeHtml(match.venue) : ''}
+            </p>
+
+            <p class="muted small">
+              Winner:
+              <strong>${escapeHtml(winnerLabel(actualWinner(match), match))}</strong>
             </p>
 
             <p class="muted small">
@@ -601,6 +746,7 @@ function renderResultsMatches(matches, predictions) {
               ? `
                 <p class="${won ? 'saved' : 'muted'}">
                   Your pick: ${prediction.home_score} - ${prediction.away_score}
+                  · Winner: ${escapeHtml(winnerLabel(prediction.who_will_win || predictedWinnerFromScore(prediction), match))}
                   · First scorer: ${escapeHtml(firstTeamLabel(prediction.first_team_to_score, match))}
                   • <strong>${pts.points} pt${pts.points === 1 ? '' : 's'}</strong>
                   ${pts.label ? `· ${pts.label}` : ''}
@@ -690,19 +836,22 @@ function renderMyPredictions(matches, predictions) {
             ? pts.points > 0 ? 'win' : 'loss'
             : '';
 
+          const selectedWinner = pred.who_will_win || predictedWinnerFromScore(pred);
+
           return `
             <div class="mp-row ${cls}">
               <div>
                 <div class="matchup">
                   ${match.match_no ? `M${match.match_no} · ` : ''}
-                  ${escapeHtml(match.home_team)}
+                  ${teamWithFlag(match.home_team)}
                   <span class="muted">vs</span>
-                  ${escapeHtml(match.away_team)}
+                  ${teamWithFlag(match.away_team)}
                 </div>
                 <div class="meta">
                   ${formatDateShort(match.kickoff_at)}
                   • ${escapeHtml(match.stage || '—')}
                   · saved ${formatRelative(pred.updated_at)}
+                  · Winner: ${escapeHtml(winnerLabel(selectedWinner, match))}
                   · First scorer: ${escapeHtml(firstTeamLabel(pred.first_team_to_score, match))}
                 </div>
               </div>
@@ -730,7 +879,7 @@ function renderMyPredictions(matches, predictions) {
 /* ============================================================
    Scoring helper
    Exact score = 5
-   Correct winner / correct draw = 2
+   Who will win / draw = 2
    First team to score = 1
    Maximum per match = 8
    ============================================================ */
@@ -748,17 +897,20 @@ function scorePrediction(prediction, match) {
   let points = 0;
   const labels = [];
 
-  const predResult = Math.sign(ph - pa);
-  const actualResult = Math.sign(ah - aa);
+  const selectedWinner =
+    prediction.who_will_win ||
+    predictedWinnerFromScore(prediction);
+
+  const actualResult = actualWinner(match);
 
   if (ph === ah && pa === aa) {
     points += 5;
     labels.push('Exact score');
   }
 
-  if (predResult === actualResult) {
+  if (selectedWinner && selectedWinner === actualResult) {
     points += 2;
-    labels.push('Correct result');
+    labels.push('Winner / draw');
   }
 
   if (
@@ -794,6 +946,7 @@ function renderLeaderboardTable(rows) {
           <tr>
             <th>Rank</th>
             <th>Name</th>
+            <th>Team</th>
             <th>Total</th>
             <th>Match</th>
             <th>Bonus</th>
@@ -808,7 +961,8 @@ function renderLeaderboardTable(rows) {
           ${(rows || []).map((row, index) => `
             <tr>
               <td><span class="rank">${index + 1}</span></td>
-              <td>${escapeHtml(row.full_name || row.email)}</td>
+              <td>${supportBadge(row.supported_team)} ${escapeHtml(row.full_name || row.email)}</td>
+              <td>${row.supported_team ? teamWithFlag(row.supported_team) : '<span class="muted small">—</span>'}</td>
               <td><span class="points-pill">${row.total_points ?? 0}</span></td>
               <td>${row.match_points ?? 0}</td>
               <td>${row.bonus_points ?? 0}</td>
@@ -828,6 +982,85 @@ function renderLeaderboardError(message) {
   return `
     <div class="card table-card">
       <p class="message">${escapeHtml(message)}</p>
+    </div>
+  `;
+}
+
+/* ============================================================
+   User profile / supported team modal
+   ============================================================ */
+
+function renderUserProfileModal(currentProfile, teams = [], supporterRows = []) {
+  const selectedTeam = currentProfile?.supported_team || '';
+
+  return `
+    <div class="modal-backdrop" id="profileModalBackdrop" onclick="closeUserProfileModal(event)">
+      <div class="card profile-modal" onclick="event.stopPropagation()">
+        <div class="profile-modal-head">
+          <div>
+            <h2>My Profile</h2>
+            <p class="muted small">Choose the team you support and see who supports each team.</p>
+          </div>
+
+          <button class="profile-close-btn" onclick="closeUserProfileModal()">×</button>
+        </div>
+
+        <div class="profile-info-card">
+          <strong>${escapeHtml(currentProfile?.full_name || currentProfile?.email || 'User')}</strong>
+          <span class="muted small">${escapeHtml(currentProfile?.email || '')}</span>
+          <div style="margin-top:10px;">
+            ${selectedTeam ? supportBadge(selectedTeam) : '<span class="muted small">No supported team selected yet.</span>'}
+          </div>
+        </div>
+
+        <div class="profile-team-select">
+          <label>Select your supported team</label>
+
+          <div class="support-team-grid">
+            ${(teams || []).map(team => `
+              <label class="support-team-option">
+                <input
+                  type="radio"
+                  name="supportedTeam"
+                  value="${escapeHtml(team)}"
+                  ${selectedTeam === team ? 'checked' : ''}
+                />
+                <span>${teamFlag(team)} ${escapeHtml(team)}</span>
+              </label>
+            `).join('')}
+          </div>
+
+          <div class="profile-team-actions">
+            <button onclick="saveSupportedTeam()">Save Team</button>
+            <button class="secondary" onclick="clearSupportedTeam()">Clear</button>
+          </div>
+        </div>
+
+        <div style="margin-top:18px;">
+          <h2>Supporters</h2>
+          <p class="muted small">See who supports the same team and other teams.</p>
+
+          <div class="supporter-summary-grid">
+            ${(supporterRows || []).length
+              ? supporterRows.map(row => `
+                <div class="supporter-card">
+                  <strong>${teamFlag(row.supported_team)} ${escapeHtml(row.supported_team)}</strong>
+                  <span>${row.supporters_count || 0} supporter${Number(row.supporters_count) === 1 ? '' : 's'}</span>
+                  <span style="display:block; margin-top:6px;">
+                    ${escapeHtml(row.supporter_names || '')}
+                  </span>
+                </div>
+              `).join('')
+              : `
+                <div class="supporter-card">
+                  <strong>🏳️ No supporters yet</strong>
+                  <span>Once users select their teams, they will appear here.</span>
+                </div>
+              `
+            }
+          </div>
+        </div>
+      </div>
     </div>
   `;
 }
@@ -875,7 +1108,7 @@ function renderAdminReviewPage(matches) {
     <div class="card admin-card">
       <h2>Admin Match Review</h2>
       <p class="muted small">
-        Select a match to view each user’s latest prediction, first-team-to-score pick, and points earned.
+        Select a match to view each user’s latest prediction, winner pick, first-team-to-score pick, and points earned.
       </p>
     </div>
 
@@ -897,9 +1130,9 @@ function renderAdminReviewPage(matches) {
           </div>
 
           <div class="teams">
-            <div class="team-name">${escapeHtml(match.home_team)}</div>
+            ${teamBlock(match.home_team)}
             <div class="vs">vs</div>
-            <div class="team-name">${escapeHtml(match.away_team)}</div>
+            ${teamBlock(match.away_team)}
           </div>
 
           <p class="muted small">
@@ -911,6 +1144,10 @@ function renderAdminReviewPage(matches) {
               ? `Result: ${match.actual_home_score} - ${match.actual_away_score}`
               : 'Result pending'
             }
+          </p>
+
+          <p class="muted small">
+            Winner: ${escapeHtml(winnerLabel(actualWinner(match), match))}
           </p>
 
           <p class="muted small">
@@ -940,7 +1177,7 @@ function renderAdminMatchReview(match, rows) {
 
       <h2 style="margin-top:14px;">
         ${match.match_no ? `Match ${match.match_no}: ` : ''}
-        ${escapeHtml(match.home_team)} vs ${escapeHtml(match.away_team)}
+        ${teamWithFlag(match.home_team)} vs ${teamWithFlag(match.away_team)}
       </h2>
 
       <p class="muted small">
@@ -956,6 +1193,10 @@ function renderAdminMatchReview(match, rows) {
       </p>
 
       <p class="muted small">
+        Actual winner: <strong>${escapeHtml(winnerLabel(actualWinner(match), match))}</strong>
+      </p>
+
+      <p class="muted small">
         Actual first scorer: <strong>${escapeHtml(firstTeamLabel(match.actual_first_team_to_score, match))}</strong>
       </p>
     </div>
@@ -967,9 +1208,12 @@ function renderAdminMatchReview(match, rows) {
         <thead>
           <tr>
             <th>Name</th>
+            <th>Support</th>
             <th>Score Pick</th>
+            <th>Winner Pick</th>
             <th>First Scorer Pick</th>
-            <th>Result Points</th>
+            <th>Exact</th>
+            <th>Winner</th>
             <th>First Score</th>
             <th>Total</th>
             <th>Last Updated</th>
@@ -983,9 +1227,12 @@ function renderAdminMatchReview(match, rows) {
               ? rows.map(row => `
                 <tr>
                   <td>${escapeHtml(row.full_name || row.email)}</td>
+                  <td>${row.supported_team ? teamWithFlag(row.supported_team) : '—'}</td>
                   <td>${row.home_score} - ${row.away_score}</td>
+                  <td>${escapeHtml(winnerLabel(row.who_will_win, match))}</td>
                   <td>${escapeHtml(firstTeamLabel(row.first_team_to_score, match))}</td>
-                  <td>${row.result_points ?? 0}</td>
+                  <td>${row.exact_score_points ?? 0}</td>
+                  <td>${row.who_will_win_points ?? 0}</td>
                   <td>${row.first_score_points ?? 0}</td>
                   <td><span class="points-pill">${row.match_points ?? 0}</span></td>
                   <td>${new Date(row.updated_at).toLocaleString()}</td>
@@ -998,7 +1245,7 @@ function renderAdminMatchReview(match, rows) {
               `).join('')
               : `
                 <tr>
-                  <td colspan="8" class="muted">
+                  <td colspan="11" class="muted">
                     No predictions submitted for this match yet.
                   </td>
                 </tr>
@@ -1012,7 +1259,7 @@ function renderAdminMatchReview(match, rows) {
 
 function renderUserPredictionHistory(match, rows) {
   const title = match
-    ? `${escapeHtml(match.home_team)} vs ${escapeHtml(match.away_team)}`
+    ? `${teamWithFlag(match.home_team)} vs ${teamWithFlag(match.away_team)}`
     : 'Prediction History';
 
   const userName = rows[0]?.full_name || rows[0]?.email || 'User';
@@ -1036,6 +1283,7 @@ function renderUserPredictionHistory(match, rows) {
           <tr>
             <th>Date / Time</th>
             <th>Prediction</th>
+            <th>Winner</th>
             <th>First Scorer</th>
             <th>Action</th>
           </tr>
@@ -1048,13 +1296,14 @@ function renderUserPredictionHistory(match, rows) {
                 <tr>
                   <td>${new Date(row.created_at).toLocaleString()}</td>
                   <td>${row.home_score} - ${row.away_score}</td>
+                  <td>${escapeHtml(winnerLabel(row.who_will_win, match))}</td>
                   <td>${escapeHtml(firstTeamLabel(row.first_team_to_score, match))}</td>
                   <td>${escapeHtml(row.action)}</td>
                 </tr>
               `).join('')
               : `
                 <tr>
-                  <td colspan="4" class="muted">
+                  <td colspan="5" class="muted">
                     No history available. History is tracked only after the audit table was added.
                   </td>
                 </tr>
@@ -1082,6 +1331,7 @@ function renderAdminBonusPredictionReview(rows) {
         <thead>
           <tr>
             <th>Name</th>
+            <th>Support</th>
             <th>Winner</th>
             <th>Best Player</th>
             <th>Finalist 1</th>
@@ -1097,6 +1347,7 @@ function renderAdminBonusPredictionReview(rows) {
               ? rows.map(row => `
                 <tr>
                   <td>${escapeHtml(row.full_name || row.email)}</td>
+                  <td>${row.supported_team ? teamWithFlag(row.supported_team) : '—'}</td>
                   <td>${escapeHtml(row.tournament_winner || '—')}</td>
                   <td>${escapeHtml(row.best_player || '—')}</td>
                   <td>${escapeHtml(row.finalist_one || '—')}</td>
@@ -1107,7 +1358,7 @@ function renderAdminBonusPredictionReview(rows) {
               `).join('')
               : `
                 <tr>
-                  <td colspan="7" class="muted">
+                  <td colspan="8" class="muted">
                     No bonus predictions submitted yet.
                   </td>
                 </tr>
@@ -1201,7 +1452,7 @@ function renderSuperAdminPanel(matches, scheduleUrl, bonusResult, bonusOptions =
           </div>
         </div>
 
-        <label>First Team to Score</label>
+        <label>Actual First Team to Score</label>
         <select id="adminFirstTeamToScore">
           <option value="">Not selected</option>
           <option value="home">Home team</option>
@@ -1282,15 +1533,41 @@ function renderSuperAdminPanel(matches, scheduleUrl, bonusResult, bonusOptions =
       </div>
 
       <div class="card admin-card">
-        <h2>Office Users / Export</h2>
+        <h2>Super Admin Exports</h2>
         <p class="muted small">
-          Add approved users and roles in Supabase SQL.
-          Use <strong>admin</strong> for limited review access and <strong>super_admin</strong> for full controls.
+          Download prediction, score, and active user data from Supabase.
         </p>
 
-        <button onclick="downloadPredictionsCsv()" class="secondary">
-          Download Visible Predictions CSV
-        </button>
+        <div class="super-export-actions">
+          <button onclick="downloadPredictionsCsv()" class="secondary">
+            Download Visible Predictions CSV
+          </button>
+
+          <button onclick="downloadFinalPredictionsCsv()" class="secondary">
+            Download Final Predictions & Scores
+          </button>
+
+          <button onclick="downloadActiveUsersCsv()" class="secondary">
+            Download Active Users
+          </button>
+        </div>
+
+        <p class="export-note">
+          Final prediction and active user exports require the new SQL views:
+          final_predictions_export and active_users_export.
+        </p>
+      </div>
+
+      <div class="card admin-card">
+        <h2>Email Match Reminders</h2>
+        <p class="muted small">
+          Users can be emailed 30 minutes before each match using the Supabase scheduled Edge Function.
+        </p>
+
+        <p class="lock-note">
+          This UI is ready for reminder tracking. The actual sending requires a Supabase Edge Function
+          connected to the reminder_eligible_users view.
+        </p>
       </div>
     </div>
   `;
