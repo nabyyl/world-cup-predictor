@@ -974,7 +974,6 @@ function renderLeaderboardTable(rows) {
           <tr>
             <th>Rank</th>
             <th>Name</th>
-            <th>Team</th>
             <th>Total</th>
             <th>Match</th>
             <th>Bonus</th>
@@ -989,8 +988,16 @@ function renderLeaderboardTable(rows) {
           ${(rows || []).map((row, index) => `
             <tr>
               <td><span class="rank">${index + 1}</span></td>
-              <td>${supportBadge(row.supported_team)} ${escapeHtml(row.full_name || row.email)}</td>
-              <td>${row.supported_team ? teamWithFlag(row.supported_team) : '<span class="muted small">—</span>'}</td>
+
+              <td>
+                <span class="leaderboard-name">
+                  <span class="leaderboard-flag">
+                    ${row.supported_team ? teamFlag(row.supported_team) : '🏳️'}
+                  </span>
+                  <span>${escapeHtml(row.full_name || row.email)}</span>
+                </span>
+              </td>
+
               <td><span class="points-pill">${row.total_points ?? 0}</span></td>
               <td>${row.match_points ?? 0}</td>
               <td>${row.bonus_points ?? 0}</td>
