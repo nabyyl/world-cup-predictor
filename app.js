@@ -284,13 +284,25 @@ async function loadSession() {
 }
 
 async function fetchProfile() {
+  if (!currentUser?.id) {
+    throw new Error('No logged-in user found.');
+  }
+
   const { data, error } = await supabaseClient
     .from('profiles')
     .select('*')
     .eq('id', currentUser.id)
-    .single();
+    .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    throw new Error(`Profile load failed: ${error.message}`);
+  }
+
+  if (!data) {
+    throw new Error(
+      'Your login worked, but no profile exists for this email. Please ask the Super Admin to add or approve this account in the profiles table.'
+    );
+  }
 
   currentProfile = data;
 }
@@ -306,6 +318,14 @@ async function enterPortal() {
       );
 
       await supabaseClient.auth.signOut();
+
+      currentUser = null;
+      currentProfile = null;
+
+      hideElement('portalPanel');
+      hideElement('resetPasswordPanel');
+      showElement('authPanel');
+
       return;
     }
 
@@ -326,14 +346,23 @@ async function enterPortal() {
       superAdminTab.classList.toggle('hidden', !isSuperAdmin());
     }
 
-    await refreshAll();
+    try {
+      await refreshAll();
+    } catch (loadError) {
+      console.error('Portal data load failed:', loadError);
+      toast(`Portal loaded, but some data failed: ${loadError.message}`);
+    }
 
     showView('predictions');
-
     startLiveTickers();
   } catch (error) {
-    setMessage(error.message, 'error');
-    await supabaseClient.auth.signOut();
+    console.error('Login / portal entry failed:', error);
+
+    hideElement('portalPanel');
+    hideElement('resetPasswordPanel');
+    showElement('authPanel');
+
+    setMessage(error.message || 'Login failed. Please try again.', 'error');
   }
 }
 
@@ -620,6 +649,11 @@ async function loadMatches() {
 }
 
 async function loadPredictions() {
+  if (!currentUser?.id) {
+    predictionsCache = [];
+    return;
+  }
+
   const { data, error } = await supabaseClient
     .from('predictions')
     .select('*')
@@ -631,7 +665,7 @@ async function loadPredictions() {
 }
 
 async function loadBonusPrediction() {
-  if (!currentUser) {
+  if (!currentUser?.id) {
     bonusPredictionCache = null;
     return;
   }
