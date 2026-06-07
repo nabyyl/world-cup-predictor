@@ -3119,3 +3119,32 @@ select option {
     animation: footballFloatSmall 3.2s ease-in-out infinite !important;
   }
 }
+
+/* ============================================================
+   Bonus Page Button Layout Fix
+   ============================================================ */
+
+.bonus-card > button {
+  display: block;
+  width: fit-content;
+  min-width: 230px;
+  margin-top: 18px;
+  margin-left: 0;
+}
+
+.bonus-card > p.muted.small {
+  margin-top: 14px;
+}
+
+@media (min-width: 900px) {
+  .bonus-card > button {
+    margin-top: 18px;
+  }
+}
+
+@media (max-width: 720px) {
+  .bonus-card > button {
+    width: 100%;
+    min-width: 0;
+  }
+}
