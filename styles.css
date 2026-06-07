@@ -567,6 +567,7 @@ button.ghost {
   border: 1px solid var(--glass-border);
   border-radius: 999px;
   backdrop-filter: blur(12px);
+  cursor: pointer;
   transition:
     background var(--transition-smooth),
     border-color var(--transition-smooth),
@@ -576,6 +577,10 @@ button.ghost {
 .user-chip:hover {
   transform: translateY(-1px);
   border-color: color-mix(in srgb, var(--accent-2) 50%, var(--glass-border));
+}
+
+.user-chip:active {
+  transform: scale(0.985);
 }
 
 .user-avatar {
@@ -607,6 +612,19 @@ button.ghost {
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: .06em;
+}
+
+.user-supported-team {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 140px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ---------- Theme toggle ---------- */
@@ -734,6 +752,26 @@ button.ghost {
   min-height: 42px;
 }
 
+.forgot-password-link,
+#forgotPasswordBtn {
+  margin-top: 10px;
+  width: 100%;
+  background: transparent;
+  color: var(--accent-2);
+  box-shadow: none;
+  border: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.forgot-password-link:hover,
+#forgotPasswordBtn:hover {
+  text-decoration: underline;
+  background: transparent;
+  box-shadow: none;
+}
+
 /* ---------- Prediction stage filter ---------- */
 .stage-filter {
   display: flex;
@@ -843,10 +881,40 @@ button.ghost {
   margin: 6px 0 4px;
 }
 
+.team-wrap,
+.team-name-with-flag {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
 .team-name {
   font-size: 19px;
   font-weight: 850;
   text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.team-flag {
+  font-size: 28px;
+  line-height: 1;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.18));
+}
+
+.team-flag.small {
+  font-size: 18px;
+}
+
+.team-flag-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 700;
 }
 
 .vs {
@@ -860,7 +928,7 @@ button.ghost {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-  margin: 6px auto;
+  margin: 6px auto 2px;
   width: min(280px, 100%);
 }
 
@@ -1148,6 +1216,98 @@ button.ghost {
   width: fit-content;
 }
 
+/* ---------- Prediction option boxes ---------- */
+.first-score-box,
+.who-win-box {
+  margin: 8px auto 2px;
+  width: min(320px, 100%);
+  padding: 12px;
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  flex: 0 0 auto;
+}
+
+.first-score-title,
+.who-win-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-soft);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.first-score-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.who-win-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr 0.8fr;
+  gap: 8px;
+}
+
+.first-score-option,
+.who-win-option {
+  position: relative;
+  cursor: pointer;
+}
+
+.first-score-option input,
+.who-win-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.first-score-option span,
+.who-win-option span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: normal;
+  text-align: center;
+  transition:
+    background var(--transition-smooth),
+    border-color var(--transition-smooth),
+    color var(--transition-smooth),
+    transform var(--transition-fast),
+    box-shadow var(--transition-smooth);
+}
+
+.first-score-option:hover span,
+.who-win-option:hover span {
+  color: var(--text);
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent-2) 45%, var(--glass-border));
+}
+
+.first-score-option input:checked + span,
+.who-win-option input:checked + span {
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent-2) 35%, transparent);
+}
+
+.who-win-note {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
 /* ---------- My Predictions ---------- */
 .mp-card {
   padding: 20px;
@@ -1390,6 +1550,21 @@ td .points-pill {
   font-weight: 900;
 }
 
+.support-team-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 180px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--glass-bg-stronger);
+  border: 1px solid var(--glass-border);
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 /* ---------- Admin / Super Admin ---------- */
 #adminView,
 #superAdminView {
@@ -1613,79 +1788,6 @@ td .points-pill {
   }
 }
 
-/* ============================================================
-   Bonus Predictions + First Team To Score + Admin Sub Menu
-   ============================================================ */
-
-/* ---------- First team to score options inside match cards ---------- */
-.first-score-box {
-  margin: 8px auto 2px;
-  width: min(320px, 100%);
-  padding: 12px;
-  background: var(--glass-bg-strong);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-md);
-}
-
-.first-score-title {
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--text-soft);
-  margin-bottom: 10px;
-  text-transform: uppercase;
-  letter-spacing: .06em;
-}
-
-.first-score-options {
-  display: grid;
-  grid-template-columns: 1fr 1fr 0.8fr;
-  gap: 8px;
-}
-
-.first-score-option {
-  position: relative;
-  cursor: pointer;
-}
-
-.first-score-option input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.first-score-option span {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 38px;
-  padding: 8px 10px;
-  border-radius: 999px;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
-  transition:
-    background var(--transition-smooth),
-    border-color var(--transition-smooth),
-    color var(--transition-smooth),
-    transform var(--transition-fast),
-    box-shadow var(--transition-smooth);
-}
-
-.first-score-option:hover span {
-  color: var(--text);
-  transform: translateY(-1px);
-  border-color: color-mix(in srgb, var(--accent-2) 45%, var(--glass-border));
-}
-
-.first-score-option input:checked + span {
-  background: linear-gradient(135deg, var(--accent-2), var(--accent));
-  color: white;
-  border-color: transparent;
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent-2) 35%, transparent);
-}
-
 /* ---------- Bonus prediction page ---------- */
 .bonus-card {
   padding: 22px;
@@ -1889,6 +1991,253 @@ td .points-pill {
   font-size: 12px;
 }
 
+/* ---------- Export controls ---------- */
+.export-actions,
+.super-export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.export-actions button,
+.super-export-actions button {
+  min-height: 42px;
+}
+
+.export-note {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* ---------- Profile modal / supported team ---------- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(2, 6, 23, 0.58);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  animation: modalBackdropIn 180ms ease-out;
+}
+
+.modal-backdrop.hidden {
+  display: none !important;
+}
+
+.profile-modal {
+  width: min(560px, 94vw);
+  max-height: min(760px, 88vh);
+  overflow-y: auto;
+  padding: 22px;
+}
+
+.profile-modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.profile-modal-head h2 {
+  font-size: clamp(20px, 2.4vw, 26px);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.profile-close-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--glass-bg-strong);
+  color: var(--text);
+  border: 1px solid var(--glass-border);
+  box-shadow: none;
+}
+
+.profile-info-card {
+  padding: 14px;
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  margin-bottom: 14px;
+}
+
+.profile-info-card strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 15px;
+}
+
+.profile-team-select {
+  margin-top: 12px;
+}
+
+.profile-team-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.profile-team-actions button {
+  flex: 1;
+}
+
+.support-team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.support-team-option {
+  position: relative;
+  cursor: pointer;
+}
+
+.support-team-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.support-team-option span {
+  min-height: 54px;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  color: var(--text-soft);
+  font-weight: 800;
+  font-size: 13px;
+  transition:
+    background var(--transition-smooth),
+    border-color var(--transition-smooth),
+    color var(--transition-smooth),
+    transform var(--transition-fast),
+    box-shadow var(--transition-smooth);
+}
+
+.support-team-option:hover span {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent-2) 45%, var(--glass-border));
+}
+
+.support-team-option input:checked + span {
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--accent-2) 32%, transparent);
+}
+
+.supporter-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.supporter-card {
+  padding: 14px;
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+}
+
+.supporter-card strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.supporter-card span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+@keyframes modalBackdropIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* ---------- Bonus dropdown styling ---------- */
+.bonus-field select,
+.admin-card select {
+  margin-top: 4px;
+}
+
+.bonus-field select {
+  width: 100%;
+}
+
+.bonus-grid select,
+.inline-row select,
+#bonusTournamentWinner,
+#bonusBestPlayer,
+#bonusFinalistOne,
+#bonusFinalistTwo,
+#actualTournamentWinner,
+#actualBestPlayer,
+#actualFinalistOne,
+#actualFinalistTwo {
+  min-height: 48px;
+  cursor: pointer;
+}
+
+#bonusTournamentWinner:disabled,
+#bonusBestPlayer:disabled,
+#bonusFinalistOne:disabled,
+#bonusFinalistTwo:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+select option {
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+[data-theme="light"] select option {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+#bonusTournamentWinner,
+#bonusBestPlayer,
+#bonusFinalistOne,
+#bonusFinalistTwo,
+#actualTournamentWinner,
+#actualBestPlayer,
+#actualFinalistOne,
+#actualFinalistTwo {
+  background: var(--input-bg);
+  border-color: var(--glass-border);
+}
+
 /* ---------- Light theme readability ---------- */
 [data-theme="light"] input,
 [data-theme="light"] select {
@@ -1924,7 +2273,8 @@ td .points-pill {
 [data-theme="light"] .status-pill,
 [data-theme="light"] .stage-tag,
 [data-theme="light"] .rank,
-[data-theme="light"] .points-mini {
+[data-theme="light"] .points-mini,
+[data-theme="light"] .support-team-badge {
   color: #334155;
   background: rgba(255, 255, 255, 0.90);
   border-color: rgba(15, 23, 42, 0.14);
@@ -2040,7 +2390,8 @@ td .points-pill {
     gap: 12px;
   }
 
-  .first-score-options {
+  .first-score-options,
+  .who-win-options {
     grid-template-columns: 1fr;
   }
 
@@ -2071,6 +2422,25 @@ td .points-pill {
     justify-content: flex-start;
     margin-left: 0;
     margin-right: 0;
+  }
+
+  #bonusTournamentWinner,
+  #bonusBestPlayer,
+  #bonusFinalistOne,
+  #bonusFinalistTwo,
+  #actualTournamentWinner,
+  #actualBestPlayer,
+  #actualFinalistOne,
+  #actualFinalistTwo {
+    min-height: 50px;
+  }
+
+  .profile-team-actions {
+    flex-direction: column;
+  }
+
+  .profile-team-actions button {
+    width: 100%;
   }
 }
 
@@ -2196,11 +2566,13 @@ td .points-pill {
     padding: 12px;
   }
 
-  .first-score-box {
+  .first-score-box,
+  .who-win-box {
     padding: 10px;
   }
 
-  .first-score-option span {
+  .first-score-option span,
+  .who-win-option span {
     min-height: 36px;
     font-size: 12px;
   }
@@ -2251,6 +2623,18 @@ td .points-pill {
   #stageFilter.stage-filter button.active {
     border-radius: 12px !important;
   }
+
+  .team-flag {
+    font-size: 24px;
+  }
+
+  .support-team-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .profile-modal {
+    padding: 18px 14px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -2287,6 +2671,10 @@ td .points-pill {
     font-size: 12px;
     line-height: 1.45;
   }
+
+  .support-team-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ---------- Motion preference support ---------- */
@@ -2314,100 +2702,4 @@ td .points-pill {
   .logo-ball.small {
     animation: footballFloatSmall 3.2s ease-in-out infinite !important;
   }
-}
-
-/* ============================================================
-   Bonus Dropdown Styling
-   Added for GitHub-loaded teams.json and players.json dropdowns
-   ============================================================ */
-
-.bonus-field select,
-.admin-card select {
-  margin-top: 4px;
-}
-
-.bonus-field select {
-  width: 100%;
-}
-
-.bonus-grid select,
-.inline-row select,
-#bonusTournamentWinner,
-#bonusBestPlayer,
-#bonusFinalistOne,
-#bonusFinalistTwo,
-#actualTournamentWinner,
-#actualBestPlayer,
-#actualFinalistOne,
-#actualFinalistTwo {
-  min-height: 48px;
-  cursor: pointer;
-}
-
-#bonusTournamentWinner:disabled,
-#bonusBestPlayer:disabled,
-#bonusFinalistOne:disabled,
-#bonusFinalistTwo:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-
-select option {
-  background: #0f172a;
-  color: #f8fafc;
-}
-
-[data-theme="light"] select option {
-  background: #ffffff;
-  color: #0f172a;
-}
-
-/* Make bonus dropdown section feel like proper cards */
-#bonusTournamentWinner,
-#bonusBestPlayer,
-#bonusFinalistOne,
-#bonusFinalistTwo {
-  background: var(--input-bg);
-  border-color: var(--glass-border);
-}
-
-/* Super Admin actual bonus result dropdowns */
-#actualTournamentWinner,
-#actualBestPlayer,
-#actualFinalistOne,
-#actualFinalistTwo {
-  background: var(--input-bg);
-  border-color: var(--glass-border);
-}
-
-/* Mobile spacing improvement */
-@media (max-width: 720px) {
-  #bonusTournamentWinner,
-  #bonusBestPlayer,
-  #bonusFinalistOne,
-  #bonusFinalistTwo,
-  #actualTournamentWinner,
-  #actualBestPlayer,
-  #actualFinalistOne,
-  #actualFinalistTwo {
-    min-height: 50px;
-  }
-}
-
-.forgot-password-link {
-  margin-top: 10px;
-  width: 100%;
-  background: transparent;
-  color: var(--accent-2);
-  box-shadow: none;
-  border: 0;
-  padding: 8px 12px;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.forgot-password-link:hover {
-  text-decoration: underline;
-  background: transparent;
-  box-shadow: none;
 }
