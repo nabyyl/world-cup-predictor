@@ -1413,7 +1413,6 @@ function renderAdminBonusPredictionReview(rows) {
         <thead>
           <tr>
             <th>Name</th>
-            <th>Support</th>
             <th>Winner</th>
             <th>Best Player</th>
             <th>Finalist 1</th>
@@ -1429,7 +1428,6 @@ function renderAdminBonusPredictionReview(rows) {
               ? rows.map(row => `
                 <tr>
                   <td>${escapeHtml(row.full_name || row.email)}</td>
-                  <td>${row.supported_team ? teamWithFlag(row.supported_team) : '—'}</td>
                   <td>${escapeHtml(row.tournament_winner || '—')}</td>
                   <td>${escapeHtml(row.best_player || '—')}</td>
                   <td>${escapeHtml(row.finalist_one || '—')}</td>
@@ -1440,7 +1438,7 @@ function renderAdminBonusPredictionReview(rows) {
               `).join('')
               : `
                 <tr>
-                  <td colspan="8" class="muted">
+                  <td colspan="7" class="muted">
                     No bonus predictions submitted yet.
                   </td>
                 </tr>
