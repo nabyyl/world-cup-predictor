@@ -264,6 +264,22 @@ function normalizeText(value) {
   return String(value || '').trim().toLowerCase();
 }
 
+function sortStageMatches(matches) {
+  return [...matches].sort((a, b) => {
+    const aDone = matchHasResult(a);
+    const bDone = matchHasResult(b);
+
+    if (aDone !== bDone) return aDone ? 1 : -1;
+
+    const aTime = new Date(a.kickoff_at).getTime();
+    const bTime = new Date(b.kickoff_at).getTime();
+
+    if (aDone && bDone) return bTime - aTime;
+
+    return aTime - bTime;
+  });
+}
+
 /* ============================================================
    Dropdown helper
    ============================================================ */
@@ -445,7 +461,9 @@ function liveMiniCard(match) {
 function renderMatchCards(matches, predictions, helpers, stageFilterId) {
   const { predictionFor, matchLocked, lockReason } = helpers;
 
-  const filtered = matches.filter(match => classifyStage(match.stage) === stageFilterId);
+  const filtered = sortStageMatches(
+    matches.filter(match => classifyStage(match.stage) === stageFilterId)
+  );
 
   if (!filtered.length) {
     return `
@@ -473,11 +491,13 @@ function renderMatchCards(matches, predictions, helpers, stageFilterId) {
           prediction?.who_will_win ||
           (prediction ? predictedWinnerFromScore(prediction) : '');
 
-        const pill = live
-          ? `<span class="status-pill live">● LIVE</span>`
-          : locked
-            ? `<span class="status-pill locked">🔒 Locked</span>`
-            : `<span class="status-pill upcoming">🟢 Open</span>`;
+        const pill = matchHasResult(match)
+          ? `<span class="status-pill done">📊 Full Time</span>`
+          : live
+            ? `<span class="status-pill live">● LIVE</span>`
+            : locked
+              ? `<span class="status-pill locked">🔒 Locked</span>`
+              : `<span class="status-pill upcoming">🟢 Open</span>`;
 
         return `
           <article class="card match-card" id="match_${match.id}">
@@ -554,7 +574,7 @@ function renderMatchCards(matches, predictions, helpers, stageFilterId) {
             </div>
 
             <div class="who-win-box">
-              <div class="who-win-title">Who will win? (+2 points)</div>
+              <div class="who-win-title">Who will win? (+1 point)</div>
 
               <div class="who-win-options">
                 <label class="who-win-option">
@@ -592,7 +612,7 @@ function renderMatchCards(matches, predictions, helpers, stageFilterId) {
               </div>
 
               <div class="who-win-note">
-                Linked to the 2-point correct winner / draw rule.
+                Linked to the 1-point correct winner / draw rule.
               </div>
             </div>
 
@@ -906,10 +926,12 @@ function renderMyPredictions(matches, predictions) {
 
 /* ============================================================
    Scoring helper
-   Exact score = 5
-   Who will win / draw = 2
+   Exact score = 3
+   Correct one team's score = 1
+   Who will win / draw = 1
    First team to score = 1
-   Maximum per match = 8
+   Maximum per match = 5
+   Note: team-score points are only awarded when exact score is not hit.
    ============================================================ */
 
 function scorePrediction(prediction, match) {
@@ -931,13 +953,29 @@ function scorePrediction(prediction, match) {
 
   const actualResult = actualWinner(match);
 
-  if (ph === ah && pa === aa) {
-    points += 5;
+  const exactScore = ph === ah && pa === aa;
+
+  if (exactScore) {
+    points += 3;
     labels.push('Exact score');
+  } else {
+    let teamScorePoints = 0;
+
+    if (ph === ah) teamScorePoints += 1;
+    if (pa === aa) teamScorePoints += 1;
+
+    if (teamScorePoints > 0) {
+      points += teamScorePoints;
+      labels.push(
+        teamScorePoints === 1
+          ? 'One team score'
+          : 'Both team scores'
+      );
+    }
   }
 
   if (selectedWinner && selectedWinner === actualResult) {
-    points += 2;
+    points += 1;
     labels.push('Winner / draw');
   }
 
@@ -1179,12 +1217,7 @@ function renderAdminPageShell(activeView) {
    ============================================================ */
 
 function renderAdminReviewPage(matches) {
-  const sortedMatches = [...matches].sort((a, b) => {
-    const aTime = new Date(a.kickoff_at).getTime();
-    const bTime = new Date(b.kickoff_at).getTime();
-
-    return aTime - bTime;
-  });
+  const sortedMatches = sortStageMatches(matches);
 
   return `
     <div class="card admin-card">
@@ -1290,11 +1323,11 @@ function renderAdminMatchReview(match, rows) {
         <thead>
           <tr>
             <th>Name</th>
-            <th>Support</th>
             <th>Score Pick</th>
             <th>Winner Pick</th>
             <th>First Scorer Pick</th>
             <th>Exact</th>
+            <th>Team Score</th>
             <th>Winner</th>
             <th>First Score</th>
             <th>Total</th>
@@ -1309,11 +1342,11 @@ function renderAdminMatchReview(match, rows) {
               ? rows.map(row => `
                 <tr>
                   <td>${escapeHtml(row.full_name || row.email)}</td>
-                  <td>${row.supported_team ? teamWithFlag(row.supported_team) : '—'}</td>
                   <td>${row.home_score} - ${row.away_score}</td>
                   <td>${escapeHtml(winnerLabel(row.who_will_win, match))}</td>
                   <td>${escapeHtml(firstTeamLabel(row.first_team_to_score, match))}</td>
                   <td>${row.exact_score_points ?? 0}</td>
+                  <td>${row.team_score_points ?? row.correct_team_score_points ?? 0}</td>
                   <td>${row.who_will_win_points ?? 0}</td>
                   <td>${row.first_score_points ?? 0}</td>
                   <td><span class="points-pill">${row.match_points ?? 0}</span></td>
