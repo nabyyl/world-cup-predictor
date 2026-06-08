@@ -9,8 +9,9 @@
    - Supports match_no, home_source, away_source
    - Auto-fills knockout winners/losers into next matches
    - Scoring:
-       Exact score = 5
-       Who will win / draw = 2
+       Exact score = 3
+       Correct one team's score = 1
+       Who will win / draw = 1
        First team to score = 1
    - Bonus predictions:
        Tournament winner = 10
@@ -719,6 +720,39 @@ function predictionFor(matchId) {
 }
 
 /* ============================================================
+   Match ordering helpers
+   For Group, Round of 32, Round of 16 and Quarter Final:
+   - unfinished/live/upcoming matches stay at the top
+   - finished matches move below
+   ============================================================ */
+
+function stageShouldMoveFinishedBelow(stageId) {
+  return ['group', 'r32', 'r16', 'qf'].includes(stageId);
+}
+
+function sortMatchesForStageRender(matches, stageId) {
+  const sorted = [...(matches || [])];
+
+  if (!stageShouldMoveFinishedBelow(stageId)) {
+    return sorted.sort((a, b) => new Date(a.kickoff_at) - new Date(b.kickoff_at));
+  }
+
+  return sorted.sort((a, b) => {
+    const aDone = matchHasResult(a);
+    const bDone = matchHasResult(b);
+
+    if (aDone !== bDone) return aDone ? 1 : -1;
+
+    const aLive = isLive(a);
+    const bLive = isLive(b);
+
+    if (aLive !== bLive) return aLive ? -1 : 1;
+
+    return new Date(a.kickoff_at) - new Date(b.kickoff_at);
+  });
+}
+
+/* ============================================================
    Lock logic
    ============================================================ */
 
@@ -799,8 +833,10 @@ function renderPredictionsRoot() {
     return;
   }
 
+  const orderedMatches = sortMatchesForStageRender(matchesCache, currentStage);
+
   content.innerHTML = renderMatchCards(
-    matchesCache,
+    orderedMatches,
     predictionsCache,
     {
       predictionFor,
@@ -2003,6 +2039,7 @@ async function downloadPredictionsCsv() {
     'Actual Winner',
     'Actual First Team To Score',
     'Exact Score Points',
+    'Correct Team Score Points',
     'Who Will Win Points',
     'First Score Points',
     'Match Points',
@@ -2028,6 +2065,7 @@ async function downloadPredictionsCsv() {
     row.actual_winner ?? '',
     row.actual_first_team_to_score ?? '',
     row.exact_score_points ?? 0,
+    row.correct_team_score_points ?? 0,
     row.who_will_win_points ?? 0,
     row.first_score_points ?? 0,
     row.match_points ?? 0,
@@ -2075,6 +2113,7 @@ async function downloadFinalPredictionsCsv() {
     'Who Will Win',
     'First Team To Score',
     'Exact Score Points',
+    'Correct Team Score Points',
     'Who Will Win Points',
     'First Score Points',
     'Total Match Points',
@@ -2100,6 +2139,7 @@ async function downloadFinalPredictionsCsv() {
     row.who_will_win ?? '',
     row.first_team_to_score ?? '',
     row.exact_score_points ?? 0,
+    row.correct_team_score_points ?? 0,
     row.who_will_win_points ?? 0,
     row.first_score_points ?? 0,
     row.total_match_points ?? 0,
