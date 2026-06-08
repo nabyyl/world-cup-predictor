@@ -69,7 +69,7 @@ const TEAM_FLAGS = {
   'DR Congo': '🇨🇩',
   Ecuador: '🇪🇨',
   Egypt: '🇪🇬',
-  England: '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+  England: '🏴',
   France: '🇫🇷',
   Germany: '🇩🇪',
   Ghana: '🇬🇭',
@@ -90,7 +90,7 @@ const TEAM_FLAGS = {
   Portugal: '🇵🇹',
   Qatar: '🇶🇦',
   'Saudi Arabia': '🇸🇦',
-  Scotland: '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+  Scotland: '🏴',
   Senegal: '🇸🇳',
   'South Africa': '🇿🇦',
   'South Korea': '🇰🇷',
@@ -200,6 +200,17 @@ function isUpcoming(match) {
 
 function resultText(match) {
   if (!matchHasResult(match)) return 'Result pending';
+
+  const winner = actualWinner(match);
+
+  if (
+    match.actual_home_score === match.actual_away_score &&
+    winner &&
+    winner !== 'draw'
+  ) {
+    return `Result: ${match.actual_home_score} - ${match.actual_away_score} · Winner: ${winnerLabel(winner, match)}`;
+  }
+
   return `Result: ${match.actual_home_score} - ${match.actual_away_score}`;
 }
 
@@ -240,6 +251,18 @@ function winnerLabel(value, match) {
 
 function actualWinner(match) {
   if (!matchHasResult(match)) return null;
+
+  if (
+    match.actual_winner === 'home' ||
+    match.actual_winner === 'away' ||
+    match.actual_winner === 'draw'
+  ) {
+    return match.actual_winner;
+  }
+
+  if (match.actual_winner_override === 'home' || match.actual_winner_override === 'away' || match.actual_winner_override === 'draw') {
+    return match.actual_winner_override;
+  }
 
   const home = Number(match.actual_home_score);
   const away = Number(match.actual_away_score);
@@ -546,7 +569,7 @@ function renderMatchCards(matches, predictions, helpers, stageFilterId) {
             </div>
 
             <div class="first-score-box">
-              <div class="first-score-title">First team to score (+1 point)</div>
+              <div class="first-score-title">First team to score / No goal (+1 point)</div>
 
               <div class="first-score-options">
                 <label class="first-score-option">
@@ -570,11 +593,22 @@ function renderMatchCards(matches, predictions, helpers, stageFilterId) {
                   />
                   <span>${teamFlag(match.away_team)} ${escapeHtml(match.away_team)}</span>
                 </label>
+
+                <label class="first-score-option">
+                  <input
+                    type="radio"
+                    name="first_${match.id}"
+                    value="none"
+                    ${firstSelected === 'none' ? 'checked' : ''}
+                    ${locked ? 'disabled' : ''}
+                  />
+                  <span>🚫 No goal / 0-0</span>
+                </label>
               </div>
             </div>
 
             <div class="who-win-box">
-              <div class="who-win-title">Who will win? (+1 point)</div>
+              <div class="who-win-title">Who will win / advance? (+1 point)</div>
 
               <div class="who-win-options">
                 <label class="who-win-option">
@@ -612,7 +646,7 @@ function renderMatchCards(matches, predictions, helpers, stageFilterId) {
               </div>
 
               <div class="who-win-note">
-                Linked to the 1-point correct winner / draw rule.
+                For knockout matches, choose the team you think will advance. Choose Draw only if the match is not decided by penalties.
               </div>
             </div>
 
@@ -758,6 +792,7 @@ function renderResultsMatches(matches, predictions) {
         const prediction = predictions.find(item => item.match_id === match.id);
         const pts = scorePrediction(prediction, match);
         const won = pts.points > 0;
+        const actualResult = actualWinner(match);
 
         return `
           <article class="card match-card" id="match_${match.id}">
@@ -781,8 +816,8 @@ function renderResultsMatches(matches, predictions) {
             </p>
 
             <p class="muted small">
-              Winner:
-              <strong>${escapeHtml(winnerLabel(actualWinner(match), match))}</strong>
+              Winner / advanced:
+              <strong>${escapeHtml(winnerLabel(actualResult, match))}</strong>
             </p>
 
             <p class="muted small">
@@ -927,11 +962,10 @@ function renderMyPredictions(matches, predictions) {
 /* ============================================================
    Scoring helper
    Exact score = 3
-   Correct one team's score = 1
-   Who will win / draw = 1
-   First team to score = 1
+   Correct one team's score = 1 max
+   Who will win / draw / penalty winner = 1
+   First team to score / no goal = 1
    Maximum per match = 5
-   Note: team-score points are only awarded when exact score is not hit.
    ============================================================ */
 
 function scorePrediction(prediction, match) {
@@ -958,35 +992,31 @@ function scorePrediction(prediction, match) {
   if (exactScore) {
     points += 3;
     labels.push('Exact score');
-  } else {
-    let teamScorePoints = 0;
-
-    if (ph === ah) teamScorePoints += 1;
-    if (pa === aa) teamScorePoints += 1;
-
-    if (teamScorePoints > 0) {
-      points += teamScorePoints;
-      labels.push(
-        teamScorePoints === 1
-          ? 'One team score'
-          : 'Both team scores'
-      );
-    }
+  } else if (ph === ah || pa === aa) {
+    points += 1;
+    labels.push('One team score');
   }
 
   if (selectedWinner && selectedWinner === actualResult) {
     points += 1;
-    labels.push('Winner / draw');
+    labels.push(
+      actualResult === 'draw'
+        ? 'Draw'
+        : 'Winner / advanced'
+    );
   }
 
   if (
     prediction.first_team_to_score &&
     match.actual_first_team_to_score &&
-    match.actual_first_team_to_score !== 'none' &&
     prediction.first_team_to_score === match.actual_first_team_to_score
   ) {
     points += 1;
-    labels.push('First scorer');
+    labels.push(
+      match.actual_first_team_to_score === 'none'
+        ? 'No goal / 0-0'
+        : 'First scorer'
+    );
   }
 
   return {
@@ -1016,6 +1046,7 @@ function renderLeaderboardTable(rows) {
             <th>Match</th>
             <th>Bonus</th>
             <th>Exact</th>
+            <th>Team Score</th>
             <th>Result</th>
             <th>First Score</th>
             <th>Picks</th>
@@ -1040,6 +1071,7 @@ function renderLeaderboardTable(rows) {
               <td>${row.match_points ?? 0}</td>
               <td>${row.bonus_points ?? 0}</td>
               <td>${row.exact_scores ?? 0}</td>
+              <td>${row.correct_team_scores ?? 0}</td>
               <td>${row.correct_results ?? 0}</td>
               <td>${row.correct_first_scores ?? 0}</td>
               <td>${row.predictions_count ?? 0}</td>
@@ -1262,7 +1294,7 @@ function renderAdminReviewPage(matches) {
           </p>
 
           <p class="muted small">
-            Winner: ${escapeHtml(winnerLabel(actualWinner(match), match))}
+            Winner / advanced: ${escapeHtml(winnerLabel(actualWinner(match), match))}
           </p>
 
           <p class="muted small">
@@ -1308,11 +1340,13 @@ function renderAdminMatchReview(match, rows) {
       </p>
 
       <p class="muted small">
-        Actual winner: <strong>${escapeHtml(winnerLabel(actualWinner(match), match))}</strong>
+        Actual winner / advanced:
+        <strong>${escapeHtml(winnerLabel(actualWinner(match), match))}</strong>
       </p>
 
       <p class="muted small">
-        Actual first scorer: <strong>${escapeHtml(firstTeamLabel(match.actual_first_team_to_score, match))}</strong>
+        Actual first scorer:
+        <strong>${escapeHtml(firstTeamLabel(match.actual_first_team_to_score, match))}</strong>
       </p>
     </div>
 
@@ -1346,7 +1380,7 @@ function renderAdminMatchReview(match, rows) {
                   <td>${escapeHtml(winnerLabel(row.who_will_win, match))}</td>
                   <td>${escapeHtml(firstTeamLabel(row.first_team_to_score, match))}</td>
                   <td>${row.exact_score_points ?? 0}</td>
-                  <td>${row.team_score_points ?? row.correct_team_score_points ?? 0}</td>
+                  <td>${row.team_score_points ?? 0}</td>
                   <td>${row.who_will_win_points ?? 0}</td>
                   <td>${row.first_score_points ?? 0}</td>
                   <td><span class="points-pill">${row.match_points ?? 0}</span></td>
@@ -1564,6 +1598,18 @@ function renderSuperAdminPanel(matches, scheduleUrl, bonusResult, bonusOptions =
             <input id="adminActualAway" type="number" min="0" />
           </div>
         </div>
+
+        <label>Actual Winner / Team Advanced</label>
+        <select id="adminActualWinner">
+          <option value="">Auto from score</option>
+          <option value="home">Home team</option>
+          <option value="away">Away team</option>
+          <option value="draw">Draw</option>
+        </select>
+
+        <p class="muted small">
+          For penalty or knockout matches that end level, select the team that advanced here.
+        </p>
 
         <label>Actual First Team to Score</label>
         <select id="adminFirstTeamToScore">
