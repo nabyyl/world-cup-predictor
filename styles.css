@@ -1644,59 +1644,62 @@ td .points-pill {
 }
 
 /* ---------- Leaderboard table alignment fix ---------- */
+#leaderboardView .table-card {
+  overflow-x: auto;
+}
+
 #leaderboardView .table-card table {
   width: 100%;
+  min-width: 820px;
   table-layout: fixed;
 }
 
 #leaderboardView .table-card th,
 #leaderboardView .table-card td {
+  width: 12.5%;
+  padding: 13px 10px;
+  text-align: center !important;
   vertical-align: middle;
   white-space: nowrap;
-}
-
-#leaderboardView .table-card th {
-  text-align: center;
-}
-
-#leaderboardView .table-card th:nth-child(1),
-#leaderboardView .table-card td:nth-child(1) {
-  width: 72px;
-  text-align: center;
-  padding-left: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
 }
 
 #leaderboardView .table-card th:nth-child(2),
 #leaderboardView .table-card td:nth-child(2) {
-  width: auto;
-  text-align: left;
-}
-
-#leaderboardView .table-card th:nth-child(n+3),
-#leaderboardView .table-card td:nth-child(n+3) {
-  width: 92px;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
+  text-align: left !important;
 }
 
 #leaderboardView .leaderboard-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+#leaderboardView .leaderboard-flag {
+  flex: 0 0 28px;
+  width: 28px;
+  min-width: 28px;
+  font-size: 22px;
   display: inline-flex;
   align-items: center;
-  gap: 9px;
-  max-width: 100%;
-  min-width: 0;
+  justify-content: center;
 }
 
 #leaderboardView .leaderboard-name span:last-child {
-  display: inline-block;
-  max-width: 100%;
+  display: block;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-#leaderboardView .leaderboard-flag {
-  flex: 0 0 34px;
+#leaderboardView .rank {
+  margin: 0 auto;
 }
 
 #leaderboardView .points-pill {
@@ -1706,6 +1709,7 @@ td .points-pill {
   min-width: 44px;
 }
 
+/* Keep team badge flags clean in tables */
 .support-team-badge {
   display: inline-flex;
   align-items: center;
