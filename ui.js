@@ -1046,10 +1046,8 @@ function renderLeaderboardTable(rows) {
             <th>Match</th>
             <th>Bonus</th>
             <th>Exact</th>
-            <th>Team Score</th>
             <th>Result</th>
             <th>First Score</th>
-            <th>Picks</th>
           </tr>
         </thead>
 
@@ -1071,10 +1069,8 @@ function renderLeaderboardTable(rows) {
               <td>${row.match_points ?? 0}</td>
               <td>${row.bonus_points ?? 0}</td>
               <td>${row.exact_scores ?? 0}</td>
-              <td>${row.correct_team_scores ?? 0}</td>
               <td>${row.correct_results ?? 0}</td>
               <td>${row.correct_first_scores ?? 0}</td>
-              <td>${row.predictions_count ?? 0}</td>
             </tr>
           `).join('')}
         </tbody>
