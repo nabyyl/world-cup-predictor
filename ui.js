@@ -204,7 +204,7 @@ function resultText(match) {
   const winner = actualWinner(match);
 
   if (
-    match.actual_home_score === match.actual_away_score &&
+    Number(match.actual_home_score) === Number(match.actual_away_score) &&
     winner &&
     winner !== 'draw'
   ) {
@@ -260,7 +260,11 @@ function actualWinner(match) {
     return match.actual_winner;
   }
 
-  if (match.actual_winner_override === 'home' || match.actual_winner_override === 'away' || match.actual_winner_override === 'draw') {
+  if (
+    match.actual_winner_override === 'home' ||
+    match.actual_winner_override === 'away' ||
+    match.actual_winner_override === 'draw'
+  ) {
     return match.actual_winner_override;
   }
 
@@ -1685,6 +1689,23 @@ function renderSuperAdminPanel(matches, scheduleUrl, bonusResult, bonusOptions =
         <p class="muted small">
           Finalist points are order-free. Each correct finalist gives 5 points, maximum 10.
         </p>
+      </div>
+
+      <div class="card admin-card">
+        <h2>Reset Leaderboard</h2>
+        <p class="muted small">
+          Use this after the testing phase. This clears all match predictions, prediction history,
+          bonus predictions, and reminder logs.
+        </p>
+
+        <p class="lock-note">
+          Matches, users, match results, and bonus result settings will not be deleted.
+          Password required: same as schedule sync password.
+        </p>
+
+        <button onclick="resetLeaderboard()" class="danger">
+          Reset Leaderboard
+        </button>
       </div>
 
       <div class="card admin-card">
