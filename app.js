@@ -20,6 +20,7 @@
    - User supported-team customization
    - Team supporter summary
    - Super Admin exports
+   - Super Admin leaderboard reset
    - Bonus dropdown lists load from GitHub JSON files
    - Forgot password redirects to reset-password.html
    - Supabase connection is prefilled so users do not see setup screen
@@ -721,9 +722,6 @@ function predictionFor(matchId) {
 
 /* ============================================================
    Match ordering helpers
-   For Group, Round of 32, Round of 16 and Quarter Final:
-   - unfinished/live/upcoming matches stay at the top
-   - finished matches move below
    ============================================================ */
 
 function stageShouldMoveFinishedBelow(stageId) {
@@ -1617,6 +1615,79 @@ async function updateResult() {
 }
 
 window.updateResult = updateResult;
+
+/* ============================================================
+   Reset leaderboard
+   Deletes predictions, prediction history, bonus predictions,
+   and reminder logs through SQL RPC.
+   ============================================================ */
+
+async function resetLeaderboard() {
+  if (!isSuperAdmin()) {
+    toast('Super Admin access required.');
+    return;
+  }
+
+  const confirmed = confirm(
+    'Reset leaderboard after testing? This will delete all match predictions, prediction history, bonus predictions, and reminder logs. Matches, users, and match results will remain.'
+  );
+
+  if (!confirmed) return;
+
+  const password = prompt('Enter reset password to continue:');
+
+  if (password !== SUPER_ADMIN_SYNC_PASSWORD) {
+    toast('Incorrect reset password. Leaderboard reset cancelled.');
+    return;
+  }
+
+  const finalConfirm = confirm(
+    'Final confirmation: this cannot be undone. Reset leaderboard now?'
+  );
+
+  if (!finalConfirm) return;
+
+  try {
+    toast('Resetting leaderboard...');
+
+    const { data, error } = await supabaseClient
+      .rpc('super_admin_reset_leaderboard', {
+        reset_password: password
+      });
+
+    if (error) throw error;
+
+    predictionsCache = [];
+    bonusPredictionCache = null;
+
+    await loadPredictions();
+    await loadBonusPrediction();
+    await loadBonusResults();
+    await loadSupporterSummary();
+
+    if (currentTopView === 'leaderboard') {
+      await renderLeaderboard();
+    }
+
+    if (currentTopView === 'predictions' || currentTopView === 'myPredictions') {
+      rerenderCurrentView();
+    }
+
+    if (currentTopView === 'admin') {
+      await renderAdmin();
+    }
+
+    if (currentTopView === 'superAdmin') {
+      renderSuperAdmin();
+    }
+
+    toast(data || 'Leaderboard reset complete.');
+  } catch (error) {
+    toast(error.message || 'Leaderboard reset failed.');
+  }
+}
+
+window.resetLeaderboard = resetLeaderboard;
 
 async function updateBonusResults() {
   if (!isSuperAdmin()) {
