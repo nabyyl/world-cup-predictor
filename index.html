@@ -8,7 +8,7 @@
 
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%BD%3C/text%3E%3C/svg%3E">
 
-  <link rel="stylesheet" href="styles.css?v=12" />
+  <link rel="stylesheet" href="styles.css?v=13" />
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -171,12 +171,17 @@
 
         <div class="rules-grid">
           <div>
-            <strong>5 pts</strong>
+            <strong>3 pts</strong>
             <span>Exact score</span>
           </div>
 
           <div>
-            <strong>2 pts</strong>
+            <strong>1 pt</strong>
+            <span>Correct one team's score</span>
+          </div>
+
+          <div>
+            <strong>1 pt</strong>
             <span>Correct winner / draw</span>
           </div>
 
@@ -202,19 +207,26 @@
         </div>
 
         <p class="muted">
-          For each match, you can earn points from multiple areas. For example, if you predict the
-          exact score, the correct result, and the first team to score, your points will accumulate.
+          For each match, you can earn points from multiple areas. The maximum match points are
+          <strong>5 points</strong>: exact score, correct winner or draw, and correct first team to score.
         </p>
 
         <p class="muted">
           Match prediction points are:
-          <strong>5 points for exact score</strong>,
-          <strong>2 points for correct winner or draw</strong>, and
+          <strong>3 points for exact score</strong>,
+          <strong>1 point for correctly predicting one team's score</strong>,
+          <strong>1 point for correct winner or draw</strong>, and
           <strong>1 point for correctly guessing which team scores first</strong>.
         </p>
 
         <p class="muted">
-          The <strong>Who will win</strong> selection is linked to the 2-point correct winner / draw rule.
+          The <strong>correct one team's score</strong> point is awarded only when the full exact score is not correct.
+          For example, if you predict <strong>France 2 - 0 Senegal</strong> and the actual score is
+          <strong>France 2 - 1 Senegal</strong>, you get <strong>1 point</strong> for correctly predicting France's score.
+        </p>
+
+        <p class="muted">
+          The <strong>Who will win</strong> selection is linked to the 1-point correct winner / draw rule.
           For a 0-0 prediction, enter <strong>0-0</strong> as the score and select <strong>Draw</strong>.
         </p>
 
@@ -259,7 +271,7 @@
   <div id="toast" class="toast hidden"></div>
 
   <!-- Scripts must load here, after HTML exists and after Supabase loads -->
-  <script src="ui.js?v=12"></script>
-  <script src="app.js?v=12"></script>
+  <script src="ui.js?v=13"></script>
+  <script src="app.js?v=13"></script>
 </body>
 </html>
