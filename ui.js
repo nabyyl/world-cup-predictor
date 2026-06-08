@@ -1094,6 +1094,15 @@ function renderLeaderboardTable(rows) {
   `;
 }
 
+function renderLeaderboardError(message) {
+  return `
+    <div class="card table-card leaderboard-table-card">
+      <h2>Leaderboard</h2>
+      <p class="message">${escapeHtml(message || 'Leaderboard could not load.')}</p>
+    </div>
+  `;
+}
+
 /* ============================================================
    User profile / supported team modal
    ============================================================ */
