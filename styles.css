@@ -1224,11 +1224,14 @@ button.ghost {
   width: min(330px, 100%);
   border-radius: var(--radius-md);
   flex: 0 0 auto;
-}
-
-.first-score-box {
-  background: var(--glass-bg-strong);
-  border: 1px solid var(--glass-border);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent-2) 10%, var(--glass-bg-strong)),
+      color-mix(in srgb, var(--accent) 8%, var(--glass-bg-strong))
+    );
+  border: 1px solid color-mix(in srgb, var(--accent-2) 28%, var(--glass-border));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
 }
 
 .first-score-title,
@@ -1242,10 +1245,12 @@ button.ghost {
   text-align: center;
 }
 
-.first-score-options {
+.first-score-options,
+.who-win-options {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 0.78fr;
   gap: 7px;
+  align-items: stretch;
 }
 
 .first-score-option,
@@ -1262,13 +1267,15 @@ button.ghost {
   pointer-events: none;
 }
 
-.first-score-option span {
+.first-score-option span,
+.who-win-option span {
+  width: 100%;
   min-height: 36px;
   padding: 7px 9px;
-  border-radius: 999px;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  color: var(--muted);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--glass-bg-stronger) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--glass-border) 85%, var(--accent-2));
+  color: var(--text-soft);
   font-size: 12px;
   font-weight: 850;
   display: flex;
@@ -1278,6 +1285,7 @@ button.ghost {
   text-align: center;
   line-height: 1.15;
   white-space: normal;
+  word-break: normal;
   overflow-wrap: anywhere;
   transition:
     background var(--transition-smooth),
@@ -1287,17 +1295,30 @@ button.ghost {
     box-shadow var(--transition-smooth);
 }
 
-.first-score-option:hover span {
+.first-score-option:hover span,
+.who-win-option:hover span {
   color: var(--text);
   transform: translateY(-1px);
-  border-color: color-mix(in srgb, var(--accent-2) 45%, var(--glass-border));
+  border-color: color-mix(in srgb, var(--accent-2) 55%, var(--glass-border));
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent-2) 18%, transparent);
 }
 
-.first-score-option input:checked + span {
+.first-score-option input:checked + span,
+.who-win-option input:checked + span {
   background: linear-gradient(135deg, var(--accent-2), var(--accent));
   color: #ffffff;
   border-color: transparent;
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent-2) 35%, transparent);
+  box-shadow:
+    0 8px 22px color-mix(in srgb, var(--accent-2) 35%, transparent),
+    inset 0 1px 0 rgba(255,255,255,0.20);
+}
+
+.who-win-note {
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 10.8px;
+  line-height: 1.35;
+  text-align: center;
 }
 
 /* ---------- Who Will Win UI ---------- */
