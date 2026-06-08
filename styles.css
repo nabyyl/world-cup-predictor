@@ -3178,3 +3178,85 @@ select option {
     animation: footballFloatSmall 3.2s ease-in-out infinite !important;
   }
 }
+
+/* ---------- Final Leaderboard flexible-name alignment ---------- */
+#leaderboardView .leaderboard-table-card {
+  overflow-x: auto;
+}
+
+#leaderboardView .leaderboard-table {
+  width: 100%;
+  min-width: 880px;
+  table-layout: fixed;
+}
+
+#leaderboardView .leaderboard-table .lb-rank-col {
+  width: 72px;
+}
+
+#leaderboardView .leaderboard-table .lb-name-col {
+  width: auto;
+}
+
+#leaderboardView .leaderboard-table .lb-score-col {
+  width: calc((100% - 72px - 360px) / 6);
+  min-width: 88px;
+}
+
+#leaderboardView .leaderboard-table th,
+#leaderboardView .leaderboard-table td {
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+#leaderboardView .leaderboard-table th:first-child,
+#leaderboardView .leaderboard-table td:first-child {
+  text-align: center !important;
+  padding-left: 10px;
+}
+
+#leaderboardView .leaderboard-table th:nth-child(2),
+#leaderboardView .leaderboard-table td:nth-child(2) {
+  text-align: left !important;
+}
+
+#leaderboardView .leaderboard-table th:nth-child(n+3),
+#leaderboardView .leaderboard-table td:nth-child(n+3) {
+  text-align: center !important;
+  font-variant-numeric: tabular-nums;
+}
+
+#leaderboardView .leaderboard-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  width: 100%;
+}
+
+#leaderboardView .leaderboard-flag {
+  flex: 0 0 34px;
+  width: 34px;
+  min-width: 34px;
+  text-align: center;
+  font-size: 26px;
+}
+
+#leaderboardView .leaderboard-person-name {
+  display: block;
+  min-width: 0;
+  overflow: visible;
+  text-overflow: unset;
+  white-space: nowrap;
+}
+
+#leaderboardView .rank {
+  margin: 0 auto;
+}
+
+#leaderboardView .points-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+}
