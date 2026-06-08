@@ -11,8 +11,8 @@
    - Scoring:
        Exact score = 3
        Correct one team's score = 1
-       Who will win / draw = 1
-       First team to score = 1
+       Who will win / draw / advanced team = 1
+       First team to score / no goal = 1
    - Bonus predictions:
        Tournament winner = 10
        Best player = 10
@@ -753,6 +753,32 @@ function sortMatchesForStageRender(matches, stageId) {
 }
 
 /* ============================================================
+   Match result helpers
+   ============================================================ */
+
+function resolvedActualWinner(match) {
+  if (!matchHasResult(match)) return null;
+
+  if (match.actual_winner) {
+    return match.actual_winner;
+  }
+
+  const home = Number(match.actual_home_score);
+  const away = Number(match.actual_away_score);
+
+  if (home > away) return 'home';
+  if (away > home) return 'away';
+  return 'draw';
+}
+
+function teamNameFromSide(match, side) {
+  if (side === 'home') return match?.home_team || 'Home team';
+  if (side === 'away') return match?.away_team || 'Away team';
+  if (side === 'draw') return 'Draw';
+  return '';
+}
+
+/* ============================================================
    Lock logic
    ============================================================ */
 
@@ -939,7 +965,7 @@ async function savePrediction(matchId) {
     document.querySelector(`input[name="winner_${matchId}"]:checked`)?.value || null;
 
   if (!whoWillWin) {
-    toast('Select who will win or choose draw.');
+    toast('Select who will win, choose draw, or select the team you think will advance.');
     return;
   }
 
@@ -1343,6 +1369,23 @@ function renderSuperAdmin() {
   }
 }
 
+function fillActualWinnerOptions(match) {
+  const select = $('adminActualWinner');
+
+  if (!select || !match) return;
+
+  const existingValue = match.actual_winner || '';
+
+  select.innerHTML = `
+    <option value="">Auto from score / not selected</option>
+    <option value="home">${safeEscape(match.home_team || 'Home team')}</option>
+    <option value="away">${safeEscape(match.away_team || 'Away team')}</option>
+    <option value="draw">Draw</option>
+  `;
+
+  select.value = existingValue || '';
+}
+
 function fillAdminMatchForm() {
   const select = $('adminMatchSelect');
 
@@ -1364,6 +1407,8 @@ function fillAdminMatchForm() {
     $('adminFirstTeamToScore').value = match.actual_first_team_to_score ?? '';
   }
 
+  fillActualWinnerOptions(match);
+
   if ($('adminLock')) {
     $('adminLock').checked = !!match.is_locked;
   }
@@ -1378,13 +1423,17 @@ function fillAdminMatchForm() {
 
   if ($('adminResultSource')) {
     const source = match.result_source || 'manual';
+    const resolvedWinner = resolvedActualWinner(match);
+    const winnerInfo = resolvedWinner
+      ? ` · Winner/advanced: ${teamNameFromSide(match, resolvedWinner)}`
+      : '';
 
     $('adminResultSource').textContent =
       source === 'admin'
-        ? 'Result source: Admin manual override'
+        ? `Result source: Admin manual override${winnerInfo}`
         : source === 'auto'
-          ? `Result source: Auto synced${match.auto_result_synced_at ? ' · ' + new Date(match.auto_result_synced_at).toLocaleString() : ''}`
-          : 'Result source: Manual / pending';
+          ? `Result source: Auto synced${match.auto_result_synced_at ? ' · ' + new Date(match.auto_result_synced_at).toLocaleString() : ''}${winnerInfo}`
+          : `Result source: Manual / pending${winnerInfo}`;
   }
 }
 
@@ -1436,6 +1485,7 @@ async function addMatch() {
     home_source: null,
     away_source: null,
     actual_first_team_to_score: null,
+    actual_winner: null,
     is_locked: false,
     admin_override_open: false,
     source: 'manual',
@@ -1480,11 +1530,25 @@ async function updateResult() {
     return;
   }
 
+  const selectedMatch = matchesCache.find(match => match.id === matchId);
+
   const homeRaw = $('adminActualHome')?.value ?? '';
   const awayRaw = $('adminActualAway')?.value ?? '';
   const firstScorerRaw = $('adminFirstTeamToScore')?.value || null;
+  const actualWinnerRaw = $('adminActualWinner')?.value || null;
 
   const hasResult = homeRaw !== '' && awayRaw !== '';
+
+  let actualWinner = actualWinnerRaw || null;
+
+  if (hasResult && !actualWinner) {
+    const homeScore = Number(homeRaw);
+    const awayScore = Number(awayRaw);
+
+    if (homeScore > awayScore) actualWinner = 'home';
+    if (awayScore > homeScore) actualWinner = 'away';
+    if (homeScore === awayScore) actualWinner = 'draw';
+  }
 
   const payload = {
     is_locked: !!$('adminLock')?.checked,
@@ -1492,6 +1556,7 @@ async function updateResult() {
     actual_home_score: homeRaw === '' ? null : Number(homeRaw),
     actual_away_score: awayRaw === '' ? null : Number(awayRaw),
     actual_first_team_to_score: firstScorerRaw || null,
+    actual_winner: actualWinner,
     result_source: hasResult ? 'admin' : 'manual',
     admin_result_override: hasResult ? true : !!$('adminResultOverride')?.checked
   };
@@ -1499,6 +1564,22 @@ async function updateResult() {
   if (hasResult) {
     payload.is_locked = true;
     payload.admin_result_override = true;
+  }
+
+  if (
+    hasResult &&
+    Number(homeRaw) === Number(awayRaw) &&
+    (!actualWinner || actualWinner === 'draw')
+  ) {
+    const isKnockout =
+      selectedMatch &&
+      typeof classifyStage === 'function' &&
+      ['r32', 'r16', 'qf', 'sf', 'final'].includes(classifyStage(selectedMatch.stage));
+
+    if (isKnockout) {
+      toast('For knockout draws, select the team that advanced/won on penalties.');
+      return;
+    }
   }
 
   const { error } = await supabaseClient
@@ -1524,7 +1605,7 @@ async function updateResult() {
 
   toast(
     hasResult
-      ? 'Match updated. Super Admin score is protected from auto-sync.'
+      ? 'Match updated. Super Admin score/winner is protected from auto-sync.'
       : 'Match updated.'
   );
 
@@ -1597,21 +1678,20 @@ async function updateDependentKnockoutMatches(completedMatch) {
     return;
   }
 
-  const homeScore = Number(completedMatch.actual_home_score);
-  const awayScore = Number(completedMatch.actual_away_score);
+  const actualWinnerSide = resolvedActualWinner(completedMatch);
 
-  if (homeScore === awayScore) {
-    toast('Match is drawn. Please update the knockout winner manually if penalties were used.');
+  if (!actualWinnerSide || actualWinnerSide === 'draw') {
+    toast('Match is drawn. Please select the team that advanced before knockout auto-fill can work.');
     return;
   }
 
   const winner =
-    homeScore > awayScore
+    actualWinnerSide === 'home'
       ? completedMatch.home_team
       : completedMatch.away_team;
 
   const loser =
-    homeScore > awayScore
+    actualWinnerSide === 'home'
       ? completedMatch.away_team
       : completedMatch.home_team;
 
@@ -1858,6 +1938,7 @@ async function autoSyncScoresFromInternet(silent = true) {
           actual_home_score: existing.actual_home_score,
           actual_away_score: existing.actual_away_score,
           actual_first_team_to_score: existing.actual_first_team_to_score,
+          actual_winner: existing.actual_winner,
           result_source: existing.result_source || 'admin',
           admin_result_override: true,
           auto_result_synced_at: existing.auto_result_synced_at
@@ -1878,6 +1959,7 @@ async function autoSyncScoresFromInternet(silent = true) {
         actual_home_score: existing.actual_home_score,
         actual_away_score: existing.actual_away_score,
         actual_first_team_to_score: existing.actual_first_team_to_score,
+        actual_winner: existing.actual_winner,
         result_source: existing.result_source || 'manual',
         admin_result_override: existing.admin_result_override || false,
         auto_result_synced_at: existing.auto_result_synced_at
@@ -1962,6 +2044,7 @@ function normalizeOpenFootballSchedule(json, sourceUrl) {
           actual_home_score: hasResult ? Number(match.actual_home_score) : null,
           actual_away_score: hasResult ? Number(match.actual_away_score) : null,
           actual_first_team_to_score: match.actual_first_team_to_score || null,
+          actual_winner: match.actual_winner || null,
           last_synced_at: new Date().toISOString()
         };
       })
@@ -2065,7 +2148,7 @@ async function downloadPredictionsCsv() {
     row.actual_winner ?? '',
     row.actual_first_team_to_score ?? '',
     row.exact_score_points ?? 0,
-    row.correct_team_score_points ?? 0,
+    row.team_score_points ?? row.correct_team_score_points ?? 0,
     row.who_will_win_points ?? 0,
     row.first_score_points ?? 0,
     row.match_points ?? 0,
@@ -2139,7 +2222,7 @@ async function downloadFinalPredictionsCsv() {
     row.who_will_win ?? '',
     row.first_team_to_score ?? '',
     row.exact_score_points ?? 0,
-    row.correct_team_score_points ?? 0,
+    row.team_score_points ?? row.correct_team_score_points ?? 0,
     row.who_will_win_points ?? 0,
     row.first_score_points ?? 0,
     row.total_match_points ?? 0,
