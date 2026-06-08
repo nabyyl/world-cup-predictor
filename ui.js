@@ -1035,13 +1035,24 @@ function scorePrediction(prediction, match) {
 
 function renderLeaderboardTable(rows) {
   return `
-    <div class="card table-card">
+    <div class="card table-card leaderboard-table-card">
       <h2>Leaderboard</h2>
       <p class="muted small">
         Total points include match points and bonus points.
       </p>
 
-      <table>
+      <table class="leaderboard-table">
+        <colgroup>
+          <col class="lb-rank-col" />
+          <col class="lb-name-col" />
+          <col class="lb-score-col" />
+          <col class="lb-score-col" />
+          <col class="lb-score-col" />
+          <col class="lb-score-col" />
+          <col class="lb-score-col" />
+          <col class="lb-score-col" />
+        </colgroup>
+
         <thead>
           <tr>
             <th>Rank</th>
@@ -1065,7 +1076,7 @@ function renderLeaderboardTable(rows) {
                   <span class="leaderboard-flag" title="${escapeHtml(row.supported_team || 'No supported team')}">
                     ${row.supported_team ? teamFlag(row.supported_team) : '🏳️'}
                   </span>
-                  <span>${escapeHtml(row.full_name || row.email)}</span>
+                  <span class="leaderboard-person-name">${escapeHtml(row.full_name || row.email)}</span>
                 </span>
               </td>
 
@@ -1079,14 +1090,6 @@ function renderLeaderboardTable(rows) {
           `).join('')}
         </tbody>
       </table>
-    </div>
-  `;
-}
-
-function renderLeaderboardError(message) {
-  return `
-    <div class="card table-card">
-      <p class="message">${escapeHtml(message)}</p>
     </div>
   `;
 }
