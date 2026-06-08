@@ -1650,8 +1650,8 @@ td .points-pill {
 
 #leaderboardView .table-card table {
   width: 100%;
-  min-width: 820px;
-  table-layout: fixed;
+  min-width: 900px;
+  table-layout: auto;
 }
 
 #leaderboardView .table-card th,
@@ -1659,38 +1659,44 @@ td .points-pill {
   padding: 13px 10px;
   vertical-align: middle;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-variant-numeric: tabular-nums;
 }
 
 /* Rank column */
 #leaderboardView .table-card th:nth-child(1),
 #leaderboardView .table-card td:nth-child(1) {
   width: 70px;
+  min-width: 70px;
+  max-width: 70px;
   text-align: center !important;
 }
 
-/* Name column - wider so names show properly */
+/* Name column - allow full name to show */
 #leaderboardView .table-card th:nth-child(2),
 #leaderboardView .table-card td:nth-child(2) {
-  width: 260px;
+  min-width: 300px;
+  width: auto;
   text-align: left !important;
+  overflow: visible;
+  text-overflow: unset;
 }
 
-/* Total, Match, Bonus, Exact, Result, First Score - equal size */
+/* Total to First Score columns - equal size */
 #leaderboardView .table-card th:nth-child(n+3),
 #leaderboardView .table-card td:nth-child(n+3) {
-  width: 90px;
+  width: 92px;
+  min-width: 92px;
+  max-width: 92px;
   text-align: center !important;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Name + flag alignment */
 #leaderboardView .leaderboard-name {
   display: flex;
   align-items: center;
-  gap: 9px;
-  width: 100%;
+  gap: 10px;
+  width: max-content;
+  max-width: none;
   min-width: 0;
 }
 
@@ -1704,11 +1710,11 @@ td .points-pill {
   justify-content: center;
 }
 
+/* Show full name, do not cut */
 #leaderboardView .leaderboard-name span:last-child {
-  display: block;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: inline-block;
+  overflow: visible;
+  text-overflow: unset;
   white-space: nowrap;
 }
 
