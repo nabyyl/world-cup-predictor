@@ -1643,6 +1643,69 @@ td .points-pill {
   line-height: 1;
 }
 
+/* ---------- Leaderboard table alignment fix ---------- */
+#leaderboardView .table-card table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+#leaderboardView .table-card th,
+#leaderboardView .table-card td {
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+#leaderboardView .table-card th {
+  text-align: center;
+}
+
+#leaderboardView .table-card th:nth-child(1),
+#leaderboardView .table-card td:nth-child(1) {
+  width: 72px;
+  text-align: center;
+  padding-left: 10px;
+}
+
+#leaderboardView .table-card th:nth-child(2),
+#leaderboardView .table-card td:nth-child(2) {
+  width: auto;
+  text-align: left;
+}
+
+#leaderboardView .table-card th:nth-child(n+3),
+#leaderboardView .table-card td:nth-child(n+3) {
+  width: 92px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+#leaderboardView .leaderboard-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+#leaderboardView .leaderboard-name span:last-child {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#leaderboardView .leaderboard-flag {
+  flex: 0 0 34px;
+}
+
+#leaderboardView .points-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+}
+
 .support-team-badge {
   display: inline-flex;
   align-items: center;
@@ -2720,6 +2783,10 @@ select option {
     min-width: 680px;
   }
 
+  #leaderboardView .table-card table {
+    min-width: 760px;
+  }
+
   #adminView .view-grid,
   #superAdminView .admin-grid {
     gap: 12px;
@@ -3030,6 +3097,10 @@ select option {
     width: 32px;
     min-width: 32px;
     font-size: 24px;
+  }
+
+  #leaderboardView .leaderboard-flag {
+    flex-basis: 32px;
   }
 
   .profile-modal {
