@@ -8,7 +8,7 @@
 
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%BD%3C/text%3E%3C/svg%3E">
 
-  <link rel="stylesheet" href="styles.css?v=13" />
+  <link rel="stylesheet" href="styles.css?v=14" />
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -182,12 +182,12 @@
 
           <div>
             <strong>1 pt</strong>
-            <span>Correct winner / draw</span>
+            <span>Correct winner / draw / advanced team</span>
           </div>
 
           <div>
             <strong>1 pt</strong>
-            <span>Correct first team to score</span>
+            <span>Correct first team to score / no goal</span>
           </div>
 
           <div>
@@ -208,15 +208,15 @@
 
         <p class="muted">
           For each match, you can earn points from multiple areas. The maximum match points are
-          <strong>5 points</strong>: exact score, correct winner or draw, and correct first team to score.
+          <strong>5 points</strong>: exact score, correct winner or advanced team, and correct first team to score or no-goal prediction.
         </p>
 
         <p class="muted">
           Match prediction points are:
           <strong>3 points for exact score</strong>,
           <strong>1 point for correctly predicting one team's score</strong>,
-          <strong>1 point for correct winner or draw</strong>, and
-          <strong>1 point for correctly guessing which team scores first</strong>.
+          <strong>1 point for correct winner, draw, or team advanced</strong>, and
+          <strong>1 point for correctly guessing which team scores first or that no goal is scored</strong>.
         </p>
 
         <p class="muted">
@@ -226,8 +226,19 @@
         </p>
 
         <p class="muted">
-          The <strong>Who will win</strong> selection is linked to the 1-point correct winner / draw rule.
-          For a 0-0 prediction, enter <strong>0-0</strong> as the score and select <strong>Draw</strong>.
+          The <strong>Who will win / advance</strong> selection is linked to the 1-point correct winner rule.
+          In knockout matches, if the match ends level and one team wins on penalties, the Super Admin can select the team that advanced.
+          Users who selected that team as the winner will receive the winner point.
+        </p>
+
+        <p class="muted">
+          For example, if you predict <strong>France 1 - 1 Senegal</strong>, select <strong>France</strong> as the winner,
+          and France advances after penalties, you can still receive the winner point if the Super Admin selects France as the actual winner.
+        </p>
+
+        <p class="muted">
+          For a <strong>0-0</strong> match, choose <strong>No goal / 0-0</strong> under first team to score.
+          If the match is a knockout match and one team advances after penalties, the Super Admin can still select the advanced team separately.
         </p>
 
         <p class="muted">
@@ -271,7 +282,7 @@
   <div id="toast" class="toast hidden"></div>
 
   <!-- Scripts must load here, after HTML exists and after Supabase loads -->
-  <script src="ui.js?v=13"></script>
-  <script src="app.js?v=13"></script>
+  <script src="ui.js?v=14"></script>
+  <script src="app.js?v=14"></script>
 </body>
 </html>
