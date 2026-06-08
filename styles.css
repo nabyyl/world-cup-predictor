@@ -1656,9 +1656,7 @@ td .points-pill {
 
 #leaderboardView .table-card th,
 #leaderboardView .table-card td {
-  width: 12.5%;
   padding: 13px 10px;
-  text-align: center !important;
   vertical-align: middle;
   white-space: nowrap;
   overflow: hidden;
@@ -1666,25 +1664,41 @@ td .points-pill {
   font-variant-numeric: tabular-nums;
 }
 
+/* Rank column */
+#leaderboardView .table-card th:nth-child(1),
+#leaderboardView .table-card td:nth-child(1) {
+  width: 70px;
+  text-align: center !important;
+}
+
+/* Name column - wider so names show properly */
 #leaderboardView .table-card th:nth-child(2),
 #leaderboardView .table-card td:nth-child(2) {
+  width: 260px;
   text-align: left !important;
 }
 
+/* Total, Match, Bonus, Exact, Result, First Score - equal size */
+#leaderboardView .table-card th:nth-child(n+3),
+#leaderboardView .table-card td:nth-child(n+3) {
+  width: 90px;
+  text-align: center !important;
+}
+
+/* Name + flag alignment */
 #leaderboardView .leaderboard-name {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
   width: 100%;
   min-width: 0;
-  overflow: hidden;
 }
 
 #leaderboardView .leaderboard-flag {
-  flex: 0 0 28px;
-  width: 28px;
-  min-width: 28px;
-  font-size: 22px;
+  flex: 0 0 34px;
+  width: 34px;
+  min-width: 34px;
+  font-size: 26px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1707,45 +1721,6 @@ td .points-pill {
   align-items: center;
   justify-content: center;
   min-width: 44px;
-}
-
-/* Keep team badge flags clean in tables */
-.support-team-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-  width: 24px;
-  margin-right: 8px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font-size: 18px;
-  line-height: 1;
-  vertical-align: -2px;
-}
-
-.support-team-badge span:not(:first-child) {
-  display: none;
-}
-
-.table-card td .support-team-badge {
-  width: 34px;
-  min-width: 34px;
-  padding: 0;
-  margin-right: 8px;
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  color: inherit;
-  font-size: 26px;
-  line-height: 1;
-  vertical-align: middle;
-}
-
-.table-card td .support-team-badge span:not(:first-child) {
-  display: none;
 }
 
 /* ---------- Admin / Super Admin ---------- */
