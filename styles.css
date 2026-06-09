@@ -3895,34 +3895,40 @@ select option {
 }
 
 /* ============================================================
-   Bonus section save button alignment fix
+   Bonus save button spacing + size fix
+   Put this at the VERY BOTTOM of styles.css
    ============================================================ */
 
-.bonus-section-save {
-  grid-column: 1 / -1;
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 6px;
+.bonus-stage-card .bonus-grid {
+  margin-bottom: 18px !important;
 }
 
-.bonus-section-save button {
-  width: auto;
-  min-width: 190px;
-  max-width: 260px;
-  padding: 13px 22px;
-  border-radius: 16px;
-  font-size: 0.95rem;
-  font-weight: 800;
-  white-space: nowrap;
+.bonus-stage-card .bonus-section-save {
+  width: 100% !important;
+  display: flex !important;
+  justify-content: flex-start !important;
+  margin-top: 18px !important;
+  padding-top: 6px !important;
+}
+
+.bonus-stage-card .bonus-section-save button {
+  width: auto !important;
+  min-width: 210px !important;
+  max-width: 280px !important;
+  padding: 14px 24px !important;
+  border-radius: 18px !important;
+  font-size: 0.95rem !important;
+  font-weight: 800 !important;
+  white-space: nowrap !important;
 }
 
 @media (max-width: 768px) {
-  .bonus-section-save {
-    justify-content: stretch;
+  .bonus-stage-card .bonus-section-save {
+    justify-content: stretch !important;
   }
 
-  .bonus-section-save button {
-    width: 100%;
-    max-width: none;
+  .bonus-stage-card .bonus-section-save button {
+    width: 100% !important;
+    max-width: none !important;
   }
 }
