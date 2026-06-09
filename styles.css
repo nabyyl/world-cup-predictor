@@ -1635,14 +1635,27 @@ td:nth-child(n+3) {
 .rank {
   font-weight: 900;
   font-size: 16px;
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 32px;
-  height: 32px;
-  border-radius: 999px;
+
+  width: 34px;
+  min-width: 34px;
+  max-width: 34px;
+  height: 34px;
+  min-height: 34px;
+  max-height: 34px;
+
+  padding: 0;
+  line-height: 1;
+  aspect-ratio: 1 / 1;
+
+  border-radius: 50%;
   background: var(--glass-bg-stronger);
   border: 1px solid var(--glass-border);
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 tbody tr:first-child .rank {
