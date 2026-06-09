@@ -3893,3 +3893,36 @@ select option {
     animation: footballFloatSmall 3.2s ease-in-out infinite !important;
   }
 }
+
+/* ============================================================
+   Bonus section save button alignment fix
+   ============================================================ */
+
+.bonus-section-save {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.bonus-section-save button {
+  width: auto;
+  min-width: 190px;
+  max-width: 260px;
+  padding: 13px 22px;
+  border-radius: 16px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .bonus-section-save {
+    justify-content: stretch;
+  }
+
+  .bonus-section-save button {
+    width: 100%;
+    max-width: none;
+  }
+}
