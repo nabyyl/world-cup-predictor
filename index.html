@@ -166,104 +166,269 @@
       <section id="leaderboardView" class="hidden"></section>
 
       <!-- ===== Rules ===== -->
-      <section id="rulesView" class="card hidden">
-        <h2>Scoring Rules</h2>
+      <section id="rulesView" class="hidden">
+        <div class="card rules-page-card">
+          <div class="rules-hero">
+            <div>
+              <span class="stage-tag">Rules</span>
+              <h2>Scoring Rules</h2>
+              <p class="muted small">
+                Simple rule: make your picks before kickoff, collect match points, and earn extra bonus points during the tournament.
+              </p>
+            </div>
 
-        <div class="rules-grid">
-          <div>
-            <strong>3 pts</strong>
-            <span>Exact score</span>
-          </div>
-
-          <div>
-            <strong>1 pt</strong>
-            <span>Correct one team's score</span>
-          </div>
-
-          <div>
-            <strong>1 pt</strong>
-            <span>Correct winner / draw / advanced team</span>
-          </div>
-
-          <div>
-            <strong>1 pt</strong>
-            <span>Correct first team to score / no goal</span>
-          </div>
-
-          <div>
-            <strong>10 pts</strong>
-            <span>Correct tournament winner</span>
-          </div>
-
-          <div>
-            <strong>10 pts</strong>
-            <span>Correct best player</span>
-          </div>
-
-          <div>
-            <strong>5 pts</strong>
-            <span>Each correct finalist</span>
+            <div class="rules-total-box">
+              <strong>5</strong>
+              <span>Max points per match</span>
+            </div>
           </div>
         </div>
 
-        <p class="muted">
-          For each match, you can earn points from multiple areas. The maximum match points are
-          <strong>5 points</strong>: exact score, correct winner or advanced team, and correct first team to score or no-goal prediction.
-        </p>
+        <div class="rules-section-grid">
+          <article class="card rules-info-card">
+            <div class="rules-card-head">
+              <span class="rules-icon">⚽</span>
+              <div>
+                <h2>1. Match Prediction Points</h2>
+                <p class="muted small">Each match can give a maximum of 5 points.</p>
+              </div>
+            </div>
 
-        <p class="muted">
-          Match prediction points are:
-          <strong>3 points for exact score</strong>,
-          <strong>1 point for correctly predicting one team's score</strong>,
-          <strong>1 point for correct winner, draw, or team advanced</strong>, and
-          <strong>1 point for correctly guessing which team scores first or that no goal is scored</strong>.
-        </p>
+            <div class="rules-points-list">
+              <div>
+                <strong>3 pts</strong>
+                <span>Exact score</span>
+              </div>
 
-        <p class="muted">
-          The <strong>correct one team's score</strong> point is awarded only when the full exact score is not correct.
-          For example, if you predict <strong>France 2 - 0 Senegal</strong> and the actual score is
-          <strong>France 2 - 1 Senegal</strong>, you get <strong>1 point</strong> for correctly predicting France's score.
-        </p>
+              <div>
+                <strong>1 pt</strong>
+                <span>Correct one team’s score</span>
+              </div>
 
-        <p class="muted">
-          The <strong>Who will win / advance</strong> selection is linked to the 1-point correct winner rule.
-          In knockout matches, if the match ends level and one team wins on penalties, the Super Admin can select the team that advanced.
-          Users who selected that team as the winner will receive the winner point.
-        </p>
+              <div>
+                <strong>1 pt</strong>
+                <span>Correct winner, draw, or advanced team</span>
+              </div>
 
-        <p class="muted">
-          For example, if you predict <strong>France 1 - 1 Senegal</strong>, select <strong>France</strong> as the winner,
-          and France advances after penalties, you can still receive the winner point if the Super Admin selects France as the actual winner.
-        </p>
+              <div>
+                <strong>1 pt</strong>
+                <span>Correct first team to score or no goal</span>
+              </div>
+            </div>
 
-        <p class="muted">
-          For a <strong>0-0</strong> match, choose <strong>No goal / 0-0</strong> under first team to score.
-          If the match is a knockout match and one team advances after penalties, the Super Admin can still select the advanced team separately.
-        </p>
+            <div class="rule-example-box">
+              <strong>Example</strong>
+              <p>
+                You predict <b>France 2 - 0 Senegal</b>. Actual score is <b>France 2 - 1 Senegal</b>.
+                You get <b>1 point</b> for correctly predicting France’s score.
+              </p>
+            </div>
+          </article>
 
-        <p class="muted">
-          Bonus prediction points are:
-          <strong>10 points for tournament winner</strong>,
-          <strong>10 points for best player</strong>, and
-          <strong>5 points for each correct finalist</strong>.
-          Bonus predictions can be locked manually by the Super Admin.
-        </p>
+          <article class="card rules-info-card">
+            <div class="rules-card-head">
+              <span class="rules-icon">🎯</span>
+              <div>
+                <h2>2. Winner / Advance Rule</h2>
+                <p class="muted small">This is the 1-point result pick.</p>
+              </div>
+            </div>
 
-        <p class="muted">
-          You can change your match prediction <strong>unlimited times</strong> before kickoff.
-          The last saved prediction before the match starts is the one that counts.
-        </p>
+            <ul class="rules-bullet-list">
+              <li>Select the team you think will win.</li>
+              <li>For group matches, you may select <b>Draw</b>.</li>
+              <li>For knockout matches, select the team you think will advance.</li>
+              <li>If a knockout match is drawn and decided by penalties, Super Admin will select the team that advanced.</li>
+              <li>Users who selected the advanced team will get the winner/advance point.</li>
+            </ul>
 
-        <p class="muted">
-          Match predictions are <strong>auto-locked the moment a match starts</strong> — both in the
-          UI and at the database level. Supabase rejects edits after kickoff.
-          Super Admin can reopen a match using override only if needed.
-        </p>
+            <div class="rule-example-box">
+              <strong>Example</strong>
+              <p>
+                You predict <b>France 1 - 1 Senegal</b> and select <b>France</b> to advance.
+                If France wins on penalties, you can still receive the winner/advance point.
+              </p>
+            </div>
+          </article>
 
-        <p class="muted small">
-          Fixtures are loaded from the local FIFA 2026 portal schedule file.
-          Use the "View on Google" link on any match to open Google's live World Cup card for that fixture.
-        </p>
+          <article class="card rules-info-card">
+            <div class="rules-card-head">
+              <span class="rules-icon">🥅</span>
+              <div>
+                <h2>3. First Team to Score / No Goal</h2>
+                <p class="muted small">This is worth 1 point per match.</p>
+              </div>
+            </div>
+
+            <ul class="rules-bullet-list">
+              <li>Select the team you think will score first.</li>
+              <li>If you think the match will end <b>0-0</b>, select <b>No goal / 0-0</b>.</li>
+              <li>This is separate from your score prediction.</li>
+              <li>For a 0-0 knockout match, Super Admin can still select the team that advanced separately.</li>
+            </ul>
+          </article>
+
+          <article class="card rules-info-card">
+            <div class="rules-card-head">
+              <span class="rules-icon">🎁</span>
+              <div>
+                <h2>4. End-of-Tournament Major Bonuses</h2>
+                <p class="muted small">Maximum major bonus points: 80.</p>
+              </div>
+            </div>
+
+            <div class="rules-points-list">
+              <div>
+                <strong>30 pts</strong>
+                <span>Tournament Winner</span>
+              </div>
+
+              <div>
+                <strong>20 pts</strong>
+                <span>Golden Boot / Top Scorer</span>
+              </div>
+
+              <div>
+                <strong>15 pts</strong>
+                <span>Finalist Team A</span>
+              </div>
+
+              <div>
+                <strong>15 pts</strong>
+                <span>Finalist Team B</span>
+              </div>
+            </div>
+
+            <ul class="rules-bullet-list">
+              <li>Finalist predictions are <b>order-free</b>.</li>
+              <li>If you pick France and Brazil, you still get the finalist points even if the actual final is Brazil vs France.</li>
+            </ul>
+          </article>
+
+          <article class="card rules-info-card">
+            <div class="rules-card-head">
+              <span class="rules-icon">🏆</span>
+              <div>
+                <h2>5. Stage Bonus Questions</h2>
+                <p class="muted small">Maximum stage bonus points: 50.</p>
+              </div>
+            </div>
+
+            <div class="stage-bonus-list">
+              <div>
+                <strong>Group Stage</strong>
+                <span>5 points each</span>
+                <ul>
+                  <li>Team with most goals during group stage</li>
+                  <li>Team that concedes the fewest goals during group stage</li>
+                  <li>Team with the most yellow cards during group stage</li>
+                </ul>
+              </div>
+
+              <div>
+                <strong>Round of 32</strong>
+                <span>7 points</span>
+                <p>Which match will go to extra time?</p>
+              </div>
+
+              <div>
+                <strong>Round of 16</strong>
+                <span>7 points</span>
+                <p>Which team will win through a penalty shootout?</p>
+              </div>
+
+              <div>
+                <strong>Quarter-finals</strong>
+                <span>7 points</span>
+                <p>Which team will progress with a clean sheet?</p>
+              </div>
+
+              <div>
+                <strong>Semi-finals</strong>
+                <span>7 points</span>
+                <p>Which team will have the most possession?</p>
+              </div>
+
+              <div>
+                <strong>Final</strong>
+                <span>7 points</span>
+                <p>How many goals will be scored in the first half?</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="card rules-info-card">
+            <div class="rules-card-head">
+              <span class="rules-icon">🔒</span>
+              <div>
+                <h2>6. Lock Rules</h2>
+                <p class="muted small">Once locked, predictions cannot be edited.</p>
+              </div>
+            </div>
+
+            <ul class="rules-bullet-list">
+              <li>Match predictions lock automatically at kickoff.</li>
+              <li>You can edit a match prediction unlimited times before kickoff.</li>
+              <li>The last saved prediction before kickoff is the one that counts.</li>
+              <li>Bonus sections can be locked separately by Super Admin.</li>
+              <li>Closed bonus sections move to the bottom of the Bonus page.</li>
+              <li>Super Admin can reopen a match only if needed.</li>
+            </ul>
+          </article>
+
+          <article class="card rules-info-card">
+            <div class="rules-card-head">
+              <span class="rules-icon">📊</span>
+              <div>
+                <h2>7. Total Score</h2>
+                <p class="muted small">Leaderboard points are calculated automatically.</p>
+              </div>
+            </div>
+
+            <div class="rule-formula-box">
+              <strong>Total Points = Match Points + Bonus Points</strong>
+            </div>
+
+            <div class="rules-points-list">
+              <div>
+                <strong>5</strong>
+                <span>Max points per match</span>
+              </div>
+
+              <div>
+                <strong>130</strong>
+                <span>Max bonus points</span>
+              </div>
+
+              <div>
+                <strong>80</strong>
+                <span>Major bonus points</span>
+              </div>
+
+              <div>
+                <strong>50</strong>
+                <span>Stage bonus points</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="card rules-info-card">
+            <div class="rules-card-head">
+              <span class="rules-icon">🌐</span>
+              <div>
+                <h2>8. Fixtures and Live Info</h2>
+                <p class="muted small">Fixtures are loaded from the local FIFA 2026 portal schedule file.</p>
+              </div>
+            </div>
+
+            <ul class="rules-bullet-list">
+              <li>Use the <b>View on Google</b> link on any match to open Google’s live match card.</li>
+              <li>Super Admin can update scores manually.</li>
+              <li>Super Admin scores are protected from auto-sync when marked as manual override.</li>
+              <li>For knockout matches, the portal can auto-fill winners/losers into linked future matches.</li>
+            </ul>
+          </article>
+        </div>
       </section>
 
       <!-- ===== Admin Review ===== -->
