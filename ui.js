@@ -69,7 +69,7 @@ const TEAM_FLAGS = {
   'DR Congo': '🇨🇩',
   Ecuador: '🇪🇨',
   Egypt: '🇪🇬',
-  England: '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+  England: '🏴',
   France: '🇫🇷',
   Germany: '🇩🇪',
   Ghana: '🇬🇭',
@@ -90,7 +90,7 @@ const TEAM_FLAGS = {
   Portugal: '🇵🇹',
   Qatar: '🇶🇦',
   'Saudi Arabia': '🇸🇦',
-  Scotland: '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+  Scotland: '🏴',
   Senegal: '🇸🇳',
   'South Africa': '🇿🇦',
   'South Korea': '🇰🇷',
@@ -319,6 +319,32 @@ function selectedTempOption(value) {
   return `<option value="${escapeHtml(clean)}" selected>${escapeHtml(clean)}</option>`;
 }
 
+function bonusMatchOptions(matches, stageIds = []) {
+  return (matches || [])
+    .filter(match => {
+      if (!stageIds.length) return true;
+
+      return stageIds.includes(classifyStage(match.stage));
+    })
+    .map(match => ({
+      value: `${match.match_no ? `M${match.match_no} · ` : ''}${match.home_team || 'TBD'} vs ${match.away_team || 'TBD'}`,
+      label: `${match.match_no ? `M${match.match_no} · ` : ''}${match.home_team || 'TBD'} vs ${match.away_team || 'TBD'}`
+    }));
+}
+
+function optionRows(options, selectedValue) {
+  return (options || []).map(item => {
+    const value = typeof item === 'string' ? item : item.value;
+    const label = typeof item === 'string' ? item : item.label;
+
+    return `
+      <option value="${escapeHtml(value)}" ${value === selectedValue ? 'selected' : ''}>
+        ${escapeHtml(label)}
+      </option>
+    `;
+  }).join('');
+}
+
 /* ============================================================
    Stage filter
    ============================================================ */
@@ -438,7 +464,7 @@ function renderSummary(matches, predictions, userName) {
       <div>
         <h2>🎁 Bonus Predictions</h2>
         <p class="muted small">
-          Predict the tournament winner, best player, and finalists before the Super Admin locks bonus predictions.
+          Predict stage bonuses and end-of-tournament major bonuses before each section is locked.
         </p>
       </div>
 
@@ -451,13 +477,21 @@ function renderSummary(matches, predictions, userName) {
 
 function nextUpCard(match) {
   return `
-    <div class="next-card" onclick="navigateToMatch('${match.id}')" data-match-id="${match.id}">
+    <div class="next-card next-card-compact" onclick="navigateToMatch('${match.id}')" data-match-id="${match.id}">
       <span class="stage-tag">${escapeHtml(matchNumberLabel(match))} · ${escapeHtml(match.stage || 'Match')}</span>
-      <div class="matchup">
-        ${teamWithFlag(match.home_team)}
-        <span class="muted">vs</span>
-        ${teamWithFlag(match.away_team)}
+
+      <div class="next-teams-list">
+        <div class="next-team-line">
+          <span class="next-team-flag">${teamFlag(match.home_team)}</span>
+          <span class="next-team-name">${escapeHtml(match.home_team || 'TBD')}</span>
+        </div>
+
+        <div class="next-team-line">
+          <span class="next-team-flag">${teamFlag(match.away_team)}</span>
+          <span class="next-team-name">${escapeHtml(match.away_team || 'TBD')}</span>
+        </div>
       </div>
+
       <div class="when">
         ${formatDate(match.kickoff_at)}${match.venue ? ' • ' + escapeHtml(match.venue) : ''}
       </div>
@@ -467,13 +501,25 @@ function nextUpCard(match) {
 
 function liveMiniCard(match) {
   return `
-    <div class="next-card" onclick="navigateToMatch('${match.id}')" data-match-id="${match.id}">
-      <span class="status-pill live">● LIVE</span>
-      <div class="matchup">
-        ${teamWithFlag(match.home_team)}
-        <span class="muted">vs</span>
-        ${teamWithFlag(match.away_team)}
+    <div class="next-card next-card-compact" onclick="navigateToMatch('${match.id}')" data-match-id="${match.id}">
+      <span class="stage-tag live-tag">● LIVE</span>
+
+      <div class="next-teams-list">
+        <div class="next-team-line">
+          <span class="next-team-flag">${teamFlag(match.home_team)}</span>
+          <span class="next-team-name">${escapeHtml(match.home_team || 'TBD')}</span>
+        </div>
+
+        <div class="next-team-line">
+          <span class="next-team-flag">${teamFlag(match.away_team)}</span>
+          <span class="next-team-name">${escapeHtml(match.away_team || 'TBD')}</span>
+        </div>
       </div>
+
+      <div class="when">
+        ${formatDate(match.kickoff_at)}${match.venue ? ' • ' + escapeHtml(match.venue) : ''}
+      </div>
+
       <a class="ext-link" href="${googleSearchUrl(match)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
         View live on Google ↗
       </a>
@@ -687,80 +733,261 @@ function renderMatchCards(matches, predictions, helpers, stageFilterId) {
    Bonus Predictions
    ============================================================ */
 
+function bonusSectionLocked(bonusResult, key) {
+  if (!bonusResult) return false;
+
+  if (bonusResult.is_locked) return true;
+
+  return !!bonusResult[key];
+}
+
+function bonusStatusBadge(isLocked) {
+  return `
+    <span class="status-pill ${isLocked ? 'locked' : 'upcoming'}">
+      ${isLocked ? '🔒 Locked' : '🟢 Open'}
+    </span>
+  `;
+}
+
+function bonusFieldSelect(id, label, placeholder, selected, locked, note = '') {
+  return `
+    <div class="bonus-field">
+      <label>${escapeHtml(label)}</label>
+      <select id="${id}" ${locked ? 'disabled' : ''}>
+        <option value="">${escapeHtml(placeholder)}</option>
+        ${selectedTempOption(selected)}
+      </select>
+      ${note ? `<p class="muted small">${escapeHtml(note)}</p>` : ''}
+    </div>
+  `;
+}
+
+function bonusFieldNumber(id, label, placeholder, selected, locked, note = '') {
+  return `
+    <div class="bonus-field">
+      <label>${escapeHtml(label)}</label>
+      <input
+        id="${id}"
+        type="number"
+        min="0"
+        max="20"
+        placeholder="${escapeHtml(placeholder)}"
+        value="${selected ?? ''}"
+        ${locked ? 'disabled' : ''}
+      />
+      ${note ? `<p class="muted small">${escapeHtml(note)}</p>` : ''}
+    </div>
+  `;
+}
+
+function bonusUserSection({ id, title, subtitle, points, locked, body, orderClass }) {
+  return `
+    <section class="card bonus-stage-card ${orderClass || ''}" data-bonus-section="${escapeHtml(id)}">
+      <div class="bonus-stage-head">
+        <div>
+          <span class="stage-tag">${escapeHtml(points)}</span>
+          <h2>${title}</h2>
+          <p class="muted small">${subtitle}</p>
+        </div>
+        ${bonusStatusBadge(locked)}
+      </div>
+
+      <div class="bonus-grid">
+        ${body}
+      </div>
+    </section>
+  `;
+}
+
 function renderBonusPredictions(bonusPrediction, bonusResult, currentProfile, bonusOptions = {}) {
-  const locked = !!bonusResult?.is_locked;
+  const teams = bonusOptions.teams || [];
+  const players = bonusOptions.players || [];
+  const matches = bonusOptions.matches || [];
+
+  const locks = {
+    group: bonusSectionLocked(bonusResult, 'group_bonus_locked'),
+    r32: bonusSectionLocked(bonusResult, 'r32_bonus_locked'),
+    r16: bonusSectionLocked(bonusResult, 'r16_bonus_locked'),
+    qf: bonusSectionLocked(bonusResult, 'qf_bonus_locked'),
+    sf: bonusSectionLocked(bonusResult, 'sf_bonus_locked'),
+    final: bonusSectionLocked(bonusResult, 'final_bonus_locked'),
+    major: bonusSectionLocked(bonusResult, 'major_bonus_locked')
+  };
+
+  const sections = [
+    {
+      id: 'group',
+      order: 1,
+      locked: locks.group,
+      html: bonusUserSection({
+        id: 'group',
+        title: '🌍 Group Stage Questions',
+        subtitle: 'Each question is worth 5 points.',
+        points: '5 pts each',
+        locked: locks.group,
+        body: `
+          ${bonusFieldSelect('bonusGroupMostGoalsTeam', 'Which team will score the most goals during the group stage?', 'Select team', bonusPrediction?.group_most_goals_team, locks.group)}
+          ${bonusFieldSelect('bonusGroupFewestConcededTeam', 'Which team will concede the fewest goals during the group stage?', 'Select team', bonusPrediction?.group_fewest_conceded_team, locks.group)}
+          ${bonusFieldSelect('bonusGroupMostYellowCardsTeam', 'Which team will be given the most yellow cards during the group stage?', 'Select team', bonusPrediction?.group_most_yellow_cards_team, locks.group)}
+        `
+      })
+    },
+    {
+      id: 'r32',
+      order: 2,
+      locked: locks.r32,
+      html: bonusUserSection({
+        id: 'r32',
+        title: '🏟️ Round of 32 Question',
+        subtitle: 'Pick the match you think will go to extra time.',
+        points: '7 pts',
+        locked: locks.r32,
+        body: `
+          ${bonusFieldSelect('bonusR32ExtraTimeMatch', 'Which match will go to extra time?', 'Select match', bonusPrediction?.r32_extra_time_match, locks.r32)}
+        `
+      })
+    },
+    {
+      id: 'r16',
+      order: 3,
+      locked: locks.r16,
+      html: bonusUserSection({
+        id: 'r16',
+        title: '🎯 Round of 16 Question',
+        subtitle: 'Pick the team you think will win through a penalty shootout.',
+        points: '7 pts',
+        locked: locks.r16,
+        body: `
+          ${bonusFieldSelect('bonusR16PenaltyShootoutTeam', 'Which team will win through a penalty shootout?', 'Select team', bonusPrediction?.r16_penalty_shootout_team, locks.r16)}
+        `
+      })
+    },
+    {
+      id: 'qf',
+      order: 4,
+      locked: locks.qf,
+      html: bonusUserSection({
+        id: 'qf',
+        title: '🔥 Quarter-finals Question',
+        subtitle: 'Pick the team that progresses without conceding.',
+        points: '7 pts',
+        locked: locks.qf,
+        body: `
+          ${bonusFieldSelect('bonusQfCleanSheetTeam', 'Which team will progress with a clean sheet?', 'Select team', bonusPrediction?.qf_clean_sheet_team, locks.qf)}
+        `
+      })
+    },
+    {
+      id: 'sf',
+      order: 5,
+      locked: locks.sf,
+      html: bonusUserSection({
+        id: 'sf',
+        title: '⭐ Semi-finals Question',
+        subtitle: 'Pick the team you think will have the highest possession.',
+        points: '7 pts',
+        locked: locks.sf,
+        body: `
+          ${bonusFieldSelect('bonusSfMostPossessionTeam', 'Which team will have the most possession?', 'Select team', bonusPrediction?.sf_most_possession_team, locks.sf)}
+        `
+      })
+    },
+    {
+      id: 'final',
+      order: 6,
+      locked: locks.final,
+      html: bonusUserSection({
+        id: 'final',
+        title: '🏆 Final Question',
+        subtitle: 'Predict the number of goals in the first half.',
+        points: '7 pts',
+        locked: locks.final,
+        body: `
+          ${bonusFieldNumber('bonusFinalFirstHalfGoals', 'How many goals will be scored in the first half?', 'Example: 1', bonusPrediction?.final_first_half_goals, locks.final)}
+        `
+      })
+    },
+    {
+      id: 'major',
+      order: 7,
+      locked: locks.major,
+      html: bonusUserSection({
+        id: 'major',
+        title: '🏅 End-of-Tournament Major Bonuses',
+        subtitle: 'Finalist picks are order-free. France/Brazil and Brazil/France both count.',
+        points: '80 pts max',
+        locked: locks.major,
+        body: `
+          ${bonusFieldSelect('bonusTournamentWinner', 'Tournament Winner', 'Select tournament winner', bonusPrediction?.tournament_winner, locks.major, '30 points')}
+          ${bonusFieldSelect('bonusGoldenBoot', 'Golden Boot / Top Scorer', 'Select top scorer', bonusPrediction?.golden_boot || bonusPrediction?.best_player, locks.major, '20 points')}
+          <select id="bonusBestPlayer" class="hidden">
+            ${selectedTempOption(bonusPrediction?.golden_boot || bonusPrediction?.best_player)}
+          </select>
+          ${bonusFieldSelect('bonusFinalistOne', 'Finalist Team A', 'Select finalist A', bonusPrediction?.finalist_one, locks.major, '15 points')}
+          ${bonusFieldSelect('bonusFinalistTwo', 'Finalist Team B', 'Select finalist B', bonusPrediction?.finalist_two, locks.major, '15 points')}
+        `
+      })
+    }
+  ];
+
+  const openSections = sections
+    .filter(section => !section.locked)
+    .sort((a, b) => a.order - b.order);
+
+  const lockedSections = sections
+    .filter(section => section.locked)
+    .sort((a, b) => a.order - b.order);
+
+  const allLocked = sections.every(section => section.locked);
 
   return `
     <div class="card admin-card">
       <h2>🎁 Bonus Predictions</h2>
       <p class="muted small">
-        These are tournament-level predictions. They can be edited until the Super Admin locks the bonus page.
+        Answer each bonus question before that section is locked. Upcoming/open sections are shown first. Closed sections move to the bottom.
       </p>
 
       <div class="rules-grid" style="margin-bottom:16px;">
         <div>
-          <strong>10 pts</strong>
-          <span>Tournament winner</span>
+          <strong>130</strong>
+          <span>Maximum bonus points</span>
         </div>
         <div>
-          <strong>10 pts</strong>
-          <span>Best player</span>
+          <strong>80</strong>
+          <span>Major bonus points</span>
         </div>
         <div>
-          <strong>5 pts</strong>
-          <span>Each correct finalist</span>
+          <strong>50</strong>
+          <span>Stage bonus points</span>
         </div>
       </div>
 
-      <p class="${locked ? 'message' : 'saved'}">
-        ${locked ? 'Bonus predictions are locked.' : 'Bonus predictions are open.'}
+      <p class="${allLocked ? 'message' : 'saved'}">
+        ${allLocked ? 'All bonus sections are locked.' : 'Some bonus sections are still open.'}
       </p>
     </div>
 
+    <div class="bonus-page-stack" style="margin-top:16px;">
+      ${openSections.length ? `
+        <div class="bonus-section-label">
+          <h2>Open / Upcoming Bonus Questions</h2>
+          <p class="muted small">Complete these before Super Admin locks the section.</p>
+        </div>
+        ${openSections.map(section => section.html).join('')}
+      ` : ''}
+
+      ${lockedSections.length ? `
+        <div class="bonus-section-label">
+          <h2>Closed Bonus Questions</h2>
+          <p class="muted small">These sections are locked and can no longer be edited.</p>
+        </div>
+        ${lockedSections.map(section => section.html).join('')}
+      ` : ''}
+    </div>
+
     <div class="card bonus-card" style="margin-top:16px;">
-      <div class="bonus-head">
-        <div>
-          <h2>Your Bonus Picks</h2>
-          <p class="muted small">Choose from the dropdowns. Finalist 1 and Finalist 2 cannot be the same team.</p>
-        </div>
-      </div>
-
-      <div class="bonus-grid">
-        <div class="bonus-field">
-          <label>Tournament Winner</label>
-          <select id="bonusTournamentWinner" ${locked ? 'disabled' : ''}>
-            <option value="">Select tournament winner</option>
-            ${selectedTempOption(bonusPrediction?.tournament_winner)}
-          </select>
-        </div>
-
-        <div class="bonus-field">
-          <label>Tournament Best Player</label>
-          <select id="bonusBestPlayer" ${locked ? 'disabled' : ''}>
-            <option value="">Select best player</option>
-            ${selectedTempOption(bonusPrediction?.best_player)}
-          </select>
-        </div>
-
-        <div class="bonus-field">
-          <label>Finalist 1</label>
-          <select id="bonusFinalistOne" ${locked ? 'disabled' : ''}>
-            <option value="">Select finalist 1</option>
-            ${selectedTempOption(bonusPrediction?.finalist_one)}
-          </select>
-        </div>
-
-        <div class="bonus-field">
-          <label>Finalist 2</label>
-          <select id="bonusFinalistTwo" ${locked ? 'disabled' : ''}>
-            <option value="">Select finalist 2</option>
-            ${selectedTempOption(bonusPrediction?.finalist_two)}
-          </select>
-        </div>
-      </div>
-
-      <button onclick="saveBonusPrediction()" ${locked ? 'disabled' : ''}>
-        ${bonusPrediction ? 'Update Bonus Predictions' : 'Save Bonus Predictions'}
+      <button onclick="saveBonusPrediction()" ${allLocked ? 'disabled' : ''}>
+        ${bonusPrediction ? 'Update Open Bonus Predictions' : 'Save Bonus Predictions'}
       </button>
 
       ${bonusPrediction?.updated_at
@@ -1257,7 +1484,6 @@ function renderAdminPageShell(activeView) {
 
 /* ============================================================
    Admin Review Page
-   Limited Admin + Super Admin
    ============================================================ */
 
 function renderAdminReviewPage(matches) {
@@ -1485,17 +1711,16 @@ function renderAdminBonusPredictionReview(rows) {
     <div class="card table-card">
       <h2>Bonus Predictions</h2>
       <p class="muted small">
-        Review tournament winner, best player, finalists, and bonus points.
+        Review all bonus answers and calculated bonus points.
       </p>
 
       <table>
         <thead>
           <tr>
             <th>Name</th>
-            <th>Winner</th>
-            <th>Best Player</th>
-            <th>Finalist 1</th>
-            <th>Finalist 2</th>
+            <th>Major Picks</th>
+            <th>Group Picks</th>
+            <th>Round Picks</th>
             <th>Bonus Points</th>
             <th>Updated</th>
           </tr>
@@ -1507,17 +1732,30 @@ function renderAdminBonusPredictionReview(rows) {
               ? rows.map(row => `
                 <tr>
                   <td>${escapeHtml(row.full_name || row.email)}</td>
-                  <td>${escapeHtml(row.tournament_winner || '—')}</td>
-                  <td>${escapeHtml(row.best_player || '—')}</td>
-                  <td>${escapeHtml(row.finalist_one || '—')}</td>
-                  <td>${escapeHtml(row.finalist_two || '—')}</td>
+                  <td>
+                    Winner: ${escapeHtml(row.tournament_winner || '—')}<br>
+                    Golden Boot: ${escapeHtml(row.golden_boot || row.best_player || '—')}<br>
+                    Finalists: ${escapeHtml(row.finalist_one || '—')} / ${escapeHtml(row.finalist_two || '—')}
+                  </td>
+                  <td>
+                    Most goals: ${escapeHtml(row.group_most_goals_team || '—')}<br>
+                    Fewest conceded: ${escapeHtml(row.group_fewest_conceded_team || '—')}<br>
+                    Most yellows: ${escapeHtml(row.group_most_yellow_cards_team || '—')}
+                  </td>
+                  <td>
+                    R32 ET match: ${escapeHtml(row.r32_extra_time_match || '—')}<br>
+                    R16 pens: ${escapeHtml(row.r16_penalty_shootout_team || '—')}<br>
+                    QF clean sheet: ${escapeHtml(row.qf_clean_sheet_team || '—')}<br>
+                    SF possession: ${escapeHtml(row.sf_most_possession_team || '—')}<br>
+                    Final 1H goals: ${row.final_first_half_goals ?? '—'}
+                  </td>
                   <td><span class="points-pill">${row.bonus_points ?? 0}</span></td>
                   <td>${row.updated_at ? new Date(row.updated_at).toLocaleString() : '—'}</td>
                 </tr>
               `).join('')
               : `
                 <tr>
-                  <td colspan="7" class="muted">
+                  <td colspan="6" class="muted">
                     No bonus predictions submitted yet.
                   </td>
                 </tr>
@@ -1531,8 +1769,37 @@ function renderAdminBonusPredictionReview(rows) {
 
 /* ============================================================
    Super Admin Panel
-   Full controls only for Super Admin
    ============================================================ */
+
+function adminBonusLock(label, id, checked) {
+  return `
+    <label>
+      <input id="${id}" type="checkbox" style="width:auto" ${checked ? 'checked' : ''} />
+      ${escapeHtml(label)}
+    </label>
+  `;
+}
+
+function adminActualSelect(id, label, placeholder, selected) {
+  return `
+    <div class="bonus-field">
+      <label>${escapeHtml(label)}</label>
+      <select id="${id}">
+        <option value="">${escapeHtml(placeholder)}</option>
+        ${selectedTempOption(selected)}
+      </select>
+    </div>
+  `;
+}
+
+function adminActualNumber(id, label, placeholder, selected) {
+  return `
+    <div class="bonus-field">
+      <label>${escapeHtml(label)}</label>
+      <input id="${id}" type="number" min="0" max="20" placeholder="${escapeHtml(placeholder)}" value="${selected ?? ''}" />
+    </div>
+  `;
+}
 
 function renderSuperAdminPanel(matches, scheduleUrl, bonusResult, bonusOptions = {}) {
   const selectedOptions = matches.map(match => `
@@ -1655,51 +1922,58 @@ function renderSuperAdminPanel(matches, scheduleUrl, bonusResult, bonusOptions =
         </p>
       </div>
 
-      <div class="card admin-card">
+      <div class="card admin-card bonus-admin-card">
         <h2>Bonus Prediction Control</h2>
         <p class="muted small">
-          Lock bonus predictions and enter final bonus results after the tournament.
+          Lock each bonus section separately and enter actual answers for scoring.
         </p>
 
-        <label>
-          <input id="bonusLock" type="checkbox" style="width:auto" ${bonusResult?.is_locked ? 'checked' : ''} />
-          Lock bonus predictions
-        </label>
+        <div class="bonus-lock-grid">
+          ${adminBonusLock('Lock all bonus sections', 'bonusLock', bonusResult?.is_locked)}
+          ${adminBonusLock('Lock Major Bonuses', 'majorBonusLock', bonusResult?.major_bonus_locked)}
+          ${adminBonusLock('Lock Group Stage', 'groupBonusLock', bonusResult?.group_bonus_locked)}
+          ${adminBonusLock('Lock Round of 32', 'r32BonusLock', bonusResult?.r32_bonus_locked)}
+          ${adminBonusLock('Lock Round of 16', 'r16BonusLock', bonusResult?.r16_bonus_locked)}
+          ${adminBonusLock('Lock Quarter-finals', 'qfBonusLock', bonusResult?.qf_bonus_locked)}
+          ${adminBonusLock('Lock Semi-finals', 'sfBonusLock', bonusResult?.sf_bonus_locked)}
+          ${adminBonusLock('Lock Final', 'finalBonusLock', bonusResult?.final_bonus_locked)}
+        </div>
 
-        <label>Actual Tournament Winner</label>
-        <select id="actualTournamentWinner">
-          <option value="">Select actual tournament winner</option>
-          ${selectedTempOption(bonusResult?.actual_tournament_winner)}
-        </select>
+        <div class="bonus-admin-section">
+          <h3>Major Bonus Actual Answers</h3>
+          <p class="muted small">Winner 30 pts · Golden Boot 20 pts · Finalists 15 pts each.</p>
 
-        <label>Actual Best Player</label>
-        <select id="actualBestPlayer">
-          <option value="">Select actual best player</option>
-          ${selectedTempOption(bonusResult?.actual_best_player)}
-        </select>
-
-        <div class="inline-row">
-          <div>
-            <label>Actual Finalist 1</label>
-            <select id="actualFinalistOne">
-              <option value="">Select actual finalist 1</option>
-              ${selectedTempOption(bonusResult?.actual_finalist_one)}
+          <div class="bonus-grid">
+            ${adminActualSelect('actualTournamentWinner', 'Actual Tournament Winner', 'Select actual tournament winner', bonusResult?.actual_tournament_winner)}
+            ${adminActualSelect('actualGoldenBoot', 'Actual Golden Boot / Top Scorer', 'Select actual top scorer', bonusResult?.actual_golden_boot || bonusResult?.actual_best_player)}
+            <select id="actualBestPlayer" class="hidden">
+              ${selectedTempOption(bonusResult?.actual_golden_boot || bonusResult?.actual_best_player)}
             </select>
+            ${adminActualSelect('actualFinalistOne', 'Actual Finalist Team A', 'Select actual finalist A', bonusResult?.actual_finalist_one)}
+            ${adminActualSelect('actualFinalistTwo', 'Actual Finalist Team B', 'Select actual finalist B', bonusResult?.actual_finalist_two)}
           </div>
+        </div>
 
-          <div>
-            <label>Actual Finalist 2</label>
-            <select id="actualFinalistTwo">
-              <option value="">Select actual finalist 2</option>
-              ${selectedTempOption(bonusResult?.actual_finalist_two)}
-            </select>
+        <div class="bonus-admin-section">
+          <h3>Stage Bonus Actual Answers</h3>
+          <p class="muted small">Group questions are 5 pts each. Other round questions are 7 pts each.</p>
+
+          <div class="bonus-grid">
+            ${adminActualSelect('actualGroupMostGoalsTeam', 'Group: Most goals scored', 'Select actual team', bonusResult?.actual_group_most_goals_team)}
+            ${adminActualSelect('actualGroupFewestConcededTeam', 'Group: Fewest goals conceded', 'Select actual team', bonusResult?.actual_group_fewest_conceded_team)}
+            ${adminActualSelect('actualGroupMostYellowCardsTeam', 'Group: Most yellow cards', 'Select actual team', bonusResult?.actual_group_most_yellow_cards_team)}
+            ${adminActualSelect('actualR32ExtraTimeMatch', 'Round of 32: Match went to extra time', 'Select actual match', bonusResult?.actual_r32_extra_time_match)}
+            ${adminActualSelect('actualR16PenaltyShootoutTeam', 'Round of 16: Won through penalty shootout', 'Select actual team', bonusResult?.actual_r16_penalty_shootout_team)}
+            ${adminActualSelect('actualQfCleanSheetTeam', 'Quarter-finals: Progressed with clean sheet', 'Select actual team', bonusResult?.actual_qf_clean_sheet_team)}
+            ${adminActualSelect('actualSfMostPossessionTeam', 'Semi-finals: Most possession', 'Select actual team', bonusResult?.actual_sf_most_possession_team)}
+            ${adminActualNumber('actualFinalFirstHalfGoals', 'Final: First-half goals', 'Example: 1', bonusResult?.actual_final_first_half_goals)}
           </div>
         </div>
 
         <button onclick="updateBonusResults()">Update Bonus Settings</button>
 
         <p class="muted small">
-          Finalist points are order-free. Each correct finalist gives 5 points, maximum 10.
+          Finalist points are order-free. If the two teams are correct, users get points regardless of finalist order.
         </p>
       </div>
 
@@ -1749,12 +2023,11 @@ function renderSuperAdminPanel(matches, scheduleUrl, bonusResult, bonusOptions =
       <div class="card admin-card">
         <h2>Email Match Reminders</h2>
         <p class="muted small">
-          Users can be emailed 30 minutes before each match using the Supabase scheduled Edge Function.
+          Users can be emailed around 30 minutes before each match using Google Apps Script and the reminder_eligible_users view.
         </p>
 
         <p class="lock-note">
-          This UI is ready for reminder tracking. The actual sending requires a Supabase Edge Function
-          connected to the reminder_eligible_users view.
+          Reminder logs are tracked in match_email_notifications to avoid duplicate reminder emails.
         </p>
       </div>
     </div>
