@@ -780,7 +780,17 @@ function bonusFieldNumber(id, label, placeholder, selected, locked, note = '') {
   `;
 }
 
-function bonusUserSection({ id, title, subtitle, points, locked, body, orderClass }) {
+function bonusSaveButton(label, functionName, locked) {
+  return `
+    <div class="bonus-section-save">
+      <button onclick="${functionName}()" ${locked ? 'disabled' : ''}>
+        ${escapeHtml(label)}
+      </button>
+    </div>
+  `;
+}
+
+function bonusUserSection({ id, title, subtitle, points, locked, body, saveButton, orderClass }) {
   return `
     <section class="card bonus-stage-card ${orderClass || ''}" data-bonus-section="${escapeHtml(id)}">
       <div class="bonus-stage-head">
@@ -795,6 +805,8 @@ function bonusUserSection({ id, title, subtitle, points, locked, body, orderClas
       <div class="bonus-grid">
         ${body}
       </div>
+
+      ${saveButton || ''}
     </section>
   `;
 }
@@ -829,7 +841,12 @@ function renderBonusPredictions(bonusPrediction, bonusResult, currentProfile, bo
           ${bonusFieldSelect('bonusGroupMostGoalsTeam', 'Which team will score the most goals during the group stage?', 'Select team', bonusPrediction?.group_most_goals_team, locks.group)}
           ${bonusFieldSelect('bonusGroupFewestConcededTeam', 'Which team will concede the fewest goals during the group stage?', 'Select team', bonusPrediction?.group_fewest_conceded_team, locks.group)}
           ${bonusFieldSelect('bonusGroupMostYellowCardsTeam', 'Which team will be given the most yellow cards during the group stage?', 'Select team', bonusPrediction?.group_most_yellow_cards_team, locks.group)}
-        `
+        `,
+        saveButton: bonusSaveButton(
+          bonusPrediction ? 'Update Group Bonus' : 'Save Group Bonus',
+          'saveGroupBonusPrediction',
+          locks.group
+        )
       })
     },
     {
@@ -844,7 +861,12 @@ function renderBonusPredictions(bonusPrediction, bonusResult, currentProfile, bo
         locked: locks.r32,
         body: `
           ${bonusFieldSelect('bonusR32ExtraTimeMatch', 'Which match will go to extra time?', 'Select match', bonusPrediction?.r32_extra_time_match, locks.r32)}
-        `
+        `,
+        saveButton: bonusSaveButton(
+          bonusPrediction ? 'Update Round of 32 Bonus' : 'Save Round of 32 Bonus',
+          'saveR32BonusPrediction',
+          locks.r32
+        )
       })
     },
     {
@@ -859,7 +881,12 @@ function renderBonusPredictions(bonusPrediction, bonusResult, currentProfile, bo
         locked: locks.r16,
         body: `
           ${bonusFieldSelect('bonusR16PenaltyShootoutTeam', 'Which team will win through a penalty shootout?', 'Select team', bonusPrediction?.r16_penalty_shootout_team, locks.r16)}
-        `
+        `,
+        saveButton: bonusSaveButton(
+          bonusPrediction ? 'Update Round of 16 Bonus' : 'Save Round of 16 Bonus',
+          'saveR16BonusPrediction',
+          locks.r16
+        )
       })
     },
     {
@@ -874,7 +901,12 @@ function renderBonusPredictions(bonusPrediction, bonusResult, currentProfile, bo
         locked: locks.qf,
         body: `
           ${bonusFieldSelect('bonusQfCleanSheetTeam', 'Which team will progress with a clean sheet?', 'Select team', bonusPrediction?.qf_clean_sheet_team, locks.qf)}
-        `
+        `,
+        saveButton: bonusSaveButton(
+          bonusPrediction ? 'Update Quarter-finals Bonus' : 'Save Quarter-finals Bonus',
+          'saveQfBonusPrediction',
+          locks.qf
+        )
       })
     },
     {
@@ -889,7 +921,12 @@ function renderBonusPredictions(bonusPrediction, bonusResult, currentProfile, bo
         locked: locks.sf,
         body: `
           ${bonusFieldSelect('bonusSfMostPossessionTeam', 'Which team will have the most possession?', 'Select team', bonusPrediction?.sf_most_possession_team, locks.sf)}
-        `
+        `,
+        saveButton: bonusSaveButton(
+          bonusPrediction ? 'Update Semi-finals Bonus' : 'Save Semi-finals Bonus',
+          'saveSfBonusPrediction',
+          locks.sf
+        )
       })
     },
     {
@@ -904,7 +941,12 @@ function renderBonusPredictions(bonusPrediction, bonusResult, currentProfile, bo
         locked: locks.final,
         body: `
           ${bonusFieldNumber('bonusFinalFirstHalfGoals', 'How many goals will be scored in the first half?', 'Example: 1', bonusPrediction?.final_first_half_goals, locks.final)}
-        `
+        `,
+        saveButton: bonusSaveButton(
+          bonusPrediction ? 'Update Final Bonus' : 'Save Final Bonus',
+          'saveFinalBonusPrediction',
+          locks.final
+        )
       })
     },
     {
@@ -925,7 +967,12 @@ function renderBonusPredictions(bonusPrediction, bonusResult, currentProfile, bo
           </select>
           ${bonusFieldSelect('bonusFinalistOne', 'Finalist Team A', 'Select finalist A', bonusPrediction?.finalist_one, locks.major, '15 points')}
           ${bonusFieldSelect('bonusFinalistTwo', 'Finalist Team B', 'Select finalist B', bonusPrediction?.finalist_two, locks.major, '15 points')}
-        `
+        `,
+        saveButton: bonusSaveButton(
+          bonusPrediction ? 'Update Major Bonus' : 'Save Major Bonus',
+          'saveMajorBonusPrediction',
+          locks.major
+        )
       })
     }
   ];
@@ -944,7 +991,7 @@ function renderBonusPredictions(bonusPrediction, bonusResult, currentProfile, bo
     <div class="card admin-card">
       <h2>🎁 Bonus Predictions</h2>
       <p class="muted small">
-        Answer each bonus question before that section is locked. Upcoming/open sections are shown first. Closed sections move to the bottom.
+        Save each bonus section separately. Upcoming/open sections are shown first. Closed sections move to the bottom.
       </p>
 
       <div class="rules-grid" style="margin-bottom:16px;">
@@ -965,6 +1012,11 @@ function renderBonusPredictions(bonusPrediction, bonusResult, currentProfile, bo
       <p class="${allLocked ? 'message' : 'saved'}">
         ${allLocked ? 'All bonus sections are locked.' : 'Some bonus sections are still open.'}
       </p>
+
+      ${bonusPrediction?.updated_at
+        ? `<p class="muted small">Last updated: ${new Date(bonusPrediction.updated_at).toLocaleString()}</p>`
+        : `<p class="muted small">No bonus prediction saved yet.</p>`
+      }
     </div>
 
     <div class="bonus-page-stack" style="margin-top:16px;">
@@ -983,17 +1035,6 @@ function renderBonusPredictions(bonusPrediction, bonusResult, currentProfile, bo
         </div>
         ${lockedSections.map(section => section.html).join('')}
       ` : ''}
-    </div>
-
-    <div class="card bonus-card" style="margin-top:16px;">
-      <button onclick="saveBonusPrediction()" ${allLocked ? 'disabled' : ''}>
-        ${bonusPrediction ? 'Update Open Bonus Predictions' : 'Save Bonus Predictions'}
-      </button>
-
-      ${bonusPrediction?.updated_at
-        ? `<p class="muted small">Last updated: ${new Date(bonusPrediction.updated_at).toLocaleString()}</p>`
-        : `<p class="muted small">No bonus prediction saved yet.</p>`
-      }
     </div>
   `;
 }
