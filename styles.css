@@ -4053,3 +4053,411 @@ select option {
     font-size: 38px;
   }
 }
+
+/* ============================================================
+   FINAL FIX — Cleaner Bonus Cards + Rules Cards
+   Add at the very bottom of styles.css
+   ============================================================ /
+
+/ ---------- Bonus page overall spacing ---------- /
+
+.bonus-page-stack {
+  display: grid;
+  gap: 20px;
+}
+
+.bonus-section-label {
+  margin: 18px 0 4px;
+  padding: 0;
+}
+
+.bonus-section-label h2 {
+  font-size: clamp(20px, 2vw, 24px);
+  font-weight: 950;
+  margin-bottom: 4px;
+}
+
+.bonus-section-label p {
+  margin: 0;
+  color: var(--muted);
+}
+
+/ ---------- Bonus stage card redesign ---------- /
+
+.bonus-stage-card {
+  padding: 22px;
+  border-radius: 28px;
+  overflow: visible;
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--accent-2) 14%, transparent), transparent 36%),
+    radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent) 10%, transparent), transparent 34%),
+    var(--glass-bg);
+}
+
+.bonus-stage-card::before,
+.bonus-stage-card::after {
+  pointer-events: none;
+}
+
+.bonus-stage-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.bonus-stage-head > div {
+  min-width: 0;
+}
+
+.bonus-stage-head .stage-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  max-width: 100%;
+  padding: 6px 12px;
+  margin-bottom: 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-2) 18%, var(--glass-bg-stronger));
+  border: 1px solid color-mix(in srgb, var(--accent-2) 35%, var(--glass-border));
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 950;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.bonus-stage-head h2 {
+  margin: 0;
+  font-size: clamp(21px, 2.3vw, 28px);
+  font-weight: 950;
+  line-height: 1.15;
+  color: var(--text);
+}
+
+.bonus-stage-head p {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.bonus-stage-head .status-pill {
+  flex: none;
+  align-self: start;
+  margin-top: 2px;
+  padding: 8px 13px;
+  font-size: 13px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+/ ---------- Bonus fields cleaner ---------- /
+
+.bonus-stage-card .bonus-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  margin-top: 0;
+}
+
+.bonus-stage-card .bonus-field {
+  padding: 18px;
+  border-radius: 22px;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--glass-bg-stronger) 82%, transparent),
+      color-mix(in srgb, var(--accent-2) 7%, var(--glass-bg-strong))
+    );
+  border: 1px solid color-mix(in srgb, var(--glass-border) 82%, var(--accent-2));
+  min-width: 0;
+}
+
+.bonus-stage-card .bonus-field label {
+  margin: 0 0 10px;
+  color: var(--text-soft);
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.bonus-stage-card .bonus-field select,
+.bonus-stage-card .bonus-field input {
+  min-height: 54px;
+  border-radius: 16px;
+  font-size: 15px;
+  font-weight: 650;
+  padding: 13px 15px;
+}
+
+.bonus-stage-card .bonus-field p {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+/ Major bonus should use 4 clean cards /
+
+.bonus-stage-card[data-bonus-section="major"] .bonus-grid {
+  grid-template-columns: repeat(4, minmax(190px, 1fr));
+}
+
+.bonus-stage-card[data-bonus-section="major"] {
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--accent-warm) 16%, transparent), transparent 34%),
+    radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-2) 18%, transparent), transparent 38%),
+    var(--glass-bg);
+  border-color: color-mix(in srgb, var(--accent-warm) 35%, var(--glass-border));
+}
+
+/ Final question number input should not stretch badly /
+
+.bonus-stage-card[data-bonus-section="final"] .bonus-grid {
+  grid-template-columns: minmax(260px, 1fr);
+}
+
+/ Save button card /
+
+.bonus-card {
+  border-radius: 26px;
+}
+
+.bonus-card > button {
+  min-height: 48px;
+  border-radius: 16px;
+}
+
+/ ---------- Super Admin bonus card cleaner ---------- /
+
+.bonus-admin-card {
+  grid-column: 1 / -1;
+}
+
+.bonus-lock-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+.bonus-lock-grid label {
+  min-height: 52px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+}
+
+.bonus-admin-section {
+  margin-top: 20px;
+  padding: 18px;
+  border-radius: 22px;
+}
+
+.bonus-admin-section h3 {
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.bonus-admin-section .bonus-grid {
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 14px;
+}
+
+/ ---------- Rules page card fix ---------- /
+
+.rules-section-grid {
+  align-items: stretch;
+}
+
+.rules-info-card {
+  padding: 22px;
+  border-radius: 28px;
+  overflow: visible;
+}
+
+.rules-card-head {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  margin-bottom: 16px;
+}
+
+.rules-card-head h2 {
+  font-size: clamp(20px, 2.1vw, 25px);
+  font-weight: 950;
+  line-height: 1.15;
+}
+
+.rules-card-head p {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.rules-icon {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  border-radius: 18px;
+}
+
+.rules-points-list {
+  gap: 12px;
+}
+
+.rules-points-list > div {
+  padding: 16px;
+  border-radius: 20px;
+}
+
+.rules-points-list strong {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.rules-points-list span {
+  display: block;
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.rules-bullet-list {
+  gap: 10px;
+}
+
+.rules-bullet-list li {
+  padding: 12px 14px 12px 38px;
+  border-radius: 16px;
+  font-size: 13.5px;
+}
+
+.stage-bonus-list {
+  gap: 12px;
+}
+
+.stage-bonus-list > div {
+  padding: 16px;
+  border-radius: 20px;
+}
+
+.stage-bonus-list strong {
+  font-size: 15px;
+}
+
+.stage-bonus-list span {
+  margin-left: 0;
+}
+
+/ ---------- Light theme fixes ---------- /
+
+[data-theme="light"] .bonus-stage-card,
+[data-theme="light"] .rules-info-card {
+  background:
+    radial-gradient(circle at top left, rgba(191, 219, 254, 0.42), transparent 34%),
+    rgba(255, 255, 255, 0.82);
+}
+
+[data-theme="light"] .bonus-stage-card .bonus-field,
+[data-theme="light"] .rules-points-list > div,
+[data-theme="light"] .rules-bullet-list li,
+[data-theme="light"] .stage-bonus-list > div,
+[data-theme="light"] .bonus-lock-grid label,
+[data-theme="light"] .bonus-admin-section {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(15, 23, 42, 0.13);
+}
+
+[data-theme="light"] .bonus-stage-head .stage-tag {
+  background: rgba(255, 255, 255, 0.92);
+  color: #334155;
+  border-color: rgba(15, 23, 42, 0.14);
+}
+
+/ ---------- Mobile fixes ---------- */
+
+@media (max-width: 1100px) {
+  .bonus-stage-card[data-bonus-section="major"] .bonus-grid {
+    grid-template-columns: repeat(2, minmax(230px, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .bonus-stage-card {
+    padding: 18px;
+    border-radius: 24px;
+  }
+
+  .bonus-stage-head {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .bonus-stage-head .status-pill {
+    width: fit-content;
+  }
+
+  .bonus-stage-card .bonus-grid,
+  .bonus-stage-card[data-bonus-section="major"] .bonus-grid,
+  .bonus-stage-card[data-bonus-section="final"] .bonus-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bonus-stage-card .bonus-field {
+    padding: 15px;
+  }
+
+  .rules-section-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rules-info-card {
+    padding: 18px;
+    border-radius: 24px;
+  }
+
+  .rules-card-head {
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .rules-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 15px;
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 480px) {
+  .bonus-stage-card {
+    padding: 16px 14px;
+  }
+
+  .bonus-stage-head h2 {
+    font-size: 21px;
+  }
+
+  .bonus-stage-head p {
+    font-size: 13.5px;
+  }
+
+  .bonus-stage-card .bonus-field select,
+  .bonus-stage-card .bonus-field input {
+    min-height: 50px;
+    font-size: 14px;
+  }
+
+  .rules-info-card {
+    padding: 16px 14px;
+  }
+
+  .rules-card-head h2 {
+    font-size: 20px;
+  }
+}
