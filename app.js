@@ -460,29 +460,6 @@ function bonusMatchOptions(stageIds = []) {
     .filter(Boolean);
 }
 
-function getFinalMatchTeamsForBonus() {
-  const finalMatch = (matchesCache || []).find(match => {
-    const stageId =
-      typeof classifyStage === 'function'
-        ? classifyStage(match.stage)
-        : String(match.stage || '').toLowerCase();
-
-    return stageId === 'final';
-  });
-
-  const teams = [];
-
-  if (finalMatch?.home_team && finalMatch.home_team !== 'TBD') {
-    teams.push(finalMatch.home_team);
-  }
-
-  if (finalMatch?.away_team && finalMatch.away_team !== 'TBD') {
-    teams.push(finalMatch.away_team);
-  }
-
-  return teams;
-}
-
 /* ============================================================
    Bonus dropdown list loader
    ============================================================ */
@@ -654,13 +631,6 @@ function populateBonusDropdowns() {
     bonusPredictionCache?.sf_most_possession_team || ''
   );
 
-  setSelectOptions(
-    'bonusFinalFirstHalfTeam',
-    getFinalMatchTeamsForBonus(),
-    'Select final team',
-    bonusPredictionCache?.final_first_half_team || ''
-  );
-
   if ($('bonusFinalFirstHalfGoals')) {
     $('bonusFinalFirstHalfGoals').value = bonusPredictionCache?.final_first_half_goals ?? '';
   }
@@ -758,13 +728,6 @@ function populateBonusResultDropdowns() {
     teams,
     'Select actual team',
     bonusResultCache?.actual_sf_most_possession_team || ''
-  );
-
-  setSelectOptions(
-    'actualFinalFirstHalfTeam',
-    getFinalMatchTeamsForBonus(),
-    'Select actual final team',
-    bonusResultCache?.actual_final_first_half_team || ''
   );
 
   if ($('actualFinalFirstHalfGoals')) {
@@ -959,7 +922,6 @@ async function loadBonusResults() {
     actual_r16_penalty_shootout_team: null,
     actual_qf_clean_sheet_team: null,
     actual_sf_most_possession_team: null,
-    actual_final_first_half_team: null,
     actual_final_first_half_goals: null
   };
 }
@@ -1260,25 +1222,28 @@ async function savePrediction(matchId) {
 window.savePrediction = savePrediction;
 
 /* ============================================================
-   Save bonus prediction
+   Save bonus predictions
+   - Separate save functions are provided for each bonus section.
+   - The old saveBonusPrediction() is kept as a compatibility "save all open sections" function.
+   - Final bonus uses only final_first_half_goals.
    ============================================================ */
 
-function buildBonusPredictionPayload() {
-  const existing = bonusPredictionCache || {};
-  const locks = getBonusLocks();
+function validateMajorBonusValues(values) {
+  if (
+    values.finalist_one &&
+    values.finalist_two &&
+    values.finalist_one === values.finalist_two
+  ) {
+    throw new Error('Finalist 1 and Finalist 2 cannot be the same team.');
+  }
+}
 
+function buildMajorBonusPayload() {
   const goldenBoot =
     nullableValueOf('bonusGoldenBoot') ||
     nullableValueOf('bonusBestPlayer');
 
-  const finalFirstHalfTeam = nullableValueOf('bonusFinalFirstHalfTeam');
-  const finalFirstHalfGoals = numberValueOf('bonusFinalFirstHalfGoals');
-
-  if (Number.isNaN(finalFirstHalfGoals)) {
-    throw new Error('Final first-half goals must be a valid whole number.');
-  }
-
-  const major = {
+  const payload = {
     tournament_winner: nullableValueOf('bonusTournamentWinner'),
     golden_boot: goldenBoot,
     best_player: goldenBoot,
@@ -1286,37 +1251,245 @@ function buildBonusPredictionPayload() {
     finalist_two: nullableValueOf('bonusFinalistTwo')
   };
 
-  if (
-    !locks.major &&
-    major.finalist_one &&
-    major.finalist_two &&
-    major.finalist_one === major.finalist_two
-  ) {
-    throw new Error('Finalist 1 and Finalist 2 cannot be the same team.');
+  validateMajorBonusValues(payload);
+
+  return payload;
+}
+
+function buildGroupBonusPayload() {
+  return {
+    group_most_goals_team: nullableValueOf('bonusGroupMostGoalsTeam'),
+    group_fewest_conceded_team: nullableValueOf('bonusGroupFewestConcededTeam'),
+    group_most_yellow_cards_team: nullableValueOf('bonusGroupMostYellowCardsTeam')
+  };
+}
+
+function buildR32BonusPayload() {
+  return {
+    r32_extra_time_match: nullableValueOf('bonusR32ExtraTimeMatch')
+  };
+}
+
+function buildR16BonusPayload() {
+  return {
+    r16_penalty_shootout_team: nullableValueOf('bonusR16PenaltyShootoutTeam')
+  };
+}
+
+function buildQfBonusPayload() {
+  return {
+    qf_clean_sheet_team: nullableValueOf('bonusQfCleanSheetTeam')
+  };
+}
+
+function buildSfBonusPayload() {
+  return {
+    sf_most_possession_team: nullableValueOf('bonusSfMostPossessionTeam')
+  };
+}
+
+function buildFinalBonusPayload() {
+  const finalFirstHalfGoals = numberValueOf('bonusFinalFirstHalfGoals');
+
+  if (Number.isNaN(finalFirstHalfGoals)) {
+    throw new Error('Final first-half goals must be a valid whole number.');
   }
 
   return {
+    final_first_half_goals: finalFirstHalfGoals
+  };
+}
+
+async function upsertBonusPredictionPartial(sectionName, sectionLockKey, partialPayload) {
+  if (!currentUser) {
+    toast('Please login first.');
+    return;
+  }
+
+  if (!bonusResultCache) {
+    await loadBonusResults();
+  }
+
+  const locks = getBonusLocks();
+
+  if (locks[sectionLockKey]) {
+    toast(`${sectionName} is locked.`);
+    return;
+  }
+
+  const payload = {
     user_id: currentUser.id,
-
-    tournament_winner: locks.major ? existing.tournament_winner ?? null : major.tournament_winner,
-    golden_boot: locks.major ? existing.golden_boot ?? existing.best_player ?? null : major.golden_boot,
-    best_player: locks.major ? existing.best_player ?? existing.golden_boot ?? null : major.best_player,
-    finalist_one: locks.major ? existing.finalist_one ?? null : major.finalist_one,
-    finalist_two: locks.major ? existing.finalist_two ?? null : major.finalist_two,
-
-    group_most_goals_team: locks.group ? existing.group_most_goals_team ?? null : nullableValueOf('bonusGroupMostGoalsTeam'),
-    group_fewest_conceded_team: locks.group ? existing.group_fewest_conceded_team ?? null : nullableValueOf('bonusGroupFewestConcededTeam'),
-    group_most_yellow_cards_team: locks.group ? existing.group_most_yellow_cards_team ?? null : nullableValueOf('bonusGroupMostYellowCardsTeam'),
-
-    r32_extra_time_match: locks.r32 ? existing.r32_extra_time_match ?? null : nullableValueOf('bonusR32ExtraTimeMatch'),
-    r16_penalty_shootout_team: locks.r16 ? existing.r16_penalty_shootout_team ?? null : nullableValueOf('bonusR16PenaltyShootoutTeam'),
-    qf_clean_sheet_team: locks.qf ? existing.qf_clean_sheet_team ?? null : nullableValueOf('bonusQfCleanSheetTeam'),
-    sf_most_possession_team: locks.sf ? existing.sf_most_possession_team ?? null : nullableValueOf('bonusSfMostPossessionTeam'),
-    final_first_half_team: locks.final ? existing.final_first_half_team ?? null : finalFirstHalfTeam,
-    final_first_half_goals: locks.final ? existing.final_first_half_goals ?? null : finalFirstHalfGoals,
-
+    ...partialPayload,
     updated_at: new Date().toISOString()
   };
+
+  const { error } = await supabaseClient
+    .from('bonus_predictions')
+    .upsert(payload, {
+      onConflict: 'user_id'
+    });
+
+  if (error) {
+    toast(error.message);
+    return;
+  }
+
+  toast(`${sectionName} saved.`);
+
+  await loadBonusPrediction();
+
+  if (currentTopView === 'predictions' && currentStage === 'bonus') {
+    renderPredictionsRoot();
+  }
+
+  if (currentTopView === 'leaderboard') {
+    renderLeaderboard();
+  }
+}
+
+async function saveMajorBonusPrediction() {
+  try {
+    await upsertBonusPredictionPartial(
+      'Major bonus predictions',
+      'major',
+      buildMajorBonusPayload()
+    );
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+async function saveGroupBonusPrediction() {
+  try {
+    await upsertBonusPredictionPartial(
+      'Group Stage bonus predictions',
+      'group',
+      buildGroupBonusPayload()
+    );
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+async function saveR32BonusPrediction() {
+  try {
+    await upsertBonusPredictionPartial(
+      'Round of 32 bonus prediction',
+      'r32',
+      buildR32BonusPayload()
+    );
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+async function saveR16BonusPrediction() {
+  try {
+    await upsertBonusPredictionPartial(
+      'Round of 16 bonus prediction',
+      'r16',
+      buildR16BonusPayload()
+    );
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+async function saveQfBonusPrediction() {
+  try {
+    await upsertBonusPredictionPartial(
+      'Quarter-final bonus prediction',
+      'qf',
+      buildQfBonusPayload()
+    );
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+async function saveSfBonusPrediction() {
+  try {
+    await upsertBonusPredictionPartial(
+      'Semi-final bonus prediction',
+      'sf',
+      buildSfBonusPayload()
+    );
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+async function saveFinalBonusPrediction() {
+  try {
+    await upsertBonusPredictionPartial(
+      'Final bonus prediction',
+      'final',
+      buildFinalBonusPayload()
+    );
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+/* Backward compatibility: one-button save all open sections */
+function buildBonusPredictionPayload() {
+  const existing = bonusPredictionCache || {};
+  const locks = getBonusLocks();
+
+  const payload = {
+    user_id: currentUser.id,
+    updated_at: new Date().toISOString()
+  };
+
+  if (!locks.major) {
+    Object.assign(payload, buildMajorBonusPayload());
+  } else {
+    payload.tournament_winner = existing.tournament_winner ?? null;
+    payload.golden_boot = existing.golden_boot ?? existing.best_player ?? null;
+    payload.best_player = existing.best_player ?? existing.golden_boot ?? null;
+    payload.finalist_one = existing.finalist_one ?? null;
+    payload.finalist_two = existing.finalist_two ?? null;
+  }
+
+  if (!locks.group) {
+    Object.assign(payload, buildGroupBonusPayload());
+  } else {
+    payload.group_most_goals_team = existing.group_most_goals_team ?? null;
+    payload.group_fewest_conceded_team = existing.group_fewest_conceded_team ?? null;
+    payload.group_most_yellow_cards_team = existing.group_most_yellow_cards_team ?? null;
+  }
+
+  if (!locks.r32) {
+    Object.assign(payload, buildR32BonusPayload());
+  } else {
+    payload.r32_extra_time_match = existing.r32_extra_time_match ?? null;
+  }
+
+  if (!locks.r16) {
+    Object.assign(payload, buildR16BonusPayload());
+  } else {
+    payload.r16_penalty_shootout_team = existing.r16_penalty_shootout_team ?? null;
+  }
+
+  if (!locks.qf) {
+    Object.assign(payload, buildQfBonusPayload());
+  } else {
+    payload.qf_clean_sheet_team = existing.qf_clean_sheet_team ?? null;
+  }
+
+  if (!locks.sf) {
+    Object.assign(payload, buildSfBonusPayload());
+  } else {
+    payload.sf_most_possession_team = existing.sf_most_possession_team ?? null;
+  }
+
+  if (!locks.final) {
+    Object.assign(payload, buildFinalBonusPayload());
+  } else {
+    payload.final_first_half_goals = existing.final_first_half_goals ?? null;
+  }
+
+  return payload;
 }
 
 async function saveBonusPrediction() {
@@ -1367,6 +1540,13 @@ async function saveBonusPrediction() {
   }
 }
 
+window.saveMajorBonusPrediction = saveMajorBonusPrediction;
+window.saveGroupBonusPrediction = saveGroupBonusPrediction;
+window.saveR32BonusPrediction = saveR32BonusPrediction;
+window.saveR16BonusPrediction = saveR16BonusPrediction;
+window.saveQfBonusPrediction = saveQfBonusPrediction;
+window.saveSfBonusPrediction = saveSfBonusPrediction;
+window.saveFinalBonusPrediction = saveFinalBonusPrediction;
 window.saveBonusPrediction = saveBonusPrediction;
 
 /* ============================================================
@@ -2024,7 +2204,6 @@ async function updateBonusResults() {
     nullableValueOf('actualGoldenBoot') ||
     nullableValueOf('actualBestPlayer');
 
-  const actualFinalFirstHalfTeam = nullableValueOf('actualFinalFirstHalfTeam');
   const actualFinalFirstHalfGoals = numberValueOf('actualFinalFirstHalfGoals');
 
   if (Number.isNaN(actualFinalFirstHalfGoals)) {
@@ -2066,7 +2245,6 @@ async function updateBonusResults() {
     actual_r16_penalty_shootout_team: nullableValueOf('actualR16PenaltyShootoutTeam'),
     actual_qf_clean_sheet_team: nullableValueOf('actualQfCleanSheetTeam'),
     actual_sf_most_possession_team: nullableValueOf('actualSfMostPossessionTeam'),
-    actual_final_first_half_team: actualFinalFirstHalfTeam,
     actual_final_first_half_goals: actualFinalFirstHalfGoals,
 
     updated_at: new Date().toISOString()
