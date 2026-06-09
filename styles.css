@@ -3281,3 +3281,775 @@ select option {
   justify-content: center;
   min-width: 44px;
 }
+
+/* ============================================================
+   UPDATED STYLES — Bonus stages, new Rules page,
+   new Next-Up cards, and new Super Admin bonus controls
+   Add this block at the very bottom of styles.css
+   ============================================================ /
+
+/ ============================================================
+   Next-Up compact match cards
+   ============================================================ /
+
+.next-card-compact {
+  min-height: 150px;
+  justify-content: space-between;
+}
+
+.next-teams-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.next-team-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: var(--glass-bg-stronger);
+  border: 1px solid var(--glass-border);
+}
+
+.next-team-flag {
+  flex: 0 0 28px;
+  width: 28px;
+  font-size: 23px;
+  line-height: 1;
+  text-align: center;
+}
+
+.next-team-name {
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 900;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.live-tag {
+  color: var(--accent-warm) !important;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+/ ============================================================
+   Make First Team to Score UI exactly match Who Will Win UI
+   ============================================================ /
+
+.first-score-box,
+.who-win-box {
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent-2) 10%, var(--glass-bg-strong)),
+      color-mix(in srgb, var(--accent) 8%, var(--glass-bg-strong))
+    );
+  border: 1px solid color-mix(in srgb, var(--accent-2) 28%, var(--glass-border));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.first-score-options,
+.who-win-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr 0.78fr;
+  gap: 7px;
+  align-items: stretch;
+}
+
+.first-score-option span,
+.who-win-option span {
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 9px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--glass-bg-stronger) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--glass-border) 85%, var(--accent-2));
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 850;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+  line-height: 1.15;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  transition:
+    background var(--transition-smooth),
+    border-color var(--transition-smooth),
+    color var(--transition-smooth),
+    transform var(--transition-fast),
+    box-shadow var(--transition-smooth);
+}
+
+.first-score-option:hover span,
+.who-win-option:hover span {
+  color: var(--text);
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent-2) 55%, var(--glass-border));
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent-2) 18%, transparent);
+}
+
+.first-score-option input:checked + span,
+.who-win-option input:checked + span {
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow:
+    0 8px 22px color-mix(in srgb, var(--accent-2) 35%, transparent),
+    inset 0 1px 0 rgba(255,255,255,0.20);
+}
+
+/ ============================================================
+   Bonus Prediction Page — section cards
+   ============================================================ /
+
+.bonus-page-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.bonus-section-label {
+  margin: 4px 0 2px;
+  padding: 6px 2px;
+}
+
+.bonus-section-label h2 {
+  font-size: clamp(18px, 2vw, 22px);
+  margin-bottom: 4px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.bonus-section-label p {
+  margin: 0;
+}
+
+.bonus-stage-card {
+  padding: 20px;
+  border-radius: var(--radius-lg);
+}
+
+.bonus-stage-card[data-bonus-section="group"] {
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--glass-border));
+}
+
+.bonus-stage-card[data-bonus-section="major"] {
+  border-color: color-mix(in srgb, var(--accent-warm) 40%, var(--glass-border));
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--accent-warm) 13%, transparent), transparent 34%),
+    var(--glass-bg);
+}
+
+.bonus-stage-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.bonus-stage-head h2 {
+  margin-top: 8px;
+  font-size: clamp(18px, 2.2vw, 24px);
+}
+
+.bonus-stage-head p {
+  margin: 6px 0 0;
+}
+
+.bonus-stage-head .stage-tag {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+}
+
+.bonus-stage-card .bonus-grid {
+  margin-top: 14px;
+}
+
+.bonus-stage-card .bonus-field {
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--glass-bg-stronger) 78%, transparent),
+      color-mix(in srgb, var(--accent-2) 5%, var(--glass-bg-strong))
+    );
+}
+
+.bonus-stage-card .bonus-field label {
+  line-height: 1.35;
+}
+
+.bonus-stage-card select:disabled,
+.bonus-stage-card input:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.bonus-stage-card:has(select:disabled),
+.bonus-stage-card:has(input:disabled) {
+  opacity: 0.88;
+}
+
+.bonus-card button[disabled] {
+  opacity: 0.55;
+}
+
+/ New bonus input/select IDs /
+#bonusGoldenBoot,
+#bonusGroupMostGoalsTeam,
+#bonusGroupFewestConcededTeam,
+#bonusGroupMostYellowCardsTeam,
+#bonusR32ExtraTimeMatch,
+#bonusR16PenaltyShootoutTeam,
+#bonusQfCleanSheetTeam,
+#bonusSfMostPossessionTeam,
+#bonusFinalFirstHalfGoals,
+#actualGoldenBoot,
+#actualGroupMostGoalsTeam,
+#actualGroupFewestConcededTeam,
+#actualGroupMostYellowCardsTeam,
+#actualR32ExtraTimeMatch,
+#actualR16PenaltyShootoutTeam,
+#actualQfCleanSheetTeam,
+#actualSfMostPossessionTeam,
+#actualFinalFirstHalfGoals {
+  min-height: 48px;
+  cursor: pointer;
+}
+
+/ ============================================================
+   Super Admin Bonus Control
+   ============================================================ /
+
+.bonus-lock-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.bonus-lock-grid label {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.bonus-lock-grid input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: auto;
+  transform: scale(1.1);
+}
+
+.bonus-admin-section {
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+}
+
+.bonus-admin-section h3 {
+  margin-bottom: 4px;
+  font-size: 16px;
+}
+
+.bonus-admin-section p {
+  margin: 0;
+}
+
+.bonus-admin-section .bonus-grid {
+  margin-top: 14px;
+}
+
+.bonus-admin-card {
+  grid-column: span 2;
+}
+
+/ ============================================================
+   New Rules Page
+   ============================================================ /
+
+#rulesView {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  overflow: visible;
+}
+
+#rulesView::before,
+#rulesView::after {
+  display: none;
+}
+
+.rules-page-card {
+  padding: 22px;
+  margin-bottom: 16px;
+}
+
+.rules-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+}
+
+.rules-hero h2 {
+  margin-top: 8px;
+  font-size: clamp(24px, 3vw, 36px);
+  line-height: 1.05;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.rules-hero p {
+  max-width: 760px;
+  margin: 8px 0 0;
+}
+
+.rules-total-box {
+  width: 150px;
+  min-height: 130px;
+  padding: 18px;
+  border-radius: 24px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  background:
+    radial-gradient(circle at top, color-mix(in srgb, var(--accent) 28%, transparent), transparent 60%),
+    var(--glass-bg-strong);
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--glass-border));
+}
+
+.rules-total-box strong {
+  display: block;
+  font-size: 52px;
+  font-weight: 950;
+  line-height: 0.95;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.rules-total-box span {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.rules-section-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.rules-info-card {
+  padding: 20px;
+}
+
+.rules-info-card h2 {
+  font-size: clamp(18px, 2vw, 22px);
+}
+
+.rules-info-card p {
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+.rules-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.rules-icon {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  font-size: 24px;
+  background: var(--glass-bg-stronger);
+  border: 1px solid var(--glass-border);
+}
+
+.rules-points-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.rules-points-list > div {
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+}
+
+.rules-points-list strong {
+  display: block;
+  font-size: 24px;
+  font-weight: 950;
+  margin-bottom: 4px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.rules-points-list span {
+  color: var(--text-soft);
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.rules-bullet-list {
+  margin: 12px 0 0;
+  padding-left: 0;
+  list-style: none;
+  display: grid;
+  gap: 9px;
+}
+
+.rules-bullet-list li {
+  position: relative;
+  padding: 10px 12px 10px 36px;
+  border-radius: 14px;
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+  color: var(--text-soft);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.rules-bullet-list li::before {
+  content: "✓";
+  position: absolute;
+  left: 12px;
+  top: 10px;
+  color: var(--accent);
+  font-weight: 950;
+}
+
+.rule-example-box,
+.rule-formula-box {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent-2) 12%, var(--glass-bg-strong)),
+      color-mix(in srgb, var(--accent) 10%, var(--glass-bg-strong))
+    );
+  border: 1px solid color-mix(in srgb, var(--accent-2) 34%, var(--glass-border));
+}
+
+.rule-example-box strong,
+.rule-formula-box strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.rule-example-box p {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.rule-formula-box {
+  text-align: center;
+}
+
+.rule-formula-box strong {
+  margin-bottom: 0;
+  font-size: clamp(16px, 2vw, 20px);
+  background: linear-gradient(135deg, var(--accent-warm), var(--accent-pink));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.stage-bonus-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.stage-bonus-list > div {
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+}
+
+.stage-bonus-list strong {
+  display: inline-block;
+  margin-right: 8px;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.stage-bonus-list span {
+  display: inline-flex;
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+}
+
+.stage-bonus-list p {
+  margin: 8px 0 0;
+  color: var(--text-soft);
+  font-size: 13px;
+}
+
+.stage-bonus-list ul {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: var(--text-soft);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.stage-bonus-list li + li {
+  margin-top: 4px;
+}
+
+/ ============================================================
+   Light Theme Overrides for New UI
+   ============================================================ /
+
+[data-theme="light"] .first-score-box,
+[data-theme="light"] .who-win-box {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255,255,255,0.92),
+      color-mix(in srgb, var(--accent-2) 8%, rgba(255,255,255,0.92))
+    );
+  border-color: rgba(15, 23, 42, 0.14);
+}
+
+[data-theme="light"] .first-score-option span,
+[data-theme="light"] .who-win-option span {
+  background: rgba(255, 255, 255, 0.82);
+  color: #334155;
+  border-color: rgba(15, 23, 42, 0.14);
+}
+
+[data-theme="light"] .first-score-option input:checked + span,
+[data-theme="light"] .who-win-option input:checked + span {
+  color: #ffffff;
+}
+
+[data-theme="light"] .next-team-line,
+[data-theme="light"] .bonus-field,
+[data-theme="light"] .bonus-stage-card .bonus-field,
+[data-theme="light"] .bonus-lock-grid label,
+[data-theme="light"] .bonus-admin-section,
+[data-theme="light"] .rules-points-list > div,
+[data-theme="light"] .rules-bullet-list li,
+[data-theme="light"] .stage-bonus-list > div {
+  background: rgba(255, 255, 255, 0.86);
+  border-color: rgba(15, 23, 42, 0.13);
+}
+
+[data-theme="light"] .rule-example-box,
+[data-theme="light"] .rule-formula-box {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.92),
+      color-mix(in srgb, var(--accent-2) 8%, rgba(255, 255, 255, 0.92))
+    );
+  border-color: rgba(15, 23, 42, 0.14);
+}
+
+[data-theme="light"] .rules-icon,
+[data-theme="light"] .rules-total-box {
+  background: rgba(255, 255, 255, 0.90);
+  border-color: rgba(15, 23, 42, 0.14);
+}
+
+/ ============================================================
+   Responsive fixes for new UI
+   ============================================================ */
+
+@media (max-width: 920px) {
+  .rules-section-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bonus-admin-card {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 720px) {
+  .rules-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .rules-total-box {
+    width: 100%;
+    min-height: 100px;
+    grid-template-columns: auto 1fr;
+    justify-items: start;
+    text-align: left;
+    gap: 14px;
+  }
+
+  .rules-total-box strong {
+    font-size: 44px;
+  }
+
+  .rules-total-box span {
+    margin-top: 0;
+  }
+
+  .bonus-stage-head {
+    flex-direction: column;
+  }
+
+  .bonus-stage-head .status-pill {
+    width: fit-content;
+  }
+
+  .bonus-lock-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .next-card-compact {
+    min-height: auto;
+  }
+
+  .next-team-name {
+    white-space: normal;
+  }
+
+  #bonusGoldenBoot,
+  #bonusGroupMostGoalsTeam,
+  #bonusGroupFewestConcededTeam,
+  #bonusGroupMostYellowCardsTeam,
+  #bonusR32ExtraTimeMatch,
+  #bonusR16PenaltyShootoutTeam,
+  #bonusQfCleanSheetTeam,
+  #bonusSfMostPossessionTeam,
+  #bonusFinalFirstHalfGoals,
+  #actualGoldenBoot,
+  #actualGroupMostGoalsTeam,
+  #actualGroupFewestConcededTeam,
+  #actualGroupMostYellowCardsTeam,
+  #actualR32ExtraTimeMatch,
+  #actualR16PenaltyShootoutTeam,
+  #actualQfCleanSheetTeam,
+  #actualSfMostPossessionTeam,
+  #actualFinalFirstHalfGoals {
+    min-height: 50px;
+  }
+}
+
+@media (max-width: 560px) {
+  .rules-page-card,
+  .rules-info-card,
+  .bonus-stage-card {
+    padding: 16px 14px;
+  }
+
+  .rules-card-head {
+    gap: 10px;
+  }
+
+  .rules-icon {
+    width: 38px;
+    height: 38px;
+    flex-basis: 38px;
+    font-size: 21px;
+    border-radius: 14px;
+  }
+
+  .rules-points-list {
+    grid-template-columns: 1fr;
+  }
+
+  .rules-bullet-list li {
+    font-size: 12.5px;
+  }
+
+  .stage-bonus-list strong {
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .stage-bonus-list span {
+    margin-bottom: 4px;
+  }
+
+  .bonus-lock-grid label {
+    font-size: 12.5px;
+    padding: 11px 12px;
+  }
+}
+
+@media (max-width: 420px) {
+  .next-team-line {
+    padding: 8px;
+  }
+
+  .next-team-flag {
+    flex-basis: 24px;
+    width: 24px;
+    font-size: 21px;
+  }
+
+  .next-team-name {
+    font-size: 14px;
+  }
+
+  .rules-hero h2 {
+    font-size: 26px;
+  }
+
+  .rules-total-box strong {
+    font-size: 38px;
+  }
+}
