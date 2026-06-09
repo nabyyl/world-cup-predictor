@@ -782,8 +782,31 @@ function bonusFieldNumber(id, label, placeholder, selected, locked, note = '') {
 
 function bonusSaveButton(label, functionName, locked) {
   return `
-    <div class="bonus-section-save">
-      <button onclick="${functionName}()" ${locked ? 'disabled' : ''}>
+    <div
+      class="bonus-section-save"
+      style="
+        grid-column: 1 / -1;
+        width: 100%;
+        display: flex;
+        justify-content: flex-start;
+        margin-top: 24px;
+        padding-top: 10px;
+      "
+    >
+      <button
+        onclick="${functionName}()"
+        ${locked ? 'disabled' : ''}
+        style="
+          width: auto;
+          min-width: 210px;
+          max-width: 280px;
+          padding: 14px 24px;
+          border-radius: 18px;
+          font-size: 0.95rem;
+          font-weight: 800;
+          white-space: nowrap;
+        "
+      >
         ${escapeHtml(label)}
       </button>
     </div>
