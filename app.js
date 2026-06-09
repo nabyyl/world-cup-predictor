@@ -14,9 +14,11 @@
        Who will win / draw / advanced team = 1
        First team to score / no goal = 1
    - Bonus predictions:
-       Tournament winner = 10
-       Best player = 10
-       Finalists = 5 each
+       Tournament winner = 30
+       Golden Boot / Top Scorer = 20
+       Finalists = 15 each
+       Group Stage questions = 5 each
+       Round of 32 / Round of 16 / Quarter / Semi / Final questions = 7 each
    - User supported-team customization
    - Team supporter summary
    - Super Admin exports
@@ -178,6 +180,28 @@ function safeEscape(value) {
     "'": '&#39;',
     '"': '&quot;'
   }[char]));
+}
+
+function valueOf(id) {
+  const el = $(id);
+  return el ? String(el.value ?? '').trim() : '';
+}
+
+function nullableValueOf(id) {
+  const value = valueOf(id);
+  return value === '' ? null : value;
+}
+
+function numberValueOf(id) {
+  const value = valueOf(id);
+  if (value === '') return null;
+
+  const number = Number(value);
+  return Number.isInteger(number) && number >= 0 ? number : NaN;
+}
+
+function checkedOf(id) {
+  return !!$(id)?.checked;
 }
 
 /* ============================================================
@@ -389,6 +413,54 @@ function updateUserChip() {
 }
 
 /* ============================================================
+   Bonus section helpers
+   ============================================================ */
+
+function getBonusLocks() {
+  const br = bonusResultCache || {};
+
+  return {
+    major: !!(br.is_locked || br.major_bonus_locked),
+    group: !!(br.is_locked || br.group_bonus_locked),
+    r32: !!(br.is_locked || br.r32_bonus_locked),
+    r16: !!(br.is_locked || br.r16_bonus_locked),
+    qf: !!(br.is_locked || br.qf_bonus_locked),
+    sf: !!(br.is_locked || br.sf_bonus_locked),
+    final: !!(br.is_locked || br.final_bonus_locked)
+  };
+}
+
+function isAnyBonusSectionOpen() {
+  const locks = getBonusLocks();
+  return Object.values(locks).some(isLocked => !isLocked);
+}
+
+function matchLabelForBonus(match) {
+  if (!match) return '';
+
+  const no = match.match_no ? `M${match.match_no} · ` : '';
+  const stage = match.stage ? `${match.stage} · ` : '';
+
+  return `${no}${stage}${match.home_team || 'TBD'} vs ${match.away_team || 'TBD'}`;
+}
+
+function bonusMatchOptions(stageIds = []) {
+  return (matchesCache || [])
+    .filter(match => {
+      if (!stageIds.length) return true;
+
+      const stageId =
+        typeof classifyStage === 'function'
+          ? classifyStage(match.stage)
+          : String(match.stage || '').toLowerCase();
+
+      return stageIds.includes(stageId);
+    })
+    .map(match => matchLabelForBonus(match))
+    .filter(Boolean);
+}
+
+/* ============================================================
    Bonus dropdown list loader
    ============================================================ */
 
@@ -469,6 +541,11 @@ function populateBonusDropdowns() {
   const teams = bonusTeamsCache.length ? bonusTeamsCache : DEFAULT_BONUS_TEAMS;
   const players = bonusPlayersCache.length ? bonusPlayersCache : DEFAULT_BONUS_PLAYERS;
 
+  const goldenBootValue =
+    bonusPredictionCache?.golden_boot ||
+    bonusPredictionCache?.best_player ||
+    '';
+
   setSelectOptions(
     'bonusTournamentWinner',
     teams,
@@ -477,10 +554,18 @@ function populateBonusDropdowns() {
   );
 
   setSelectOptions(
+    'bonusGoldenBoot',
+    players,
+    'Select Golden Boot / Top Scorer',
+    goldenBootValue
+  );
+
+  /* Backward compatibility with older UI id */
+  setSelectOptions(
     'bonusBestPlayer',
     players,
-    'Select best player',
-    bonusPredictionCache?.best_player || ''
+    'Select Golden Boot / Top Scorer',
+    goldenBootValue
   );
 
   setSelectOptions(
@@ -496,11 +581,69 @@ function populateBonusDropdowns() {
     'Select finalist 2',
     bonusPredictionCache?.finalist_two || ''
   );
+
+  setSelectOptions(
+    'bonusGroupMostGoalsTeam',
+    teams,
+    'Select team',
+    bonusPredictionCache?.group_most_goals_team || ''
+  );
+
+  setSelectOptions(
+    'bonusGroupFewestConcededTeam',
+    teams,
+    'Select team',
+    bonusPredictionCache?.group_fewest_conceded_team || ''
+  );
+
+  setSelectOptions(
+    'bonusGroupMostYellowCardsTeam',
+    teams,
+    'Select team',
+    bonusPredictionCache?.group_most_yellow_cards_team || ''
+  );
+
+  setSelectOptions(
+    'bonusR32ExtraTimeMatch',
+    bonusMatchOptions(['r32']),
+    'Select match',
+    bonusPredictionCache?.r32_extra_time_match || ''
+  );
+
+  setSelectOptions(
+    'bonusR16PenaltyShootoutTeam',
+    teams,
+    'Select team',
+    bonusPredictionCache?.r16_penalty_shootout_team || ''
+  );
+
+  setSelectOptions(
+    'bonusQfCleanSheetTeam',
+    teams,
+    'Select team',
+    bonusPredictionCache?.qf_clean_sheet_team || ''
+  );
+
+  setSelectOptions(
+    'bonusSfMostPossessionTeam',
+    teams,
+    'Select team',
+    bonusPredictionCache?.sf_most_possession_team || ''
+  );
+
+  if ($('bonusFinalFirstHalfGoals')) {
+    $('bonusFinalFirstHalfGoals').value = bonusPredictionCache?.final_first_half_goals ?? '';
+  }
 }
 
 function populateBonusResultDropdowns() {
   const teams = bonusTeamsCache.length ? bonusTeamsCache : DEFAULT_BONUS_TEAMS;
   const players = bonusPlayersCache.length ? bonusPlayersCache : DEFAULT_BONUS_PLAYERS;
+
+  const actualGoldenBootValue =
+    bonusResultCache?.actual_golden_boot ||
+    bonusResultCache?.actual_best_player ||
+    '';
 
   setSelectOptions(
     'actualTournamentWinner',
@@ -510,10 +653,18 @@ function populateBonusResultDropdowns() {
   );
 
   setSelectOptions(
+    'actualGoldenBoot',
+    players,
+    'Select actual Golden Boot / Top Scorer',
+    actualGoldenBootValue
+  );
+
+  /* Backward compatibility with older UI id */
+  setSelectOptions(
     'actualBestPlayer',
     players,
-    'Select actual best player',
-    bonusResultCache?.actual_best_player || ''
+    'Select actual Golden Boot / Top Scorer',
+    actualGoldenBootValue
   );
 
   setSelectOptions(
@@ -529,6 +680,59 @@ function populateBonusResultDropdowns() {
     'Select actual finalist 2',
     bonusResultCache?.actual_finalist_two || ''
   );
+
+  setSelectOptions(
+    'actualGroupMostGoalsTeam',
+    teams,
+    'Select actual team',
+    bonusResultCache?.actual_group_most_goals_team || ''
+  );
+
+  setSelectOptions(
+    'actualGroupFewestConcededTeam',
+    teams,
+    'Select actual team',
+    bonusResultCache?.actual_group_fewest_conceded_team || ''
+  );
+
+  setSelectOptions(
+    'actualGroupMostYellowCardsTeam',
+    teams,
+    'Select actual team',
+    bonusResultCache?.actual_group_most_yellow_cards_team || ''
+  );
+
+  setSelectOptions(
+    'actualR32ExtraTimeMatch',
+    bonusMatchOptions(['r32']),
+    'Select actual match',
+    bonusResultCache?.actual_r32_extra_time_match || ''
+  );
+
+  setSelectOptions(
+    'actualR16PenaltyShootoutTeam',
+    teams,
+    'Select actual team',
+    bonusResultCache?.actual_r16_penalty_shootout_team || ''
+  );
+
+  setSelectOptions(
+    'actualQfCleanSheetTeam',
+    teams,
+    'Select actual team',
+    bonusResultCache?.actual_qf_clean_sheet_team || ''
+  );
+
+  setSelectOptions(
+    'actualSfMostPossessionTeam',
+    teams,
+    'Select actual team',
+    bonusResultCache?.actual_sf_most_possession_team || ''
+  );
+
+  if ($('actualFinalFirstHalfGoals')) {
+    $('actualFinalFirstHalfGoals').value = bonusResultCache?.actual_final_first_half_goals ?? '';
+  }
 }
 
 window.populateBonusDropdowns = populateBonusDropdowns;
@@ -695,10 +899,30 @@ async function loadBonusResults() {
   bonusResultCache = data || {
     id: true,
     is_locked: false,
+
+    major_bonus_locked: false,
+    group_bonus_locked: false,
+    r32_bonus_locked: false,
+    r16_bonus_locked: false,
+    qf_bonus_locked: false,
+    sf_bonus_locked: false,
+    final_bonus_locked: false,
+
     actual_tournament_winner: null,
+    actual_golden_boot: null,
     actual_best_player: null,
     actual_finalist_one: null,
-    actual_finalist_two: null
+    actual_finalist_two: null,
+
+    actual_group_most_goals_team: null,
+    actual_group_fewest_conceded_team: null,
+    actual_group_most_yellow_cards_team: null,
+
+    actual_r32_extra_time_match: null,
+    actual_r16_penalty_shootout_team: null,
+    actual_qf_clean_sheet_team: null,
+    actual_sf_most_possession_team: null,
+    actual_final_first_half_goals: null
   };
 }
 
@@ -841,7 +1065,8 @@ function renderPredictionsRoot() {
       currentProfile,
       {
         teams: bonusTeamsCache.length ? bonusTeamsCache : DEFAULT_BONUS_TEAMS,
-        players: bonusPlayersCache.length ? bonusPlayersCache : DEFAULT_BONUS_PLAYERS
+        players: bonusPlayersCache.length ? bonusPlayersCache : DEFAULT_BONUS_PLAYERS,
+        matches: matchesCache
       }
     );
 
@@ -1000,40 +1225,83 @@ window.savePrediction = savePrediction;
    Save bonus prediction
    ============================================================ */
 
+function buildBonusPredictionPayload() {
+  const existing = bonusPredictionCache || {};
+  const locks = getBonusLocks();
+
+  const goldenBoot =
+    nullableValueOf('bonusGoldenBoot') ||
+    nullableValueOf('bonusBestPlayer');
+
+  const finalFirstHalfGoals = numberValueOf('bonusFinalFirstHalfGoals');
+
+  if (Number.isNaN(finalFirstHalfGoals)) {
+    throw new Error('Final first-half goals must be a valid whole number.');
+  }
+
+  const major = {
+    tournament_winner: nullableValueOf('bonusTournamentWinner'),
+    golden_boot: goldenBoot,
+    best_player: goldenBoot,
+    finalist_one: nullableValueOf('bonusFinalistOne'),
+    finalist_two: nullableValueOf('bonusFinalistTwo')
+  };
+
+  if (
+    !locks.major &&
+    major.finalist_one &&
+    major.finalist_two &&
+    major.finalist_one === major.finalist_two
+  ) {
+    throw new Error('Finalist 1 and Finalist 2 cannot be the same team.');
+  }
+
+  return {
+    user_id: currentUser.id,
+
+    tournament_winner: locks.major ? existing.tournament_winner ?? null : major.tournament_winner,
+    golden_boot: locks.major ? existing.golden_boot ?? existing.best_player ?? null : major.golden_boot,
+    best_player: locks.major ? existing.best_player ?? existing.golden_boot ?? null : major.best_player,
+    finalist_one: locks.major ? existing.finalist_one ?? null : major.finalist_one,
+    finalist_two: locks.major ? existing.finalist_two ?? null : major.finalist_two,
+
+    group_most_goals_team: locks.group ? existing.group_most_goals_team ?? null : nullableValueOf('bonusGroupMostGoalsTeam'),
+    group_fewest_conceded_team: locks.group ? existing.group_fewest_conceded_team ?? null : nullableValueOf('bonusGroupFewestConcededTeam'),
+    group_most_yellow_cards_team: locks.group ? existing.group_most_yellow_cards_team ?? null : nullableValueOf('bonusGroupMostYellowCardsTeam'),
+
+    r32_extra_time_match: locks.r32 ? existing.r32_extra_time_match ?? null : nullableValueOf('bonusR32ExtraTimeMatch'),
+    r16_penalty_shootout_team: locks.r16 ? existing.r16_penalty_shootout_team ?? null : nullableValueOf('bonusR16PenaltyShootoutTeam'),
+    qf_clean_sheet_team: locks.qf ? existing.qf_clean_sheet_team ?? null : nullableValueOf('bonusQfCleanSheetTeam'),
+    sf_most_possession_team: locks.sf ? existing.sf_most_possession_team ?? null : nullableValueOf('bonusSfMostPossessionTeam'),
+    final_first_half_goals: locks.final ? existing.final_first_half_goals ?? null : finalFirstHalfGoals,
+
+    updated_at: new Date().toISOString()
+  };
+}
+
 async function saveBonusPrediction() {
   if (!currentUser) {
     toast('Please login first.');
     return;
   }
 
-  if (bonusResultCache?.is_locked) {
-    toast('Bonus predictions are locked.');
+  if (!bonusResultCache) {
+    await loadBonusResults();
+  }
+
+  if (!isAnyBonusSectionOpen()) {
+    toast('All bonus sections are locked.');
     return;
   }
 
-  const tournamentWinner = $('bonusTournamentWinner')?.value.trim() || null;
-  const bestPlayer = $('bonusBestPlayer')?.value.trim() || null;
-  const finalistOne = $('bonusFinalistOne')?.value.trim() || null;
-  const finalistTwo = $('bonusFinalistTwo')?.value.trim() || null;
+  let payload;
 
-  if (!tournamentWinner || !bestPlayer || !finalistOne || !finalistTwo) {
-    toast('Please complete all bonus predictions.');
+  try {
+    payload = buildBonusPredictionPayload();
+  } catch (error) {
+    toast(error.message);
     return;
   }
-
-  if (finalistOne === finalistTwo) {
-    toast('Finalist 1 and Finalist 2 cannot be the same team.');
-    return;
-  }
-
-  const payload = {
-    user_id: currentUser.id,
-    tournament_winner: tournamentWinner,
-    best_player: bestPlayer,
-    finalist_one: finalistOne,
-    finalist_two: finalistTwo,
-    updated_at: new Date().toISOString()
-  };
 
   const { error } = await supabaseClient
     .from('bonus_predictions')
@@ -1052,6 +1320,10 @@ async function saveBonusPrediction() {
 
   if (currentTopView === 'predictions' && currentStage === 'bonus') {
     renderPredictionsRoot();
+  }
+
+  if (currentTopView === 'leaderboard') {
+    renderLeaderboard();
   }
 }
 
@@ -1346,7 +1618,8 @@ function renderSuperAdmin() {
       bonusResultCache,
       {
         teams: bonusTeamsCache.length ? bonusTeamsCache : DEFAULT_BONUS_TEAMS,
-        players: bonusPlayersCache.length ? bonusPlayersCache : DEFAULT_BONUS_PLAYERS
+        players: bonusPlayersCache.length ? bonusPlayersCache : DEFAULT_BONUS_PLAYERS,
+        matches: matchesCache
       }
     );
 
@@ -1446,20 +1719,32 @@ function fillBonusResultForm() {
     $('bonusLock').checked = !!bonusResultCache.is_locked;
   }
 
-  if ($('actualTournamentWinner')) {
-    $('actualTournamentWinner').value = bonusResultCache.actual_tournament_winner ?? '';
+  if ($('majorBonusLock')) {
+    $('majorBonusLock').checked = !!bonusResultCache.major_bonus_locked;
   }
 
-  if ($('actualBestPlayer')) {
-    $('actualBestPlayer').value = bonusResultCache.actual_best_player ?? '';
+  if ($('groupBonusLock')) {
+    $('groupBonusLock').checked = !!bonusResultCache.group_bonus_locked;
   }
 
-  if ($('actualFinalistOne')) {
-    $('actualFinalistOne').value = bonusResultCache.actual_finalist_one ?? '';
+  if ($('r32BonusLock')) {
+    $('r32BonusLock').checked = !!bonusResultCache.r32_bonus_locked;
   }
 
-  if ($('actualFinalistTwo')) {
-    $('actualFinalistTwo').value = bonusResultCache.actual_finalist_two ?? '';
+  if ($('r16BonusLock')) {
+    $('r16BonusLock').checked = !!bonusResultCache.r16_bonus_locked;
+  }
+
+  if ($('qfBonusLock')) {
+    $('qfBonusLock').checked = !!bonusResultCache.qf_bonus_locked;
+  }
+
+  if ($('sfBonusLock')) {
+    $('sfBonusLock').checked = !!bonusResultCache.sf_bonus_locked;
+  }
+
+  if ($('finalBonusLock')) {
+    $('finalBonusLock').checked = !!bonusResultCache.final_bonus_locked;
   }
 }
 
@@ -1695,10 +1980,19 @@ async function updateBonusResults() {
     return;
   }
 
-  const actualTournamentWinner = $('actualTournamentWinner')?.value.trim() || null;
-  const actualBestPlayer = $('actualBestPlayer')?.value.trim() || null;
-  const actualFinalistOne = $('actualFinalistOne')?.value.trim() || null;
-  const actualFinalistTwo = $('actualFinalistTwo')?.value.trim() || null;
+  const actualGoldenBoot =
+    nullableValueOf('actualGoldenBoot') ||
+    nullableValueOf('actualBestPlayer');
+
+  const actualFinalFirstHalfGoals = numberValueOf('actualFinalFirstHalfGoals');
+
+  if (Number.isNaN(actualFinalFirstHalfGoals)) {
+    toast('Actual final first-half goals must be a valid whole number.');
+    return;
+  }
+
+  const actualFinalistOne = nullableValueOf('actualFinalistOne');
+  const actualFinalistTwo = nullableValueOf('actualFinalistTwo');
 
   if (actualFinalistOne && actualFinalistTwo && actualFinalistOne === actualFinalistTwo) {
     toast('Actual Finalist 1 and Finalist 2 cannot be the same team.');
@@ -1707,11 +2001,32 @@ async function updateBonusResults() {
 
   const payload = {
     id: true,
-    is_locked: !!$('bonusLock')?.checked,
-    actual_tournament_winner: actualTournamentWinner,
-    actual_best_player: actualBestPlayer,
+
+    is_locked: checkedOf('bonusLock'),
+    major_bonus_locked: checkedOf('majorBonusLock'),
+    group_bonus_locked: checkedOf('groupBonusLock'),
+    r32_bonus_locked: checkedOf('r32BonusLock'),
+    r16_bonus_locked: checkedOf('r16BonusLock'),
+    qf_bonus_locked: checkedOf('qfBonusLock'),
+    sf_bonus_locked: checkedOf('sfBonusLock'),
+    final_bonus_locked: checkedOf('finalBonusLock'),
+
+    actual_tournament_winner: nullableValueOf('actualTournamentWinner'),
+    actual_golden_boot: actualGoldenBoot,
+    actual_best_player: actualGoldenBoot,
     actual_finalist_one: actualFinalistOne,
     actual_finalist_two: actualFinalistTwo,
+
+    actual_group_most_goals_team: nullableValueOf('actualGroupMostGoalsTeam'),
+    actual_group_fewest_conceded_team: nullableValueOf('actualGroupFewestConcededTeam'),
+    actual_group_most_yellow_cards_team: nullableValueOf('actualGroupMostYellowCardsTeam'),
+
+    actual_r32_extra_time_match: nullableValueOf('actualR32ExtraTimeMatch'),
+    actual_r16_penalty_shootout_team: nullableValueOf('actualR16PenaltyShootoutTeam'),
+    actual_qf_clean_sheet_team: nullableValueOf('actualQfCleanSheetTeam'),
+    actual_sf_most_possession_team: nullableValueOf('actualSfMostPossessionTeam'),
+    actual_final_first_half_goals: actualFinalFirstHalfGoals,
+
     updated_at: new Date().toISOString()
   };
 
@@ -1736,6 +2051,10 @@ async function updateBonusResults() {
 
   if (currentTopView === 'predictions' && currentStage === 'bonus') {
     renderPredictionsRoot();
+  }
+
+  if (currentTopView === 'leaderboard') {
+    renderLeaderboard();
   }
 }
 
