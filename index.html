@@ -6,9 +6,12 @@
 
   <title>World Cup 2026 Prediction League</title>
 
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%BD%3C/text%3E%3C/svg%3E">
+  <link
+    rel="icon"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%BD%3C/text%3E%3C/svg%3E"
+  />
 
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=20260609-bonus-final-goals" />
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -41,13 +44,15 @@
 
         <div>
           <h1>World Cup 2026 Prediction League</h1>
-          <p class="muted">Predict scores. Update anytime before kickoff. Last saved prediction counts.</p>
+          <p class="muted">
+            Predict scores. Update anytime before kickoff. Last saved prediction counts.
+          </p>
         </div>
       </div>
 
       <div class="auth-tabs card">
-        <button id="loginTab" class="active">Login</button>
-        <button id="signupTab">Create Account</button>
+        <button id="loginTab" class="active" type="button">Login</button>
+        <button id="signupTab" type="button">Create Account</button>
       </div>
 
       <form id="authForm">
@@ -139,18 +144,18 @@
             </span>
           </div>
 
-          <button id="themeToggleBtn" class="theme-toggle" title="Toggle theme">🌙</button>
-          <button id="logoutBtn" class="secondary">Logout</button>
+          <button id="themeToggleBtn" class="theme-toggle" type="button" title="Toggle theme">🌙</button>
+          <button id="logoutBtn" class="secondary" type="button">Logout</button>
         </div>
       </header>
 
       <nav class="nav-tabs card">
-        <button data-view="predictions" class="active">Predictions</button>
-        <button data-view="myPredictions">My Predictions</button>
-        <button data-view="leaderboard">Leaderboard</button>
-        <button data-view="rules">Rules</button>
-        <button data-view="admin" id="adminTab" class="hidden">Admin</button>
-        <button data-view="superAdmin" id="superAdminTab" class="hidden">Super Admin</button>
+        <button data-view="predictions" class="active" type="button">Predictions</button>
+        <button data-view="myPredictions" type="button">My Predictions</button>
+        <button data-view="leaderboard" type="button">Leaderboard</button>
+        <button data-view="rules" type="button">Rules</button>
+        <button data-view="admin" id="adminTab" class="hidden" type="button">Admin</button>
+        <button data-view="superAdmin" id="superAdminTab" class="hidden" type="button">Super Admin</button>
       </nav>
 
       <!-- ===== Predictions view ===== -->
@@ -352,8 +357,16 @@
               <div>
                 <strong>Final</strong>
                 <span>7 points</span>
-                <p>How many goals will be scored in the first half?</p>
+                <p>How many total goals will be scored in the first half of the Final?</p>
               </div>
+            </div>
+
+            <div class="rule-example-box">
+              <strong>Final first-half example</strong>
+              <p>
+                If the Final is <b>1 - 1 at half-time</b>, the correct answer is <b>2</b>.
+                This bonus is based only on total first-half goals, not which team scores.
+              </p>
             </div>
           </article>
 
@@ -447,7 +460,8 @@
   <div id="toast" class="toast hidden"></div>
 
   <!-- Scripts must load here, after HTML exists and after Supabase loads -->
-  <script src="ui.js"></script>
-  <script src="app.js"></script>
+  <!-- ui.js must load before app.js -->
+  <script src="ui.js?v=20260609-bonus-final-goals"></script>
+  <script src="app.js?v=20260609-bonus-final-goals"></script>
 </body>
 </html>
