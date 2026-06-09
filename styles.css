@@ -1150,7 +1150,10 @@ button.ghost {
   white-space: nowrap;
 }
 
-/* ---------- Next cards ---------- */
+/* ============================================================
+   Next Up — old compact format restored
+   ============================================================ */
+
 .next-up {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -1225,81 +1228,89 @@ button.ghost {
   width: fit-content;
 }
 
-/* ---------- Next-Up compact match cards ---------- */
+/* This makes the new JS compact card look like the older card */
 .next-card-compact {
-  padding: 18px 18px 20px;
-  min-height: 190px;
+  min-height: auto;
   justify-content: flex-start;
-  background:
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--accent-2) 12%, var(--glass-bg-strong)),
-      color-mix(in srgb, var(--accent) 6%, var(--glass-bg-strong))
-    );
+  padding: 16px;
+  background: var(--glass-bg-strong);
 }
 
 .next-card-compact .stage-tag {
-  width: fit-content;
-  padding: 7px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
   border-radius: 999px;
-  font-size: 15px;
-  font-weight: 900;
-  letter-spacing: .03em;
-  color: var(--text-soft);
-  background: color-mix(in srgb, var(--glass-bg-stronger) 82%, transparent);
-  border: 1px solid color-mix(in srgb, var(--glass-border) 75%, var(--text-soft));
-}
-
-.next-card-compact .live-tag {
-  color: var(--accent-warm) !important;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--muted);
+  width: fit-content;
 }
 
 .next-teams-list {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 12px;
-  margin-bottom: 14px;
+  align-items: center;
+  gap: 7px;
+  margin-top: 2px;
+  flex-wrap: wrap;
 }
 
 .next-team-line {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 5px;
   min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.next-team-line:first-child::after {
+  content: "vs";
+  margin-left: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  opacity: .75;
 }
 
 .next-team-flag {
-  width: 34px;
-  min-width: 34px;
-  height: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+  height: auto;
+  font-size: 16px;
   line-height: 1;
 }
 
 .next-team-name {
-  color: var(--text-soft);
-  font-size: clamp(20px, 2.2vw, 26px);
-  font-weight: 900;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-  overflow-wrap: anywhere;
+  min-width: 0;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: 0;
+  overflow: visible;
+  text-overflow: unset;
+  white-space: normal;
 }
 
 .next-card-compact .when {
-  margin-top: auto;
+  margin-top: 0;
   color: var(--muted);
-  font-size: clamp(16px, 1.8vw, 22px);
-  line-height: 1.35;
+  font-size: 12px;
+  line-height: 1.4;
   font-weight: 500;
 }
 
 .next-card-compact .ext-link {
   justify-content: flex-start;
-  margin-top: 10px;
+  margin-top: 2px;
+}
+
+.live-tag {
+  color: var(--accent-warm) !important;
+  animation: pulse 1.4s ease-in-out infinite;
 }
 
 /* ---------- Prediction option boxes ---------- */
@@ -1985,25 +1996,25 @@ td .points-pill {
 }
 
 /* ============================================================
-   Bonus Prediction Page — Clean Section Cards
+   Bonus Prediction Page — smaller, cleaner, aesthetic
    ============================================================ */
 
 .bonus-card {
-  padding: 22px;
-  border-radius: 28px;
+  padding: 18px;
+  border-radius: 24px;
 }
 
 .bonus-head {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 14px;
+  gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .bonus-head h2 {
-  font-size: clamp(20px, 2.4vw, 26px);
+  font-size: clamp(18px, 2vw, 23px);
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   -webkit-background-clip: text;
   background-clip: text;
@@ -2013,35 +2024,35 @@ td .points-pill {
 .bonus-card > button {
   display: block;
   width: fit-content;
-  min-width: 230px;
-  min-height: 48px;
-  margin-top: 18px;
+  min-width: 210px;
+  min-height: 44px;
+  margin-top: 14px;
   margin-left: 0;
-  border-radius: 16px;
+  border-radius: 14px;
 }
 
 .bonus-card > p.muted.small {
-  margin-top: 14px;
+  margin-top: 10px;
 }
 
 .bonus-points-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 10px;
-  margin: 16px 0;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 9px;
+  margin: 12px 0;
 }
 
 .bonus-points-card {
-  padding: 14px;
+  padding: 12px;
   background: var(--glass-bg-strong);
   border: 1px solid var(--glass-border);
-  border-radius: var(--radius-md);
+  border-radius: 16px;
   text-align: center;
 }
 
 .bonus-points-card strong {
   display: block;
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 900;
   background: linear-gradient(135deg, var(--accent-2), var(--accent));
   -webkit-background-clip: text;
@@ -2051,34 +2062,34 @@ td .points-pill {
 
 .bonus-points-card span {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .bonus-locked {
-  padding: 10px 14px;
+  padding: 7px 10px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--danger) 14%, var(--glass-bg-strong));
   border: 1px solid color-mix(in srgb, var(--danger) 40%, var(--glass-border));
   color: var(--danger);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
 }
 
 /* Bonus page layout */
 .bonus-page-stack {
   display: grid;
-  gap: 20px;
+  gap: 14px;
 }
 
 .bonus-section-label {
-  margin: 18px 0 4px;
+  margin: 12px 0 2px;
   padding: 0;
 }
 
 .bonus-section-label h2 {
-  font-size: clamp(20px, 2vw, 24px);
-  font-weight: 950;
-  margin-bottom: 4px;
+  font-size: clamp(17px, 1.8vw, 20px);
+  font-weight: 900;
+  margin-bottom: 2px;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   -webkit-background-clip: text;
   background-clip: text;
@@ -2088,16 +2099,16 @@ td .points-pill {
 .bonus-section-label p {
   margin: 0;
   color: var(--muted);
+  font-size: 12.5px;
 }
 
 /* New bonus section cards */
 .bonus-stage-card {
-  padding: 22px;
-  border-radius: 28px;
+  padding: 16px;
+  border-radius: 22px;
   overflow: visible;
   background:
-    radial-gradient(circle at top left, color-mix(in srgb, var(--accent-2) 14%, transparent), transparent 36%),
-    radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent) 10%, transparent), transparent 34%),
+    radial-gradient(circle at top left, color-mix(in srgb, var(--accent-2) 9%, transparent), transparent 36%),
     var(--glass-bg);
 }
 
@@ -2107,23 +2118,23 @@ td .points-pill {
 }
 
 .bonus-stage-card[data-bonus-section="group"] {
-  border-color: color-mix(in srgb, var(--accent) 34%, var(--glass-border));
+  border-color: color-mix(in srgb, var(--accent) 26%, var(--glass-border));
 }
 
 .bonus-stage-card[data-bonus-section="major"] {
   background:
-    radial-gradient(circle at top left, color-mix(in srgb, var(--accent-warm) 16%, transparent), transparent 34%),
-    radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-2) 18%, transparent), transparent 38%),
+    radial-gradient(circle at top left, color-mix(in srgb, var(--accent-warm) 10%, transparent), transparent 34%),
+    radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-2) 10%, transparent), transparent 38%),
     var(--glass-bg);
-  border-color: color-mix(in srgb, var(--accent-warm) 35%, var(--glass-border));
+  border-color: color-mix(in srgb, var(--accent-warm) 28%, var(--glass-border));
 }
 
 .bonus-stage-head {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
-  gap: 14px;
-  margin-bottom: 18px;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
 .bonus-stage-head > div {
@@ -2136,40 +2147,40 @@ td .points-pill {
   justify-content: center;
   width: fit-content;
   max-width: 100%;
-  padding: 6px 12px;
-  margin-bottom: 10px;
+  padding: 4px 9px;
+  margin-bottom: 7px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--accent-2) 18%, var(--glass-bg-stronger));
-  border: 1px solid color-mix(in srgb, var(--accent-2) 35%, var(--glass-border));
+  background: color-mix(in srgb, var(--accent-2) 14%, var(--glass-bg-stronger));
+  border: 1px solid color-mix(in srgb, var(--accent-2) 26%, var(--glass-border));
   color: var(--text-soft);
-  font-size: 12px;
-  font-weight: 950;
+  font-size: 10.5px;
+  font-weight: 850;
   line-height: 1;
   white-space: nowrap;
 }
 
 .bonus-stage-head h2 {
   margin: 0;
-  font-size: clamp(21px, 2.3vw, 28px);
-  font-weight: 950;
-  line-height: 1.15;
+  font-size: clamp(16px, 1.9vw, 20px);
+  font-weight: 900;
+  line-height: 1.2;
   color: var(--text);
 }
 
 .bonus-stage-head p {
-  margin: 10px 0 0;
+  margin: 6px 0 0;
   color: var(--muted);
-  font-size: 15px;
-  line-height: 1.45;
+  font-size: 12.5px;
+  line-height: 1.4;
 }
 
 .bonus-stage-head .status-pill {
   flex: none;
   align-self: start;
-  margin-top: 2px;
-  padding: 8px 13px;
-  font-size: 13px;
-  font-weight: 950;
+  margin-top: 1px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 850;
   white-space: nowrap;
 }
 
@@ -2177,59 +2188,59 @@ td .points-pill {
 .bonus-grid,
 .bonus-stage-card .bonus-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+  gap: 10px;
   margin-top: 0;
 }
 
 .bonus-field,
 .bonus-stage-card .bonus-field {
-  padding: 18px;
-  border-radius: 22px;
+  padding: 12px;
+  border-radius: 16px;
   background:
     linear-gradient(
       135deg,
-      color-mix(in srgb, var(--glass-bg-stronger) 82%, transparent),
-      color-mix(in srgb, var(--accent-2) 7%, var(--glass-bg-strong))
+      color-mix(in srgb, var(--glass-bg-stronger) 72%, transparent),
+      color-mix(in srgb, var(--accent-2) 4%, var(--glass-bg-strong))
     );
-  border: 1px solid color-mix(in srgb, var(--glass-border) 82%, var(--accent-2));
+  border: 1px solid color-mix(in srgb, var(--glass-border) 86%, var(--accent-2));
   min-width: 0;
 }
 
 .bonus-field label,
 .bonus-stage-card .bonus-field label {
-  margin: 0 0 10px;
+  margin: 0 0 7px;
   color: var(--text-soft);
-  font-size: 14px;
-  font-weight: 900;
-  line-height: 1.35;
+  font-size: 12.3px;
+  font-weight: 800;
+  line-height: 1.3;
 }
 
 .bonus-field select,
 .bonus-field input,
 .bonus-stage-card .bonus-field select,
 .bonus-stage-card .bonus-field input {
-  min-height: 54px;
-  border-radius: 16px;
-  font-size: 15px;
-  font-weight: 650;
-  padding: 13px 15px;
+  min-height: 42px;
+  border-radius: 13px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 12px;
 }
 
 .bonus-stage-card .bonus-field p,
 .bonus-field p {
-  margin: 10px 0 0;
+  margin: 7px 0 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 11.5px;
   line-height: 1.35;
 }
 
 .bonus-stage-card[data-bonus-section="major"] .bonus-grid {
-  grid-template-columns: repeat(4, minmax(190px, 1fr));
+  grid-template-columns: repeat(4, minmax(170px, 1fr));
 }
 
 .bonus-stage-card[data-bonus-section="final"] .bonus-grid {
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
 }
 
 .bonus-stage-card select:disabled,
@@ -2249,17 +2260,19 @@ td .points-pill {
 .bonus-section-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  margin-top: 16px;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .bonus-section-actions button {
-  min-height: 46px;
-  border-radius: 16px;
+  min-height: 40px;
+  border-radius: 13px;
+  padding: 9px 13px;
+  font-size: 12.5px;
 }
 
 .bonus-section-actions button.secondary {
-  min-width: 130px;
+  min-width: 110px;
 }
 
 /* New bonus inputs/select IDs */
@@ -2285,7 +2298,7 @@ td .points-pill {
 #actualFinalFirstHalfGoals,
 #actualFinalHomeFirstHalfGoals,
 #actualFinalAwayFirstHalfGoals {
-  min-height: 48px;
+  min-height: 42px;
   cursor: pointer;
 }
 
@@ -2293,34 +2306,36 @@ td .points-pill {
 .final-score-mini-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  gap: 10px;
+  gap: 8px;
   align-items: end;
 }
 
 .final-score-mini-grid .vs-mini {
-  padding-bottom: 18px;
+  padding-bottom: 14px;
   color: var(--muted);
-  font-weight: 950;
+  font-weight: 900;
+  font-size: 12px;
   text-align: center;
 }
 
 .final-team-label {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   color: var(--text-soft);
-  font-weight: 900;
-  margin-bottom: 10px;
+  font-weight: 800;
+  font-size: 12px;
+  margin-bottom: 7px;
 }
 
 .final-team-label .team-flag {
   margin: 0;
-  font-size: 20px;
+  font-size: 17px;
 }
 
 /* ---------- Super Admin bonus controls ---------- */
 .bonus-admin-card {
-  padding: 18px;
+  padding: 16px;
   grid-column: 1 / -1;
 }
 
@@ -2330,64 +2345,65 @@ td .points-pill {
 
 .bonus-lock-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 12px;
-  margin: 16px 0;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 9px;
+  margin: 12px 0;
 }
 
 .bonus-lock-grid label {
   margin: 0;
-  min-height: 52px;
-  padding: 14px 16px;
-  border-radius: 18px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 14px;
   background: var(--glass-bg-strong);
   border: 1px solid var(--glass-border);
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  font-weight: 800;
+  gap: 9px;
+  font-size: 12px;
+  font-weight: 750;
   cursor: pointer;
 }
 
 .bonus-lock-grid input[type="checkbox"] {
   flex: 0 0 auto;
   width: auto;
-  transform: scale(1.1);
+  transform: scale(1.05);
 }
 
 .bonus-admin-section {
-  margin-top: 20px;
-  padding: 18px;
-  border-radius: 22px;
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 18px;
   background: var(--glass-bg-strong);
   border: 1px solid var(--glass-border);
 }
 
 .bonus-admin-section h3 {
   margin-bottom: 4px;
-  font-size: 18px;
-  font-weight: 950;
+  font-size: 15px;
+  font-weight: 900;
 }
 
 .bonus-admin-section p {
   margin: 0;
+  font-size: 12px;
 }
 
 .bonus-admin-section .bonus-grid {
-  margin-top: 14px;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 14px;
+  margin-top: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
 }
 
 .lock-note {
-  margin-top: 10px;
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
+  margin-top: 8px;
+  padding: 9px 10px;
+  border-radius: 12px;
   background: var(--glass-bg-strong);
   border: 1px solid var(--glass-border);
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11.5px;
 }
 
 /* ---------- Export controls ---------- */
@@ -2431,20 +2447,20 @@ td .points-pill {
 }
 
 .rules-page-card {
-  padding: 22px;
-  margin-bottom: 16px;
+  padding: 20px;
+  margin-bottom: 14px;
 }
 
 .rules-hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 18px;
+  gap: 16px;
   align-items: center;
 }
 
 .rules-hero h2 {
-  margin-top: 8px;
-  font-size: clamp(24px, 3vw, 36px);
+  margin-top: 6px;
+  font-size: clamp(22px, 2.6vw, 32px);
   line-height: 1.05;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   -webkit-background-clip: text;
@@ -2454,26 +2470,27 @@ td .points-pill {
 
 .rules-hero p {
   max-width: 760px;
-  margin: 8px 0 0;
+  margin: 7px 0 0;
+  font-size: 13.5px;
 }
 
 .rules-total-box {
-  width: 150px;
-  min-height: 130px;
-  padding: 18px;
-  border-radius: 24px;
+  width: 132px;
+  min-height: 112px;
+  padding: 15px;
+  border-radius: 22px;
   display: grid;
   place-items: center;
   text-align: center;
   background:
-    radial-gradient(circle at top, color-mix(in srgb, var(--accent) 28%, transparent), transparent 60%),
+    radial-gradient(circle at top, color-mix(in srgb, var(--accent) 24%, transparent), transparent 60%),
     var(--glass-bg-strong);
-  border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--glass-border));
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--glass-border));
 }
 
 .rules-total-box strong {
   display: block;
-  font-size: 52px;
+  font-size: 43px;
   font-weight: 950;
   line-height: 0.95;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
@@ -2484,9 +2501,9 @@ td .points-pill {
 
 .rules-total-box span {
   display: block;
-  margin-top: 6px;
+  margin-top: 5px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
   line-height: 1.25;
 }
@@ -2494,65 +2511,65 @@ td .points-pill {
 .rules-section-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: 14px;
   align-items: stretch;
 }
 
 .rules-info-card {
-  padding: 22px;
-  border-radius: 28px;
+  padding: 18px;
+  border-radius: 24px;
   overflow: visible;
 }
 
 .rules-card-head {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 12px;
   align-items: start;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .rules-card-head h2 {
-  font-size: clamp(20px, 2.1vw, 25px);
-  font-weight: 950;
+  font-size: clamp(17px, 1.9vw, 21px);
+  font-weight: 900;
   line-height: 1.15;
 }
 
 .rules-card-head p {
-  margin: 8px 0 0;
-  font-size: 14px;
+  margin: 6px 0 0;
+  font-size: 12.8px;
   line-height: 1.45;
 }
 
 .rules-icon {
-  width: 48px;
-  height: 48px;
+  width: 42px;
+  height: 42px;
   flex: none;
   display: grid;
   place-items: center;
-  border-radius: 18px;
-  font-size: 24px;
+  border-radius: 16px;
+  font-size: 21px;
   background: var(--glass-bg-stronger);
   border: 1px solid var(--glass-border);
 }
 
 .rules-points-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 12px;
-  margin-top: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+  gap: 9px;
+  margin-top: 12px;
 }
 
 .rules-points-list > div {
-  padding: 16px;
-  border-radius: 20px;
+  padding: 12px;
+  border-radius: 16px;
   background: var(--glass-bg-strong);
   border: 1px solid var(--glass-border);
 }
 
 .rules-points-list strong {
   display: block;
-  font-size: 26px;
+  font-size: 21px;
   font-weight: 950;
   line-height: 1;
   margin-bottom: 4px;
@@ -2564,69 +2581,69 @@ td .points-pill {
 
 .rules-points-list span {
   display: block;
-  margin-top: 8px;
+  margin-top: 6px;
   color: var(--text-soft);
-  font-size: 13px;
-  font-weight: 750;
+  font-size: 11.8px;
+  font-weight: 650;
   line-height: 1.35;
 }
 
 .rules-bullet-list {
-  margin: 12px 0 0;
+  margin: 10px 0 0;
   padding-left: 0;
   list-style: none;
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .rules-bullet-list li {
   position: relative;
-  padding: 12px 14px 12px 38px;
-  border-radius: 16px;
+  padding: 10px 12px 10px 34px;
+  border-radius: 14px;
   background: var(--glass-bg-strong);
   border: 1px solid var(--glass-border);
   color: var(--text-soft);
-  font-size: 13.5px;
-  line-height: 1.45;
+  font-size: 12.3px;
+  line-height: 1.4;
 }
 
 .rules-bullet-list li::before {
   content: "✓";
   position: absolute;
-  left: 13px;
-  top: 12px;
+  left: 12px;
+  top: 9px;
   color: var(--accent);
   font-weight: 950;
 }
 
 .rule-example-box,
 .rule-formula-box {
-  margin-top: 14px;
-  padding: 14px 16px;
-  border-radius: var(--radius-md);
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
   background:
     linear-gradient(
       135deg,
-      color-mix(in srgb, var(--accent-2) 12%, var(--glass-bg-strong)),
-      color-mix(in srgb, var(--accent) 10%, var(--glass-bg-strong))
+      color-mix(in srgb, var(--accent-2) 10%, var(--glass-bg-strong)),
+      color-mix(in srgb, var(--accent) 7%, var(--glass-bg-strong))
     );
-  border: 1px solid color-mix(in srgb, var(--accent-2) 34%, var(--glass-border));
+  border: 1px solid color-mix(in srgb, var(--accent-2) 28%, var(--glass-border));
 }
 
 .rule-example-box strong,
 .rule-formula-box strong {
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
   color: var(--text);
-  font-size: 14px;
-  font-weight: 950;
+  font-size: 12.5px;
+  font-weight: 900;
 }
 
 .rule-example-box p {
   margin: 0;
   color: var(--text-soft);
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 12.2px;
+  line-height: 1.45;
 }
 
 .rule-formula-box {
@@ -2635,7 +2652,7 @@ td .points-pill {
 
 .rule-formula-box strong {
   margin-bottom: 0;
-  font-size: clamp(16px, 2vw, 20px);
+  font-size: clamp(14px, 1.6vw, 17px);
   background: linear-gradient(135deg, var(--accent-warm), var(--accent-pink));
   -webkit-background-clip: text;
   background-clip: text;
@@ -2644,51 +2661,51 @@ td .points-pill {
 
 .stage-bonus-list {
   display: grid;
-  gap: 12px;
-  margin-top: 14px;
+  gap: 9px;
+  margin-top: 12px;
 }
 
 .stage-bonus-list > div {
-  padding: 16px;
-  border-radius: 20px;
+  padding: 12px;
+  border-radius: 16px;
   background: var(--glass-bg-strong);
   border: 1px solid var(--glass-border);
 }
 
 .stage-bonus-list strong {
   display: inline-block;
-  margin-right: 8px;
+  margin-right: 7px;
   color: var(--text);
-  font-size: 15px;
-  font-weight: 950;
+  font-size: 13px;
+  font-weight: 900;
 }
 
 .stage-bonus-list span {
   display: inline-flex;
-  padding: 3px 8px;
+  padding: 3px 7px;
   border-radius: 999px;
   color: #ffffff;
-  font-size: 11px;
-  font-weight: 900;
+  font-size: 10px;
+  font-weight: 850;
   background: linear-gradient(135deg, var(--accent-2), var(--accent));
 }
 
 .stage-bonus-list p {
-  margin: 8px 0 0;
+  margin: 7px 0 0;
   color: var(--text-soft);
-  font-size: 13px;
+  font-size: 12.2px;
 }
 
 .stage-bonus-list ul {
-  margin: 10px 0 0;
-  padding-left: 18px;
+  margin: 8px 0 0;
+  padding-left: 16px;
   color: var(--text-soft);
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 12.2px;
+  line-height: 1.45;
 }
 
 .stage-bonus-list li + li {
-  margin-top: 4px;
+  margin-top: 3px;
 }
 
 /* ============================================================
@@ -3038,7 +3055,7 @@ td .points-pill {
 #actualGoldenBoot,
 #actualFinalistOne,
 #actualFinalistTwo {
-  min-height: 48px;
+  min-height: 42px;
   cursor: pointer;
 }
 
@@ -3176,7 +3193,7 @@ select option {
 [data-theme="light"] .bonus-stage-card,
 [data-theme="light"] .rules-info-card {
   background:
-    radial-gradient(circle at top left, rgba(191, 219, 254, 0.42), transparent 34%),
+    radial-gradient(circle at top left, rgba(191, 219, 254, 0.34), transparent 34%),
     rgba(255, 255, 255, 0.82);
 }
 
@@ -3190,6 +3207,11 @@ select option {
 [data-theme="light"] .stage-bonus-list > div {
   background: rgba(255, 255, 255, 0.88);
   border-color: rgba(15, 23, 42, 0.13);
+}
+
+[data-theme="light"] .next-team-line {
+  background: transparent;
+  border-color: transparent;
 }
 
 [data-theme="light"] .bonus-stage-head .stage-tag,
@@ -3233,7 +3255,7 @@ select option {
 
 @media (max-width: 1100px) {
   .bonus-stage-card[data-bonus-section="major"] .bonus-grid {
-    grid-template-columns: repeat(2, minmax(230px, 1fr));
+    grid-template-columns: repeat(2, minmax(210px, 1fr));
   }
 }
 
@@ -3361,13 +3383,13 @@ select option {
   }
 
   .bonus-stage-card {
-    padding: 18px;
-    border-radius: 24px;
+    padding: 15px;
+    border-radius: 20px;
   }
 
   .bonus-stage-head {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 10px;
   }
 
   .bonus-stage-head .status-pill {
@@ -3393,7 +3415,7 @@ select option {
 
   .rules-total-box {
     width: 100%;
-    min-height: 100px;
+    min-height: 92px;
     grid-template-columns: auto 1fr;
     justify-items: start;
     text-align: left;
@@ -3401,7 +3423,7 @@ select option {
   }
 
   .rules-total-box strong {
-    font-size: 44px;
+    font-size: 38px;
   }
 
   .rules-total-box span {
@@ -3412,8 +3434,15 @@ select option {
     min-height: auto;
   }
 
+  .next-teams-list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
   .next-team-name {
     white-space: normal;
+    font-size: 15px;
   }
 
   .final-score-mini-grid {
@@ -3628,7 +3657,7 @@ select option {
   .bonus-stage-card,
   .rules-page-card,
   .rules-info-card {
-    padding: 16px 14px;
+    padding: 14px;
   }
 
   .bonus-points-grid {
@@ -3637,19 +3666,19 @@ select option {
 
   .bonus-field,
   .bonus-stage-card .bonus-field {
-    padding: 15px;
+    padding: 11px;
   }
 
   .rules-card-head {
-    grid-template-columns: 42px minmax(0, 1fr);
-    gap: 12px;
+    grid-template-columns: 38px minmax(0, 1fr);
+    gap: 10px;
   }
 
   .rules-icon {
-    width: 42px;
-    height: 42px;
-    border-radius: 15px;
-    font-size: 22px;
+    width: 38px;
+    height: 38px;
+    border-radius: 14px;
+    font-size: 20px;
   }
 
   .rules-points-list {
@@ -3657,21 +3686,21 @@ select option {
   }
 
   .rules-bullet-list li {
-    font-size: 12.5px;
+    font-size: 12px;
   }
 
   .stage-bonus-list strong {
     display: block;
-    margin-bottom: 6px;
+    margin-bottom: 5px;
   }
 
   .stage-bonus-list span {
-    margin-bottom: 4px;
+    margin-bottom: 3px;
   }
 
   .bonus-lock-grid label {
-    font-size: 12.5px;
-    padding: 11px 12px;
+    font-size: 12px;
+    padding: 10px 11px;
   }
 
   #adminView .stage-filter,
@@ -3768,23 +3797,23 @@ select option {
   }
 
   .bonus-stage-head h2 {
-    font-size: 21px;
+    font-size: 17px;
   }
 
   .bonus-stage-head p {
-    font-size: 13.5px;
+    font-size: 12px;
   }
 
   .bonus-stage-card .bonus-field select,
   .bonus-stage-card .bonus-field input,
   .bonus-field select,
   .bonus-field input {
-    min-height: 50px;
-    font-size: 14px;
+    min-height: 40px;
+    font-size: 12.5px;
   }
 
   .rules-card-head h2 {
-    font-size: 20px;
+    font-size: 18px;
   }
 }
 
@@ -3816,13 +3845,13 @@ select option {
   }
 
   .next-team-line {
-    padding: 8px;
+    padding: 0;
   }
 
   .next-team-flag {
-    flex-basis: 24px;
-    width: 24px;
-    font-size: 21px;
+    width: auto;
+    min-width: 0;
+    font-size: 15px;
   }
 
   .next-team-name {
@@ -3830,11 +3859,11 @@ select option {
   }
 
   .rules-hero h2 {
-    font-size: 26px;
+    font-size: 24px;
   }
 
   .rules-total-box strong {
-    font-size: 38px;
+    font-size: 34px;
   }
 }
 
