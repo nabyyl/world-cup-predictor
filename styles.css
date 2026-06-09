@@ -1634,26 +1634,25 @@ td:nth-child(n+3) {
 
 .rank {
   font-weight: 900;
-  font-size: 16px;
+  font-size: 15px;
 
   display: inline-flex;
   align-items: center;
   justify-content: center;
 
-  width: 34px;
-  min-width: 34px;
-  max-width: 34px;
-  height: 34px;
-  min-height: 34px;
-  max-height: 34px;
+  width: 40px;
+  min-width: 40px;
+  max-width: 40px;
+
+  height: 40px;
+  min-height: 40px;
+  max-height: 40px;
 
   padding: 0;
   line-height: 1;
-  aspect-ratio: 1 / 1;
-
   border-radius: 50%;
   background: var(--glass-bg-stronger);
-  border: 1px solid var(--glass-border);
+  border: none;
   box-sizing: border-box;
   overflow: hidden;
 }
