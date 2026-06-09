@@ -460,6 +460,29 @@ function bonusMatchOptions(stageIds = []) {
     .filter(Boolean);
 }
 
+function getFinalMatchTeamsForBonus() {
+  const finalMatch = (matchesCache || []).find(match => {
+    const stageId =
+      typeof classifyStage === 'function'
+        ? classifyStage(match.stage)
+        : String(match.stage || '').toLowerCase();
+
+    return stageId === 'final';
+  });
+
+  const teams = [];
+
+  if (finalMatch?.home_team && finalMatch.home_team !== 'TBD') {
+    teams.push(finalMatch.home_team);
+  }
+
+  if (finalMatch?.away_team && finalMatch.away_team !== 'TBD') {
+    teams.push(finalMatch.away_team);
+  }
+
+  return teams;
+}
+
 /* ============================================================
    Bonus dropdown list loader
    ============================================================ */
@@ -631,6 +654,13 @@ function populateBonusDropdowns() {
     bonusPredictionCache?.sf_most_possession_team || ''
   );
 
+  setSelectOptions(
+    'bonusFinalFirstHalfTeam',
+    getFinalMatchTeamsForBonus(),
+    'Select final team',
+    bonusPredictionCache?.final_first_half_team || ''
+  );
+
   if ($('bonusFinalFirstHalfGoals')) {
     $('bonusFinalFirstHalfGoals').value = bonusPredictionCache?.final_first_half_goals ?? '';
   }
@@ -728,6 +758,13 @@ function populateBonusResultDropdowns() {
     teams,
     'Select actual team',
     bonusResultCache?.actual_sf_most_possession_team || ''
+  );
+
+  setSelectOptions(
+    'actualFinalFirstHalfTeam',
+    getFinalMatchTeamsForBonus(),
+    'Select actual final team',
+    bonusResultCache?.actual_final_first_half_team || ''
   );
 
   if ($('actualFinalFirstHalfGoals')) {
@@ -922,6 +959,7 @@ async function loadBonusResults() {
     actual_r16_penalty_shootout_team: null,
     actual_qf_clean_sheet_team: null,
     actual_sf_most_possession_team: null,
+    actual_final_first_half_team: null,
     actual_final_first_half_goals: null
   };
 }
@@ -1233,6 +1271,7 @@ function buildBonusPredictionPayload() {
     nullableValueOf('bonusGoldenBoot') ||
     nullableValueOf('bonusBestPlayer');
 
+  const finalFirstHalfTeam = nullableValueOf('bonusFinalFirstHalfTeam');
   const finalFirstHalfGoals = numberValueOf('bonusFinalFirstHalfGoals');
 
   if (Number.isNaN(finalFirstHalfGoals)) {
@@ -1273,6 +1312,7 @@ function buildBonusPredictionPayload() {
     r16_penalty_shootout_team: locks.r16 ? existing.r16_penalty_shootout_team ?? null : nullableValueOf('bonusR16PenaltyShootoutTeam'),
     qf_clean_sheet_team: locks.qf ? existing.qf_clean_sheet_team ?? null : nullableValueOf('bonusQfCleanSheetTeam'),
     sf_most_possession_team: locks.sf ? existing.sf_most_possession_team ?? null : nullableValueOf('bonusSfMostPossessionTeam'),
+    final_first_half_team: locks.final ? existing.final_first_half_team ?? null : finalFirstHalfTeam,
     final_first_half_goals: locks.final ? existing.final_first_half_goals ?? null : finalFirstHalfGoals,
 
     updated_at: new Date().toISOString()
@@ -1984,6 +2024,7 @@ async function updateBonusResults() {
     nullableValueOf('actualGoldenBoot') ||
     nullableValueOf('actualBestPlayer');
 
+  const actualFinalFirstHalfTeam = nullableValueOf('actualFinalFirstHalfTeam');
   const actualFinalFirstHalfGoals = numberValueOf('actualFinalFirstHalfGoals');
 
   if (Number.isNaN(actualFinalFirstHalfGoals)) {
@@ -2025,6 +2066,7 @@ async function updateBonusResults() {
     actual_r16_penalty_shootout_team: nullableValueOf('actualR16PenaltyShootoutTeam'),
     actual_qf_clean_sheet_team: nullableValueOf('actualQfCleanSheetTeam'),
     actual_sf_most_possession_team: nullableValueOf('actualSfMostPossessionTeam'),
+    actual_final_first_half_team: actualFinalFirstHalfTeam,
     actual_final_first_half_goals: actualFinalFirstHalfGoals,
 
     updated_at: new Date().toISOString()
