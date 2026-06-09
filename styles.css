@@ -1646,19 +1646,19 @@ td:nth-child(n+3) {
 }
 
 tbody tr:first-child .rank {
-  background: linear-gradient(135deg, var(--accent-warm), var(--accent-pink));
-  color: white;
+  background: linear-gradient(135deg, #fff3a3, #facc15, #b45309);
+  color: #111827;
   border-color: transparent;
 }
 
 tbody tr:nth-child(2) .rank {
-  background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+  background: linear-gradient(135deg, #f8fafc, #cbd5e1, #64748b);
   color: #0f172a;
   border-color: transparent;
 }
 
 tbody tr:nth-child(3) .rank {
-  background: linear-gradient(135deg, #f59e0b, #b45309);
+  background: linear-gradient(135deg, #fed7aa, #f97316, #9a3412);
   color: white;
   border-color: transparent;
 }
