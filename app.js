@@ -26,6 +26,8 @@
    - Bonus dropdown lists load from GitHub JSON files
    - Forgot password redirects to reset-password.html
    - Supabase connection is prefilled so users do not see setup screen
+   - Prediction edit guard:
+       User typing score pauses prediction auto-refresh for 10 minutes
    ============================================================ */
 
 let supabaseClient;
@@ -48,6 +50,42 @@ let currentAdminView = 'matches'; // matches | bonus
 let lockTickerId = null;
 let scheduleRefreshId = null;
 let leaderboardRefreshId = null;
+
+/* ============================================================
+   Prediction editing guard
+   Prevents auto-refresh from wiping unsaved scores while typing.
+   ============================================================ */
+
+let userIsEditingPrediction = false;
+let predictionEditTimer = null;
+const PREDICTION_EDIT_PAUSE_MS = 10 * 60 * 1000; // 10 minutes
+
+function markPredictionEditing() {
+  userIsEditingPrediction = true;
+
+  clearTimeout(predictionEditTimer);
+  predictionEditTimer = setTimeout(() => {
+    userIsEditingPrediction = false;
+  }, PREDICTION_EDIT_PAUSE_MS);
+}
+
+function clearPredictionEditing() {
+  userIsEditingPrediction = false;
+  clearTimeout(predictionEditTimer);
+}
+
+function attachPredictionEditGuards() {
+  document
+    .querySelectorAll(
+      '#predictionsContent input, #predictionsContent select, #predictionsContent textarea'
+    )
+    .forEach((el) => {
+      el.addEventListener('input', markPredictionEditing);
+      el.addEventListener('change', markPredictionEditing);
+      el.addEventListener('focus', markPredictionEditing);
+      el.addEventListener('keydown', markPredictionEditing);
+    });
+}
 
 const OPENFOOTBALL_2026_URL = './fifa-2026-portal-schedule.json';
 
@@ -748,6 +786,10 @@ function startLiveTickers() {
   if (leaderboardRefreshId) clearInterval(leaderboardRefreshId);
 
   lockTickerId = setInterval(() => {
+    if (userIsEditingPrediction && currentTopView === 'predictions') {
+      return;
+    }
+
     if (
       currentTopView === 'predictions' ||
       currentTopView === 'myPredictions'
@@ -780,7 +822,9 @@ function startLiveTickers() {
           currentTopView === 'predictions' ||
           currentTopView === 'myPredictions'
         ) {
-          rerenderCurrentView();
+          if (!(userIsEditingPrediction && currentTopView === 'predictions')) {
+            rerenderCurrentView();
+          }
         }
 
         if (currentTopView === 'leaderboard') {
@@ -827,7 +871,9 @@ async function refreshAll() {
     currentTopView === 'predictions' ||
     currentTopView === 'myPredictions'
   ) {
-    rerenderCurrentView();
+    if (!(userIsEditingPrediction && currentTopView === 'predictions')) {
+      rerenderCurrentView();
+    }
   }
 
   if (currentTopView === 'leaderboard') {
@@ -1034,6 +1080,7 @@ function renderPredictionsRoot() {
   stageFilter.querySelectorAll('button[data-stage]').forEach(button => {
     button.addEventListener('click', () => {
       currentStage = button.dataset.stage;
+      clearPredictionEditing();
       renderPredictionsRoot();
     });
   });
@@ -1094,6 +1141,10 @@ function renderPredictionsRoot() {
     },
     currentStage
   );
+
+  requestAnimationFrame(() => {
+    attachPredictionEditGuards();
+  });
 }
 
 function renderMyPredictionsView() {
@@ -1107,6 +1158,10 @@ function renderMyPredictionsView() {
 
 function rerenderCurrentView() {
   try {
+    if (userIsEditingPrediction && currentTopView === 'predictions') {
+      return;
+    }
+
     if (currentTopView === 'predictions') {
       renderPredictionsRoot();
     }
@@ -1130,6 +1185,7 @@ function navigateToMatch(matchId) {
   if (!match) return;
 
   currentStage = matchHasResult(match) ? 'results' : classifyStage(match.stage);
+  clearPredictionEditing();
   showView('predictions');
   renderPredictionsRoot();
 
@@ -1214,6 +1270,8 @@ async function savePrediction(matchId) {
   }
 
   toast('Prediction saved. Latest saved score will count.');
+
+  clearPredictionEditing();
 
   await loadPredictions();
   rerenderCurrentView();
@@ -2165,6 +2223,8 @@ async function resetLeaderboard() {
     predictionsCache = [];
     bonusPredictionCache = null;
 
+    clearPredictionEditing();
+
     await loadPredictions();
     await loadBonusPrediction();
     await loadBonusResults();
@@ -2440,6 +2500,8 @@ async function replaceMatchesWithScheduleIfNoPredictions() {
 
     toast(`Schedule replaced successfully. ${data || 0} matches loaded.`);
 
+    clearPredictionEditing();
+
     await refreshAll();
 
     if (currentTopView === 'superAdmin') {
@@ -2593,7 +2655,9 @@ async function autoSyncScoresFromInternet(silent = true) {
       currentTopView === 'predictions' ||
       currentTopView === 'myPredictions'
     ) {
-      rerenderCurrentView();
+      if (!(userIsEditingPrediction && currentTopView === 'predictions')) {
+        rerenderCurrentView();
+      }
     }
 
     if (!silent && currentTopView === 'leaderboard') {
@@ -2902,6 +2966,10 @@ window.downloadActiveUsersCsv = downloadActiveUsersCsv;
 function showView(name) {
   currentTopView = name;
 
+  if (name !== 'predictions') {
+    clearPredictionEditing();
+  }
+
   Object.entries(views).forEach(([key, el]) => {
     if (el) {
       el.classList.toggle('hidden', key !== name);
@@ -3050,6 +3118,8 @@ $('logoutBtn')?.addEventListener('click', async () => {
   bonusPredictionCache = null;
   bonusResultCache = null;
   supporterSummaryCache = [];
+
+  clearPredictionEditing();
 
   if (lockTickerId) clearInterval(lockTickerId);
   if (scheduleRefreshId) clearTimeout(scheduleRefreshId);
