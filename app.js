@@ -77,7 +77,27 @@ function clearPredictionEditing() {
 function attachPredictionEditGuards() {
   document
     .querySelectorAll(
-      '#predictionsContent input, #predictionsContent select, #predictionsContent textarea'
+      [
+        '#predictionsContent input',
+        '#predictionsContent select',
+        '#predictionsContent textarea',
+
+        '#bonusContent input',
+        '#bonusContent select',
+        '#bonusContent textarea',
+
+        '.match-card input',
+        '.match-card select',
+        '.match-card textarea',
+
+        '.bonus-card input',
+        '.bonus-card select',
+        '.bonus-card textarea',
+
+        '.bonus-section input',
+        '.bonus-section select',
+        '.bonus-section textarea'
+      ].join(', ')
     )
     .forEach((el) => {
       el.addEventListener('input', markPredictionEditing);
@@ -1119,6 +1139,7 @@ function renderPredictionsRoot() {
 
     requestAnimationFrame(() => {
       populateBonusDropdowns();
+      attachPredictionEditGuards();
     });
 
     return;
@@ -1394,6 +1415,8 @@ async function upsertBonusPredictionPartial(sectionName, sectionLockKey, partial
 
   toast(`${sectionName} saved.`);
 
+  clearPredictionEditing();
+
   await loadBonusPrediction();
 
   if (currentTopView === 'predictions' && currentStage === 'bonus') {
@@ -1586,6 +1609,8 @@ async function saveBonusPrediction() {
   }
 
   toast('Bonus predictions saved.');
+
+  clearPredictionEditing();
 
   await loadBonusPrediction();
 
