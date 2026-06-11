@@ -857,7 +857,7 @@ function renderBonusPredictions(bonusPrediction, bonusResult, currentProfile, bo
       html: bonusUserSection({
         id: 'group',
         title: '🌍 Group Stage Questions',
-        subtitle: 'Each question is worth 5 points.',
+        subtitle: 'Each question is worth 5 points. - Deadline: Before the start of Second Match of Group Stage (21:00 of 18 June / Czechia vs South Africa)',
         points: '5 pts each',
         locked: locks.group,
         body: `
@@ -879,7 +879,7 @@ function renderBonusPredictions(bonusPrediction, bonusResult, currentProfile, bo
       html: bonusUserSection({
         id: 'r32',
         title: '🏟️ Round of 32 Question',
-        subtitle: 'Pick the match you think will go to extra time.',
+        subtitle: 'Pick the match you think will go to extra time. - Deadline: Before the Start of Round of 32',
         points: '7 pts',
         locked: locks.r32,
         body: `
@@ -899,7 +899,7 @@ function renderBonusPredictions(bonusPrediction, bonusResult, currentProfile, bo
       html: bonusUserSection({
         id: 'r16',
         title: '🎯 Round of 16 Question',
-        subtitle: 'Pick the team you think will win through a penalty shootout.',
+        subtitle: 'Pick the team you think will win through a penalty shootout. - Deadline: Before the Start of Round of 16',
         points: '7 pts',
         locked: locks.r16,
         body: `
@@ -919,7 +919,7 @@ function renderBonusPredictions(bonusPrediction, bonusResult, currentProfile, bo
       html: bonusUserSection({
         id: 'qf',
         title: '🔥 Quarter-finals Question',
-        subtitle: 'Pick the team that progresses without conceding.',
+        subtitle: 'Pick the team that progresses without conceding. - Deadline: Before the Start of Quarter-Final Matches',
         points: '7 pts',
         locked: locks.qf,
         body: `
@@ -939,7 +939,7 @@ function renderBonusPredictions(bonusPrediction, bonusResult, currentProfile, bo
       html: bonusUserSection({
         id: 'sf',
         title: '⭐ Semi-finals Question',
-        subtitle: 'Pick the team you think will have the highest possession.',
+        subtitle: 'Pick the team you think will have the highest possession. - Deadline: Before the Start of Semi-Final Matches',
         points: '7 pts',
         locked: locks.sf,
         body: `
@@ -959,7 +959,7 @@ function renderBonusPredictions(bonusPrediction, bonusResult, currentProfile, bo
       html: bonusUserSection({
         id: 'final',
         title: '🏆 Final Question',
-        subtitle: 'Predict the number of goals in the first half.',
+        subtitle: 'Predict the number of goals in the first half. - Deadline: Before the Start of Final Match',
         points: '7 pts',
         locked: locks.final,
         body: `
@@ -979,7 +979,7 @@ function renderBonusPredictions(bonusPrediction, bonusResult, currentProfile, bo
       html: bonusUserSection({
         id: 'major',
         title: '🏅 End-of-Tournament Major Bonuses',
-        subtitle: 'Finalist picks are order-free. France/Brazil and Brazil/France both count.',
+        subtitle: 'Finalist picks are order-free. France/Brazil and Brazil/France both count.- Deadline: Before the First Match of Round of 16',
         points: '80 pts max',
         locked: locks.major,
         body: `
