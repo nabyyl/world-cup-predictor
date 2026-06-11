@@ -3086,7 +3086,19 @@ $('authForm')?.addEventListener('submit', async (event) => {
       currentUser = data.user;
       await enterPortal();
     } else {
-      const fullName = $('fullName')?.value.trim() || '';
+      let fullName = $('fullName')?.value.trim() || '';
+
+      if (
+        fullName &&
+        (
+          fullName === password ||
+          fullName.toLowerCase() === email ||
+          fullName.includes('@') ||
+          fullName.length < 3
+        )
+      ) {
+        fullName = '';
+      }
 
       const { error } = await supabaseClient.auth.signUp({
         email,
