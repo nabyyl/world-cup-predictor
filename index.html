@@ -63,7 +63,17 @@
         <input id="password" type="password" required minlength="6" placeholder="Minimum 6 characters" />
 
         <label id="nameLabel" class="hidden">Full Name</label>
-        <input id="fullName" class="hidden" placeholder="Your name" />
+        <input
+          id="fullName"
+          class="hidden"
+          type="text"
+          autocomplete="name"
+          autocapitalize="words"
+          spellcheck="false"
+          placeholder="Your name"
+        />
+
+<button id="authSubmitBtn" type="submit">Login</button>
 
         <button id="authSubmitBtn" type="submit">Login</button>
 
@@ -457,11 +467,11 @@
     <p class="small">Designed & built by Nabyl.</p>
   </footer>
 
-    <div id="toast" class="toast hidden"></div>
+      <div id="toast" class="toast hidden"></div>
 
   <!-- Scripts must load here, after HTML exists and after Supabase loads -->
   <!-- ui.js must load before app.js -->
   <script src="ui.js?v=20260609-rules-ui-bonus-spacing"></script>
-  <script src="app.js?v=20260611-bonus-edit-guard"></script>
+  <script src="app.js?v=20260611-bonus-edit-guard-name-validation"></script>
 </body>
 </html>
