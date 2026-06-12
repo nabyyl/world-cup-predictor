@@ -826,30 +826,22 @@ function startLiveTickers() {
 
   async function smartAutoSyncLoop() {
     try {
-      const isAdminScreen =
-        currentTopView === 'admin' ||
-        currentTopView === 'superAdmin';
+      await loadMatches();
+      await loadPredictions();
+      await loadBonusPrediction();
+      await loadBonusResults();
 
-      if (isSuperAdmin() && !isAdminScreen) {
-        await autoSyncScoresFromInternet(true);
-      } else {
-        await loadMatches();
-        await loadPredictions();
-        await loadBonusPrediction();
-        await loadBonusResults();
-
-        if (
-          currentTopView === 'predictions' ||
-          currentTopView === 'myPredictions'
-        ) {
-          if (!(userIsEditingPrediction && currentTopView === 'predictions')) {
-            rerenderCurrentView();
-          }
+      if (
+        currentTopView === 'predictions' ||
+        currentTopView === 'myPredictions'
+      ) {
+        if (!(userIsEditingPrediction && currentTopView === 'predictions')) {
+          rerenderCurrentView();
         }
+      }
 
-        if (currentTopView === 'leaderboard') {
-          renderLeaderboard();
-        }
+      if (currentTopView === 'leaderboard') {
+        renderLeaderboard();
       }
     } catch (error) {
       console.warn('Background refresh failed:', error.message);
@@ -2450,9 +2442,62 @@ async function deleteSelectedMatch() {
 
   const matchId = $('adminMatchSelect')?.value;
 
-  if (!matchId) return;
+  if (!matchId) {
+    toast('Select a match first.');
+    return;
+  }
 
-  if (!confirm('Delete this match? Related predictions will also be deleted.')) {
+  const match = matchesCache.find(m => m.id === matchId);
+
+  if (!match) {
+    toast('Match not found.');
+    return;
+  }
+
+  const hasScore =
+    match.actual_home_score !== null &&
+    match.actual_home_score !== undefined &&
+    match.actual_away_score !== null &&
+    match.actual_away_score !== undefined;
+
+  const isZeroZero =
+    Number(match.actual_home_score) === 0 &&
+    Number(match.actual_away_score) === 0;
+
+  if (hasScore && !isZeroZero) {
+    toast('This match has a score entered. Set the score to 0-0 first before deleting.');
+    return;
+  }
+
+  const confirmMessage = hasScore && isZeroZero
+    ? 'This match score is set to 0-0. Delete this match now? Related predictions will also be deleted.'
+    : 'Delete this match? Related predictions will also be deleted.';
+
+  if (!confirm(confirmMessage)) {
+    return;
+  }
+
+  const deleteKey = match.external_id
+  ? `external:${String(match.external_id).trim()}`
+  : `match_no:${Number(match.match_no)}`;
+
+const { error: deletedLogError } = await supabaseClient
+  .from('deleted_matches')
+  .upsert(
+    {
+      delete_key: deleteKey,
+      external_id: match.external_id || null,
+      match_no: match.match_no ?? null,
+      deleted_by: currentUser?.id || null,
+      deleted_at: new Date().toISOString()
+    },
+    {
+      onConflict: 'delete_key'
+    }
+  );
+
+  if (deletedLogError) {
+    toast(deletedLogError.message);
     return;
   }
 
@@ -2466,7 +2511,7 @@ async function deleteSelectedMatch() {
     return;
   }
 
-  toast('Match deleted.');
+  toast('Match deleted. It will not be re-added from the schedule JSON.');
   await refreshAll();
 
   if (currentTopView === 'superAdmin') {
@@ -2579,7 +2624,7 @@ async function autoSyncScoresFromInternet(silent = true) {
 
   try {
     if (!silent) {
-      toast('Syncing schedule and available scores...');
+      toast('Refreshing schedule. Only new, non-deleted matches will be added...');
     }
 
     const response = await fetch(url, {
@@ -2603,81 +2648,96 @@ async function autoSyncScoresFromInternet(silent = true) {
 
     if (existingError) throw existingError;
 
+    const { data: deletedMatches, error: deletedError } = await supabaseClient
+      .from('deleted_matches')
+      .select('external_id, match_no');
+
+    if (deletedError) throw deletedError;
+
+    const deletedExternalIds = new Set(
+      (deletedMatches || [])
+        .map(match => String(match.external_id || '').trim())
+        .filter(Boolean)
+    );
+
+    const deletedMatchNos = new Set(
+      (deletedMatches || [])
+        .filter(match => match.match_no !== null && match.match_no !== undefined)
+        .map(match => Number(match.match_no))
+    );
+
+    const now = new Date().toISOString();
+
     const existingByExternalId = new Map(
       (existingMatches || [])
         .filter(match => match.external_id)
-        .map(match => [match.external_id, match])
+        .map(match => [String(match.external_id).trim(), match])
     );
 
-const now = new Date().toISOString();
+    const existingByMatchNo = new Map(
+      (existingMatches || [])
+        .filter(match => match.match_no !== null && match.match_no !== undefined)
+        .map(match => [Number(match.match_no), match])
+    );
 
-const rowsToUpsert = incomingRows.map(row => {
-  const existing = existingByExternalId.get(row.external_id);
+    const rowsToInsert = incomingRows
+      .filter(row => {
+        const externalId = String(row.external_id || '').trim();
+        const matchNo = Number(row.match_no);
 
-  /*
-    IMPORTANT:
-    Auto-sync must NEVER update match results.
+        const externalIdExists =
+          externalId && existingByExternalId.has(externalId);
 
-    Result fields are protected permanently once entered.
-    Only updateResult() from Super Admin should change them.
-  */
+        const matchNoExists =
+          Number.isFinite(matchNo) && existingByMatchNo.has(matchNo);
 
-  const scheduleOnlyRow = {
-    external_id: row.external_id,
-    match_no: row.match_no,
-    source: row.source,
-    source_url: row.source_url,
-    home_team: row.home_team,
-    away_team: row.away_team,
-    stage: row.stage,
-    venue: row.venue,
-    kickoff_at: row.kickoff_at,
-    home_source: row.home_source,
-    away_source: row.away_source,
-    last_synced_at: now
-  };
+        const wasDeletedByExternalId =
+          externalId && deletedExternalIds.has(externalId);
 
-  if (!existing) {
-    return {
-      ...scheduleOnlyRow,
+        const wasDeletedByMatchNo =
+          Number.isFinite(matchNo) && deletedMatchNos.has(matchNo);
 
-      // New matches start without results.
-      // Results should be added only by Super Admin.
-      actual_home_score: null,
-      actual_away_score: null,
-      actual_first_team_to_score: null,
-      actual_winner: null,
-      result_source: 'manual',
-      admin_result_override: false,
-      auto_result_synced_at: null
-    };
-  }
+        return (
+          !externalIdExists &&
+          !matchNoExists &&
+          !wasDeletedByExternalId &&
+          !wasDeletedByMatchNo
+        );
+      })
+      .map(row => ({
+        external_id: row.external_id,
+        match_no: row.match_no,
+        source: row.source,
+        source_url: row.source_url,
+        home_team: row.home_team,
+        away_team: row.away_team,
+        stage: row.stage,
+        venue: row.venue,
+        kickoff_at: row.kickoff_at,
+        home_source: row.home_source,
+        away_source: row.away_source,
 
-  return {
-  ...scheduleOnlyRow,
+        actual_home_score: null,
+        actual_away_score: null,
+        actual_first_team_to_score: null,
+        actual_winner: null,
 
-  // Preserve existing results exactly as they are.
-  actual_home_score: existing.actual_home_score,
-  actual_away_score: existing.actual_away_score,
-  actual_first_team_to_score: existing.actual_first_team_to_score,
-  actual_winner: existing.actual_winner,
-  result_source: existing.result_source || 'manual',
-  admin_result_override: existing.admin_result_override || false,
-  auto_result_synced_at: existing.auto_result_synced_at || null,
+        is_locked: false,
+        admin_override_open: false,
 
-  // Preserve admin lock settings too.
-  is_locked: existing.is_locked,
-  admin_override_open: existing.admin_override_open
-};
-});
+        result_source: 'manual',
+        admin_result_override: false,
+        auto_result_synced_at: null,
+        last_synced_at: now
+      }));
 
-    const { error } = await supabaseClient
-      .from('matches')
-      .upsert(rowsToUpsert, {
-        onConflict: 'external_id'
-      });
+    if (rowsToInsert.length > 0) {
+      const { error } = await supabaseClient
+        .from('matches')
+        .insert(rowsToInsert);
 
-    if (error) throw error;
+      if (error) throw error;
+    }
 
     await loadMatches();
     await loadPredictions();
@@ -2706,13 +2766,13 @@ const rowsToUpsert = incomingRows.map(row => {
     }
 
     if (!silent) {
-      toast(`Synced ${rowsToUpsert.length} matches. Existing results were protected.`);
+      toast(`Schedule refresh complete. ${rowsToInsert.length} new match(es) added. Existing and deleted matches were not changed.`);
     }
   } catch (error) {
     if (!silent) {
       toast(error.message);
     } else {
-      console.warn('Auto score sync failed:', error.message);
+      console.warn('Auto schedule refresh failed:', error.message);
     }
   }
 }
@@ -2737,21 +2797,28 @@ function normalizeOpenFootballSchedule(json, sourceUrl) {
           match.actual_away_score !== undefined;
 
         return {
-          external_id: match.external_id || `fifa-2026-m${String(match.match_no || index + 1).padStart(3, '0')}`,
+          external_id:
+            match.external_id ||
+            `fifa-2026-m${String(match.match_no || index + 1).padStart(3, '0')}`,
+
           match_no: match.match_no || index + 1,
           source: match.source || 'fifa_manual_portal',
           source_url: match.source_url || json.source_url || sourceUrl,
+
           home_team: match.home_team || 'TBD',
           away_team: match.away_team || 'TBD',
           stage: match.stage || 'World Cup',
           venue: match.venue || null,
           kickoff_at: kickoffDate.toISOString(),
+
           home_source: match.home_source || null,
           away_source: match.away_source || null,
+
           actual_home_score: hasResult ? Number(match.actual_home_score) : null,
           actual_away_score: hasResult ? Number(match.actual_away_score) : null,
           actual_first_team_to_score: match.actual_first_team_to_score || null,
           actual_winner: match.actual_winner || null,
+
           last_synced_at: new Date().toISOString()
         };
       })
