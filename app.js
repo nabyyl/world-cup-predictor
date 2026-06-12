@@ -2609,59 +2609,67 @@ async function autoSyncScoresFromInternet(silent = true) {
         .map(match => [match.external_id, match])
     );
 
-    const now = new Date().toISOString();
+const now = new Date().toISOString();
 
-    const rowsToUpsert = incomingRows.map(row => {
-      const existing = existingByExternalId.get(row.external_id);
+const rowsToUpsert = incomingRows.map(row => {
+  const existing = existingByExternalId.get(row.external_id);
 
-      const incomingHasResult =
-        row.actual_home_score !== null &&
-        row.actual_away_score !== null &&
-        row.actual_home_score !== undefined &&
-        row.actual_away_score !== undefined;
+  /*
+    IMPORTANT:
+    Auto-sync must NEVER update match results.
 
-      if (!existing) {
-        return {
-          ...row,
-          result_source: incomingHasResult ? 'auto' : 'manual',
-          admin_result_override: false,
-          auto_result_synced_at: incomingHasResult ? now : null
-        };
-      }
+    Result fields are protected permanently once entered.
+    Only updateResult() from Super Admin should change them.
+  */
 
-      if (existing.admin_result_override) {
-        return {
-          ...row,
-          actual_home_score: existing.actual_home_score,
-          actual_away_score: existing.actual_away_score,
-          actual_first_team_to_score: existing.actual_first_team_to_score,
-          actual_winner: existing.actual_winner,
-          result_source: existing.result_source || 'admin',
-          admin_result_override: true,
-          auto_result_synced_at: existing.auto_result_synced_at
-        };
-      }
+  const scheduleOnlyRow = {
+    external_id: row.external_id,
+    match_no: row.match_no,
+    source: row.source,
+    source_url: row.source_url,
+    home_team: row.home_team,
+    away_team: row.away_team,
+    stage: row.stage,
+    venue: row.venue,
+    kickoff_at: row.kickoff_at,
+    home_source: row.home_source,
+    away_source: row.away_source,
+    last_synced_at: now
+  };
 
-      if (incomingHasResult) {
-        return {
-          ...row,
-          result_source: 'auto',
-          admin_result_override: false,
-          auto_result_synced_at: now
-        };
-      }
+  if (!existing) {
+    return {
+      ...scheduleOnlyRow,
 
-      return {
-        ...row,
-        actual_home_score: existing.actual_home_score,
-        actual_away_score: existing.actual_away_score,
-        actual_first_team_to_score: existing.actual_first_team_to_score,
-        actual_winner: existing.actual_winner,
-        result_source: existing.result_source || 'manual',
-        admin_result_override: existing.admin_result_override || false,
-        auto_result_synced_at: existing.auto_result_synced_at
-      };
-    });
+      // New matches start without results.
+      // Results should be added only by Super Admin.
+      actual_home_score: null,
+      actual_away_score: null,
+      actual_first_team_to_score: null,
+      actual_winner: null,
+      result_source: 'manual',
+      admin_result_override: false,
+      auto_result_synced_at: null
+    };
+  }
+
+  return {
+  ...scheduleOnlyRow,
+
+  // Preserve existing results exactly as they are.
+  actual_home_score: existing.actual_home_score,
+  actual_away_score: existing.actual_away_score,
+  actual_first_team_to_score: existing.actual_first_team_to_score,
+  actual_winner: existing.actual_winner,
+  result_source: existing.result_source || 'manual',
+  admin_result_override: existing.admin_result_override || false,
+  auto_result_synced_at: existing.auto_result_synced_at || null,
+
+  // Preserve admin lock settings too.
+  is_locked: existing.is_locked,
+  admin_override_open: existing.admin_override_open
+};
+});
 
     const { error } = await supabaseClient
       .from('matches')
@@ -2698,7 +2706,7 @@ async function autoSyncScoresFromInternet(silent = true) {
     }
 
     if (!silent) {
-      toast(`Synced ${rowsToUpsert.length} matches and available scores.`);
+      toast(`Synced ${rowsToUpsert.length} matches. Existing results were protected.`);
     }
   } catch (error) {
     if (!silent) {
