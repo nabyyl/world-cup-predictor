@@ -2477,24 +2477,32 @@ async function deleteSelectedMatch() {
     return;
   }
 
-  const deleteKey = match.external_id
-  ? `external:${String(match.external_id).trim()}`
-  : `match_no:${Number(match.match_no)}`;
+  const externalId = String(match.external_id || '').trim();
+  const matchNo =
+    match.match_no !== null && match.match_no !== undefined
+      ? Number(match.match_no)
+      : null;
 
-const { error: deletedLogError } = await supabaseClient
-  .from('deleted_matches')
-  .upsert(
-    {
-      delete_key: deleteKey,
-      external_id: match.external_id || null,
-      match_no: match.match_no ?? null,
-      deleted_by: currentUser?.id || null,
-      deleted_at: new Date().toISOString()
-    },
-    {
-      onConflict: 'delete_key'
-    }
-  );
+  const deleteKey = externalId
+    ? `external:${externalId}`
+    : matchNo !== null && Number.isFinite(matchNo)
+      ? `match_no:${matchNo}`
+      : `manual:${match.id}`;
+
+  const { error: deletedLogError } = await supabaseClient
+    .from('deleted_matches')
+    .upsert(
+      {
+        delete_key: deleteKey,
+        external_id: externalId || null,
+        match_no: matchNo,
+        deleted_by: currentUser?.id || null,
+        deleted_at: new Date().toISOString()
+      },
+      {
+        onConflict: 'delete_key'
+      }
+    );
 
   if (deletedLogError) {
     toast(deletedLogError.message);
