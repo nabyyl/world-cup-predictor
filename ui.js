@@ -1942,6 +1942,9 @@ function renderSuperAdminPanel(matches, scheduleUrl, bonusResult, bonusOptions =
           </div>
         </div>
 
+        <label>Kickoff Date & Time</label>
+        <input id="adminEditKickoff" type="datetime-local" />
+
         <label>Actual Winner / Team Advanced</label>
         <select id="adminActualWinner">
           <option value="">Auto from score</option>
