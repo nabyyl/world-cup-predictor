@@ -1987,6 +1987,18 @@ function fillAdminMatchForm() {
     $('adminResultOverride').checked = !!match.admin_result_override;
   }
 
+  const kickoffInput = $('adminEditKickoff');
+
+  if (kickoffInput) {
+    kickoffInput.value = toDateTimeLocalValue(match.kickoff_at);
+
+    const readableKickoff = $('adminEditKickoffReadable');
+
+    if (readableKickoff) {
+      readableKickoff.textContent = `Current kickoff: ${toReadableDateTime(match.kickoff_at)}`;
+    }
+  }
+
   if ($('adminResultSource')) {
     const source = match.result_source || 'manual';
     const resolvedWinner = resolvedActualWinner(match);
@@ -2001,6 +2013,34 @@ function fillAdminMatchForm() {
           ? `Result source: Auto synced${match.auto_result_synced_at ? ' · ' + new Date(match.auto_result_synced_at).toLocaleString() : ''}${winnerInfo}`
           : `Result source: Manual / pending${winnerInfo}`;
   }
+}
+
+function toDateTimeLocalValue(value) {
+  if (!value) return '';
+
+  const date = new Date(value);
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function toReadableDateTime(value) {
+  if (!value) return '';
+
+  const date = new Date(value);
+
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+
+  return `${day}-${month}-${year}, ${hours}:${minutes}`;
 }
 
 window.fillAdminMatchForm = fillAdminMatchForm;
@@ -2128,6 +2168,8 @@ async function updateResult() {
     if (homeScore === awayScore) actualWinner = 'draw';
   }
 
+  const kickoffValue = $('adminEditKickoff')?.value || '';
+
   const payload = {
     is_locked: !!$('adminLock')?.checked,
     admin_override_open: !!$('adminOverrideOpen')?.checked,
@@ -2138,6 +2180,11 @@ async function updateResult() {
     result_source: hasResult ? 'admin' : 'manual',
     admin_result_override: hasResult ? true : !!$('adminResultOverride')?.checked
   };
+
+  if (kickoffValue) {
+    payload.kickoff_at = new Date(kickoffValue).toISOString();
+    payload.last_synced_at = new Date().toISOString();
+  }
 
   if (hasResult) {
     payload.is_locked = true;
