@@ -1342,6 +1342,7 @@ function renderLeaderboardTable(rows) {
           <col class="lb-score-col" />
           <col class="lb-score-col" />
           <col class="lb-score-col" />
+          <col class="lb-score-col" />
         </colgroup>
 
         <thead>
@@ -1352,6 +1353,7 @@ function renderLeaderboardTable(rows) {
             <th>Match</th>
             <th>Bonus</th>
             <th>Exact</th>
+            <th>One Score</th>
             <th>Result</th>
             <th>First Score</th>
           </tr>
@@ -1375,6 +1377,7 @@ function renderLeaderboardTable(rows) {
               <td>${row.match_points ?? 0}</td>
               <td>${row.bonus_points ?? 0}</td>
               <td>${row.exact_scores ?? 0}</td>
+              <td>${row.team_score_points ?? 0}</td>
               <td>${row.correct_results ?? 0}</td>
               <td>${row.correct_first_scores ?? 0}</td>
             </tr>
