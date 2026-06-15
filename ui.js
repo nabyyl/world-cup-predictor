@@ -1465,7 +1465,7 @@ function renderUserProfileModal(currentProfile, teams = [], supporterRows = []) 
               `
               : `
                 <div class="profile-current-team">
-                  <span class="profile-current-flag">🏳️</span>
+                  <span class="profile-current-flag">🇦🇷</span>
                   <div>
                     <span class="muted small">Supporting</span>
                     <strong>No team selected</strong>
@@ -1532,7 +1532,7 @@ function renderUserProfileModal(currentProfile, teams = [], supporterRows = []) 
               `).join('')
               : `
                 <div class="supporter-card">
-                  <strong>🏳️ No supporters yet</strong>
+                  <strong>🇦🇷 No supporters yet</strong>
                   <span>Once users select their teams, they will appear here.</span>
                 </div>
               `
