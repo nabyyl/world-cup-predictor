@@ -1657,19 +1657,20 @@ td:nth-child(n+3) {
   overflow: hidden;
 }
 
-tbody tr:first-child .rank {
+/* Rank colors based on actual rank number, including tied ranks */
+.rank-gold {
   background: linear-gradient(135deg, #fff3a3, #facc15, #b45309);
   color: #111827;
   border-color: transparent;
 }
 
-tbody tr:nth-child(2) .rank {
+.rank-silver {
   background: linear-gradient(135deg, #f8fafc, #cbd5e1, #64748b);
   color: #0f172a;
   border-color: transparent;
 }
 
-tbody tr:nth-child(3) .rank {
+.rank-bronze {
   background: linear-gradient(135deg, #fed7aa, #f97316, #9a3412);
   color: white;
   border-color: transparent;
