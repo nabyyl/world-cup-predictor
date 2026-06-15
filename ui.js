@@ -1325,6 +1325,9 @@ function scorePrediction(prediction, match) {
    ============================================================ */
 
 function renderLeaderboardTable(rows) {
+  let lastPoints = null;
+  let currentRank = 0;
+
   return `
     <div class="card table-card leaderboard-table-card">
       <h2>Leaderboard</h2>
@@ -1360,28 +1363,37 @@ function renderLeaderboardTable(rows) {
         </thead>
 
         <tbody>
-          ${(rows || []).map((row, index) => `
-            <tr>
-              <td><span class="rank">${index + 1}</span></td>
+          ${(rows || []).map((row, index) => {
+            const totalPoints = row.total_points ?? 0;
 
-              <td>
-                <span class="leaderboard-name">
-                  <span class="leaderboard-flag" title="${escapeHtml(row.supported_team || 'No supported team')}">
-                    ${row.supported_team ? teamFlag(row.supported_team) : '🏳️'}
+            if (totalPoints !== lastPoints) {
+              currentRank = index + 1;
+              lastPoints = totalPoints;
+            }
+
+            return `
+              <tr>
+                <td><span class="rank">${currentRank}</span></td>
+
+                <td>
+                  <span class="leaderboard-name">
+                    <span class="leaderboard-flag" title="${escapeHtml(row.supported_team || 'No supported team')}">
+                      ${row.supported_team ? teamFlag(row.supported_team) : '🏳️'}
+                    </span>
+                    <span class="leaderboard-person-name">${escapeHtml(row.full_name || row.email)}</span>
                   </span>
-                  <span class="leaderboard-person-name">${escapeHtml(row.full_name || row.email)}</span>
-                </span>
-              </td>
+                </td>
 
-              <td><span class="points-pill">${row.total_points ?? 0}</span></td>
-              <td>${row.match_points ?? 0}</td>
-              <td>${row.bonus_points ?? 0}</td>
-              <td>${row.exact_scores ?? 0}</td>
-              <td>${row.team_score_points ?? 0}</td>
-              <td>${row.correct_results ?? 0}</td>
-              <td>${row.correct_first_scores ?? 0}</td>
-            </tr>
-          `).join('')}
+                <td><span class="points-pill">${row.total_points ?? 0}</span></td>
+                <td>${row.match_points ?? 0}</td>
+                <td>${row.bonus_points ?? 0}</td>
+                <td>${row.exact_scores ?? 0}</td>
+                <td>${row.team_score_points ?? 0}</td>
+                <td>${row.correct_results ?? 0}</td>
+                <td>${row.correct_first_scores ?? 0}</td>
+              </tr>
+            `;
+          }).join('')}
         </tbody>
       </table>
     </div>
