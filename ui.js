@@ -1363,17 +1363,26 @@ function renderLeaderboardTable(rows) {
         </thead>
 
         <tbody>
-          ${(rows || []).map((row, index) => {
+          ${(rows || []).map((row) => {
             const totalPoints = row.total_points ?? 0;
 
             if (totalPoints !== lastPoints) {
-              currentRank = index + 1;
+              currentRank += 1;
               lastPoints = totalPoints;
             }
 
+            const rankClass =
+              currentRank === 1
+                ? 'rank rank-gold'
+                : currentRank === 2
+                  ? 'rank rank-silver'
+                  : currentRank === 3
+                    ? 'rank rank-bronze'
+                    : 'rank';
+
             return `
               <tr>
-                <td><span class="rank">${currentRank}</span></td>
+                <td><span class="${rankClass}">${currentRank}</span></td>
 
                 <td>
                   <span class="leaderboard-name">
