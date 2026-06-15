@@ -104,15 +104,15 @@ const TEAM_FLAGS = {
   USA: '🇺🇸',
   'United States': '🇺🇸',
   Uzbekistan: '🇺🇿',
-  TBD: '🇦🇷'
+  TBD: '🏳️'
 };
 
 function teamFlag(teamName) {
   const clean = String(teamName || '').trim();
 
-  if (!clean) return '🇦🇷';
+  if (!clean) return '🏳️';
 
-  return TEAM_FLAGS[clean] || '🇦🇷';
+  return TEAM_FLAGS[clean] || '🏳️';
 }
 
 function teamWithFlag(teamName) {
