@@ -104,15 +104,15 @@ const TEAM_FLAGS = {
   USA: '🇺🇸',
   'United States': '🇺🇸',
   Uzbekistan: '🇺🇿',
-  TBD: '🏳️'
+  TBD: '🇦🇷'
 };
 
 function teamFlag(teamName) {
   const clean = String(teamName || '').trim();
 
-  if (!clean) return '🏳️';
+  if (!clean) return '🇦🇷';
 
-  return TEAM_FLAGS[clean] || '🏳️';
+  return TEAM_FLAGS[clean] || '🇦🇷';
 }
 
 function teamWithFlag(teamName) {
@@ -1387,7 +1387,7 @@ function renderLeaderboardTable(rows) {
                 <td>
                   <span class="leaderboard-name">
                     <span class="leaderboard-flag" title="${escapeHtml(row.supported_team || 'No supported team')}">
-                      ${row.supported_team ? teamFlag(row.supported_team) : '🏳️'}
+                      ${row.supported_team ? teamFlag(row.supported_team) : '🇦🇷'}
                     </span>
                     <span class="leaderboard-person-name">${escapeHtml(row.full_name || row.email)}</span>
                   </span>
