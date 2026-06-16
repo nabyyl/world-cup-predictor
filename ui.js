@@ -1164,7 +1164,14 @@ function renderMyPredictions(matches, predictions) {
       match: matches.find(match => match.id === pred.match_id)
     }))
     .filter(row => row.match)
-    .sort((a, b) => new Date(b.pred.updated_at) - new Date(a.pred.updated_at));
+    .sort((a, b) => {
+      const aNo = Number(a.match.match_no || 9999);
+      const bNo = Number(b.match.match_no || 9999);
+
+      if (aNo !== bNo) return aNo - bNo;
+
+      return new Date(a.match.kickoff_at) - new Date(b.match.kickoff_at);
+    });
 
   let totalPoints = 0;
   let hits = 0;
