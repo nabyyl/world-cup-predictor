@@ -1165,12 +1165,12 @@ function renderMyPredictions(matches, predictions) {
     }))
     .filter(row => row.match)
     .sort((a, b) => {
-      const aNo = Number(a.match.match_no || 9999);
-      const bNo = Number(b.match.match_no || 9999);
+      const aNo = Number(a.match.match_no || 0);
+      const bNo = Number(b.match.match_no || 0);
 
-      if (aNo !== bNo) return aNo - bNo;
+      if (aNo !== bNo) return bNo - aNo;
 
-      return new Date(a.match.kickoff_at) - new Date(b.match.kickoff_at);
+      return new Date(b.match.kickoff_at) - new Date(a.match.kickoff_at);
     });
 
   let totalPoints = 0;
