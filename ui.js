@@ -1221,7 +1221,12 @@ function renderMyPredictions(matches, predictions) {
             ? pts.points > 0 ? 'win' : 'loss'
             : '';
 
-          const selectedWinner = pred.who_will_win || predictedWinnerFromScore(pred);
+          const selectedWinner =
+           pred.who_will_win || predictedWinnerFromScore(pred);
+
+         const actualFirstScorer = matchHasResult(match)
+           ? firstTeamLabel(match.actual_first_team_to_score, match)
+           : 'Pending';
 
           return `
             <div class="mp-row ${cls}">
@@ -1232,12 +1237,14 @@ function renderMyPredictions(matches, predictions) {
                   <span class="muted">vs</span>
                   ${teamWithFlag(match.away_team)}
                 </div>
+
                 <div class="meta">
                   ${formatDateShort(match.kickoff_at)}
                   • ${escapeHtml(match.stage || '—')}
                   · saved ${formatRelative(pred.updated_at)}
-                  · Winner: ${escapeHtml(winnerLabel(selectedWinner, match))}
-                  · First scorer: ${escapeHtml(firstTeamLabel(pred.first_team_to_score, match))}
+                  · My winner: ${escapeHtml(winnerLabel(selectedWinner, match))}
+                  · My first scorer: ${escapeHtml(firstTeamLabel(pred.first_team_to_score, match))}
+                  · Actual first scorer: ${escapeHtml(actualFirstScorer)}
                 </div>
               </div>
 
