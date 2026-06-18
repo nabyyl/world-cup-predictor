@@ -1894,6 +1894,25 @@ function adminActualSelect(id, label, placeholder, selected) {
   `;
 }
 
+function adminActualMultiSelect(id, label, selected) {
+  const selectedValues = String(selected || '')
+    .split('||')
+    .map(value => value.trim())
+    .filter(Boolean);
+
+  return `
+    <div class="bonus-field">
+      <label>${escapeHtml(label)}</label>
+      <select id="${id}" multiple size="5">
+        ${selectedValues.map(value => `
+          <option value="${escapeHtml(value)}" selected>${escapeHtml(value)}</option>
+        `).join('')}
+      </select>
+      <p class="muted small">Hold Ctrl / Command to select more than one.</p>
+    </div>
+  `;
+}
+
 function adminActualNumber(id, label, placeholder, selected) {
   return `
     <div class="bonus-field">
@@ -2064,13 +2083,13 @@ function renderSuperAdminPanel(matches, scheduleUrl, bonusResult, bonusOptions =
           <p class="muted small">Group questions are 5 pts each. Other round questions are 7 pts each.</p>
 
           <div class="bonus-grid">
-            ${adminActualSelect('actualGroupMostGoalsTeam', 'Group: Most goals scored', 'Select actual team', bonusResult?.actual_group_most_goals_team)}
-            ${adminActualSelect('actualGroupFewestConcededTeam', 'Group: Fewest goals conceded', 'Select actual team', bonusResult?.actual_group_fewest_conceded_team)}
-            ${adminActualSelect('actualGroupMostYellowCardsTeam', 'Group: Most yellow cards', 'Select actual team', bonusResult?.actual_group_most_yellow_cards_team)}
-            ${adminActualSelect('actualR32ExtraTimeMatch', 'Round of 32: Match went to extra time', 'Select actual match', bonusResult?.actual_r32_extra_time_match)}
-            ${adminActualSelect('actualR16PenaltyShootoutTeam', 'Round of 16: Won through penalty shootout', 'Select actual team', bonusResult?.actual_r16_penalty_shootout_team)}
-            ${adminActualSelect('actualQfCleanSheetTeam', 'Quarter-finals: Progressed with clean sheet', 'Select actual team', bonusResult?.actual_qf_clean_sheet_team)}
-            ${adminActualSelect('actualSfMostPossessionTeam', 'Semi-finals: Most possession', 'Select actual team', bonusResult?.actual_sf_most_possession_team)}
+            ${adminActualMultiSelect('actualGroupMostGoalsTeam', 'Group: Most goals scored', bonusResult?.actual_group_most_goals_team)}
+            ${adminActualMultiSelect('actualGroupFewestConcededTeam', 'Group: Fewest goals conceded', bonusResult?.actual_group_fewest_conceded_team)}
+            ${adminActualMultiSelect('actualGroupMostYellowCardsTeam', 'Group: Most yellow cards', bonusResult?.actual_group_most_yellow_cards_team)}
+            ${adminActualMultiSelect('actualR32ExtraTimeMatch', 'Round of 32: Match went to extra time', bonusResult?.actual_r32_extra_time_match)}
+            ${adminActualMultiSelect('actualR16PenaltyShootoutTeam', 'Round of 16: Won through penalty shootout', bonusResult?.actual_r16_penalty_shootout_team)}
+            ${adminActualMultiSelect('actualQfCleanSheetTeam', 'Quarter-finals: Progressed with clean sheet', bonusResult?.actual_qf_clean_sheet_team)}
+            ${adminActualMultiSelect('actualSfMostPossessionTeam', 'Semi-finals: Most possession', bonusResult?.actual_sf_most_possession_team)}
             ${adminActualNumber('actualFinalFirstHalfGoals', 'Final: First-half goals', 'Example: 1', bonusResult?.actual_final_first_half_goals)}
           </div>
         </div>
