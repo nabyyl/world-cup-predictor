@@ -2318,6 +2318,18 @@ async function resetLeaderboard() {
 
 window.resetLeaderboard = resetLeaderboard;
 
+function getMultiSelectValue(id) {
+  const el = $(id);
+
+  if (!el) return null;
+
+  const values = Array.from(el.selectedOptions || [])
+    .map(option => option.value.trim())
+    .filter(Boolean);
+
+  return values.length ? values.join('||') : null;
+}
+
 async function updateBonusResults() {
   if (!isSuperAdmin()) {
     toast('Super Admin access required.');
@@ -2361,14 +2373,14 @@ async function updateBonusResults() {
     actual_finalist_one: actualFinalistOne,
     actual_finalist_two: actualFinalistTwo,
 
-    actual_group_most_goals_team: nullableValueOf('actualGroupMostGoalsTeam'),
-    actual_group_fewest_conceded_team: nullableValueOf('actualGroupFewestConcededTeam'),
-    actual_group_most_yellow_cards_team: nullableValueOf('actualGroupMostYellowCardsTeam'),
+    actual_group_most_goals_team: getMultiSelectValue('actualGroupMostGoalsTeam'),
+    actual_group_fewest_conceded_team: getMultiSelectValue('actualGroupFewestConcededTeam'),
+    actual_group_most_yellow_cards_team: getMultiSelectValue('actualGroupMostYellowCardsTeam'),
 
-    actual_r32_extra_time_match: nullableValueOf('actualR32ExtraTimeMatch'),
-    actual_r16_penalty_shootout_team: nullableValueOf('actualR16PenaltyShootoutTeam'),
-    actual_qf_clean_sheet_team: nullableValueOf('actualQfCleanSheetTeam'),
-    actual_sf_most_possession_team: nullableValueOf('actualSfMostPossessionTeam'),
+    actual_r32_extra_time_match: getMultiSelectValue('actualR32ExtraTimeMatch'),
+    actual_r16_penalty_shootout_team: getMultiSelectValue('actualR16PenaltyShootoutTeam'),
+    actual_qf_clean_sheet_team: getMultiSelectValue('actualQfCleanSheetTeam'),
+    actual_sf_most_possession_team: getMultiSelectValue('actualSfMostPossessionTeam'),
     actual_final_first_half_goals: actualFinalFirstHalfGoals,
 
     updated_at: new Date().toISOString()
