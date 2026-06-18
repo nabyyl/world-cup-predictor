@@ -3056,6 +3056,18 @@ td .points-pill {
   width: 100%;
 }
 
+.bonus-field select[multiple] {
+  min-height: 150px;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.bonus-field select[multiple] option {
+  padding: 8px 10px;
+  border-radius: 8px;
+  margin-bottom: 4px;
+}
+
 .bonus-grid select,
 .inline-row select,
 #bonusTournamentWinner,
