@@ -566,7 +566,24 @@ function setSelectOptions(selectId, options, placeholder, selectedValue) {
 
   if (!select) return;
 
-  const previousValue = selectedValue ?? select.value ?? '';
+  const isMultiple = !!select.multiple;
+
+  let selectedValues = [];
+
+  if (Array.isArray(selectedValue)) {
+    selectedValues = selectedValue
+      .map(value => String(value ?? '').trim())
+      .filter(Boolean);
+  } else if (typeof selectedValue === 'string') {
+    selectedValues = selectedValue
+      .split('||')
+      .map(value => value.trim())
+      .filter(Boolean);
+  } else if (selectedValue !== null && selectedValue !== undefined) {
+    selectedValues = [String(selectedValue).trim()].filter(Boolean);
+  } else if (!isMultiple && select.value) {
+    selectedValues = [select.value];
+  }
 
   select.innerHTML = `<option value="">${safeEscape(placeholder)}</option>`;
 
@@ -581,17 +598,23 @@ function setSelectOptions(selectId, options, placeholder, selectedValue) {
     );
   });
 
-  if (previousValue) {
-    const exists = Array.from(select.options).some(option => option.value === previousValue);
+  selectedValues.forEach(value => {
+    const exists = Array.from(select.options).some(option => option.value === value);
 
     if (!exists) {
       select.insertAdjacentHTML(
         'beforeend',
-        `<option value="${safeEscape(previousValue)}">${safeEscape(previousValue)}</option>`
+        `<option value="${safeEscape(value)}">${safeEscape(value)}</option>`
       );
     }
+  });
 
-    select.value = previousValue;
+  if (isMultiple) {
+    Array.from(select.options).forEach(option => {
+      option.selected = selectedValues.includes(option.value);
+    });
+  } else {
+    select.value = selectedValues[0] || '';
   }
 }
 
