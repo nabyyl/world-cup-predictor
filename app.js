@@ -585,7 +585,14 @@ function setSelectOptions(selectId, options, placeholder, selectedValue) {
     selectedValues = [select.value];
   }
 
-  select.innerHTML = `<option value="">${safeEscape(placeholder)}</option>`;
+  select.innerHTML = '';
+
+  if (!isMultiple) {
+    select.insertAdjacentHTML(
+      'beforeend',
+      `<option value="">${safeEscape(placeholder)}</option>`
+    );
+  }
 
   options.forEach(option => {
     const value = String(option ?? '').trim();
@@ -2347,10 +2354,12 @@ function getMultiSelectValue(id) {
   if (!el) return null;
 
   const values = Array.from(el.selectedOptions || [])
-    .map(option => option.value.trim())
-    .filter(Boolean);
+    .map(option => String(option.value ?? '').trim())
+    .filter(value => value !== '');
 
-  return values.length ? values.join('||') : null;
+  const uniqueValues = [...new Set(values)];
+
+  return uniqueValues.length ? uniqueValues.join('||') : null;
 }
 
 async function updateBonusResults() {
