@@ -724,6 +724,20 @@ function populateBonusDropdowns() {
   }
 }
 
+function setMultiAnswerFieldValue(id, value) {
+  const el = $(id);
+
+  if (!el) return;
+
+  const cleanValue = String(value || '')
+    .split('||')
+    .map(item => item.trim())
+    .filter(Boolean)
+    .join(', ');
+
+  el.value = cleanValue;
+}
+
 function populateBonusResultDropdowns() {
   const teams = bonusTeamsCache.length ? bonusTeamsCache : DEFAULT_BONUS_TEAMS;
   const players = bonusPlayersCache.length ? bonusPlayersCache : DEFAULT_BONUS_PLAYERS;
@@ -747,7 +761,6 @@ function populateBonusResultDropdowns() {
     actualGoldenBootValue
   );
 
-  /* Backward compatibility with older UI id */
   setSelectOptions(
     'actualBestPlayer',
     players,
@@ -769,52 +782,38 @@ function populateBonusResultDropdowns() {
     bonusResultCache?.actual_finalist_two || ''
   );
 
-  setSelectOptions(
+  setMultiAnswerFieldValue(
     'actualGroupMostGoalsTeam',
-    teams,
-    'Select actual team',
     bonusResultCache?.actual_group_most_goals_team || ''
   );
 
-  setSelectOptions(
+  setMultiAnswerFieldValue(
     'actualGroupFewestConcededTeam',
-    teams,
-    'Select actual team',
     bonusResultCache?.actual_group_fewest_conceded_team || ''
   );
 
-  setSelectOptions(
+  setMultiAnswerFieldValue(
     'actualGroupMostYellowCardsTeam',
-    teams,
-    'Select actual team',
     bonusResultCache?.actual_group_most_yellow_cards_team || ''
   );
 
-  setSelectOptions(
+  setMultiAnswerFieldValue(
     'actualR32ExtraTimeMatch',
-    bonusMatchOptions(['r32']),
-    'Select actual match',
     bonusResultCache?.actual_r32_extra_time_match || ''
   );
 
-  setSelectOptions(
+  setMultiAnswerFieldValue(
     'actualR16PenaltyShootoutTeam',
-    teams,
-    'Select actual team',
     bonusResultCache?.actual_r16_penalty_shootout_team || ''
   );
 
-  setSelectOptions(
+  setMultiAnswerFieldValue(
     'actualQfCleanSheetTeam',
-    teams,
-    'Select actual team',
     bonusResultCache?.actual_qf_clean_sheet_team || ''
   );
 
-  setSelectOptions(
+  setMultiAnswerFieldValue(
     'actualSfMostPossessionTeam',
-    teams,
-    'Select actual team',
     bonusResultCache?.actual_sf_most_possession_team || ''
   );
 
