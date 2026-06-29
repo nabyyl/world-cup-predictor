@@ -1895,20 +1895,23 @@ function adminActualSelect(id, label, placeholder, selected) {
 }
 
 function adminActualMultiSelect(id, label, selected) {
-  const selectedValues = String(selected || '')
+  const cleanValue = String(selected || '')
     .split('||')
     .map(value => value.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .join(', ');
 
   return `
     <div class="bonus-field">
       <label>${escapeHtml(label)}</label>
-      <select id="${id}" multiple size="5">
-        ${selectedValues.map(value => `
-          <option value="${escapeHtml(value)}" selected>${escapeHtml(value)}</option>
-        `).join('')}
-      </select>
-      <p class="muted small">Hold Ctrl / Command to select more than one.</p>
+      <textarea
+        id="${id}"
+        rows="3"
+        placeholder="Enter one or more answers, separated by commas or new lines"
+      >${escapeHtml(cleanValue)}</textarea>
+      <p class="muted small">
+        For multiple correct answers, separate them with commas or enter each answer on a new line.
+      </p>
     </div>
   `;
 }
