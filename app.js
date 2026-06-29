@@ -2352,9 +2352,18 @@ function getMultiSelectValue(id) {
 
   if (!el) return null;
 
-  const values = Array.from(el.selectedOptions || [])
-    .map(option => String(option.value ?? '').trim())
-    .filter(value => value !== '');
+  let values = [];
+
+  if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
+    values = String(el.value || '')
+      .split(/\n|,/)
+      .map(value => value.trim())
+      .filter(Boolean);
+  } else {
+    values = Array.from(el.selectedOptions || [])
+      .map(option => String(option.value ?? '').trim())
+      .filter(Boolean);
+  }
 
   const uniqueValues = [...new Set(values)];
 
