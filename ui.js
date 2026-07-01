@@ -1845,7 +1845,7 @@ function renderAdminBonusPredictionReview(rows) {
                     Most yellows: ${escapeHtml(row.group_most_yellow_cards_team || '—')}
                   </td>
                   <td>
-                    R32 ET match: ${escapeHtml(row.r32_extra_time_match || '—')}<br>
+                    ${escapeHtml(row.r32_extra_time_match || '—')}<br>
                     R16 pens: ${escapeHtml(row.r16_penalty_shootout_team || '—')}<br>
                     QF clean sheet: ${escapeHtml(row.qf_clean_sheet_team || '—')}<br>
                     SF possession: ${escapeHtml(row.sf_most_possession_team || '—')}<br>
